@@ -13,8 +13,8 @@ Description: Implements the Lee and Wooldridge (2025, 2026) simple
     randomization inference, wild cluster bootstrap, and comprehensive
     diagnostic tools for trend analysis, clustering, and selection.
 License: AGPL-3 + file LICENSE
-URL: https://github.com/gorgeousfish/lwdid-r
-BugReports: https://github.com/gorgeousfish/lwdid-r/issues
+URL: https://github.com/gorgeousfish/lwdid_r
+BugReports: https://github.com/gorgeousfish/lwdid_r/issues
 Depends:
     R (>= 4.0.0)
 Imports:
