@@ -132,6 +132,7 @@ result_es <- lwdid(
   aggregate = "event_time"
 )
 
+summary(result_es)
 plot(result_es)
 ```
 

@@ -161,6 +161,8 @@ lwdid_diagnose <- function(
     never_treated_values = c(0, Inf),
     verbose = TRUE
 ) {
+  # Always suppress sub-component printing during suite execution;
+
   results <- list(
     selection = .run_suite_diagnostic("Selection diagnostics", function() {
       diagnose_selection_mechanism(
@@ -172,7 +174,7 @@ lwdid_diagnose <- function(
         d = d,
         covariates = controls,
         never_treated_values = never_treated_values,
-        verbose = verbose
+        verbose = FALSE
       )
     }),
     trends = .run_suite_diagnostic("Trend diagnostics", function() {
@@ -185,7 +187,7 @@ lwdid_diagnose <- function(
         controls = controls,
         never_treated_values = never_treated_values,
         run_all_diagnostics = TRUE,
-        verbose = verbose
+        verbose = FALSE
       )
     })
   )
@@ -198,7 +200,7 @@ lwdid_diagnose <- function(
         potential_cluster_vars = cluster_vars,
         gvar = gvar,
         d = d,
-        verbose = verbose
+        verbose = FALSE
       )
     })
   }

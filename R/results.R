@@ -1435,10 +1435,12 @@ print.summary.lwdid_result <- function(x, digits = 4L,
   } else {
     cat(sprintf("Dep.var: %s | df: %d\n", x$depvar, x$df_inference))
   }
-  if (!is.null(x$K)) {
-    cat(sprintf("K: %d", x$K))
-    if (!is.null(x$tpost1)) cat(sprintf(" | tpost1: %s", x$tpost1))
-    cat("\n")
+  if (!isTRUE(x$is_staggered)) {
+    if (!is.null(x$K)) {
+      cat(sprintf("K: %d", x$K))
+      if (!is.null(x$tpost1)) cat(sprintf(" | tpost1: %s", x$tpost1))
+      cat("\n")
+    }
   }
   cat(paste(rep("-", 60), collapse = ""), "\n")
 
@@ -1499,15 +1501,6 @@ print.summary.lwdid_result <- function(x, digits = 4L,
     ))
   }
 
-  if (!is.null(x$regression_coefficients)) {
-    cat("\nRegression Coefficients:\n")
-    reg_mat <- as.matrix(x$regression_coefficients[, 1:4])
-    colnames(reg_mat) <- c("Estimate", "Std. Error", "t value", "Pr(>|t|)")
-    stats::printCoefmat(reg_mat, digits = digits,
-                        signif.stars = signif.stars,
-                        P.values = TRUE, has.Pvalue = TRUE,
-                        na.print = "")
-  }
 
   # Cohort weights (with N)
   if (!is.null(x$cohort_weights)) {
@@ -1533,17 +1526,50 @@ print.summary.lwdid_result <- function(x, digits = 4L,
   }
 
   # Event-time effects
-  if (!is.null(x$event_time_effects)) {
+  if (!is.null(x$event_time_effects) && length(x$event_time_effects) > 0L) {
     cat("\n--- Event-Time Effects ---\n")
-    print(x$event_time_effects, digits = digits, row.names = FALSE)
+    # Convert list-of-lists to data.frame for clean display
+    if (is.data.frame(x$event_time_effects)) {
+      et_display <- x$event_time_effects
+    } else {
+      et_display <- do.call(rbind, lapply(x$event_time_effects, function(e) {
+        data.frame(
+          event_time = as.integer(e$event_time),
+          att        = round(as.numeric(e$att), digits),
+          se         = round(as.numeric(e$se), digits),
+          ci_lower   = round(as.numeric(e$ci_lower), digits),
+          ci_upper   = round(as.numeric(e$ci_upper), digits),
+          pvalue     = as.numeric(e$pvalue),
+          n_cohorts  = as.integer(e$n_cohorts),
+          stringsAsFactors = FALSE
+        )
+      }))
+    }
+    print(et_display, digits = digits, row.names = FALSE)
   }
 
-  # Period-specific effects (truncate >5 rows)
+  # Period-specific effects
   if (!is.null(x$period_effects)) {
     cat("\n--- Period-Specific Effects ---\n")
-    print(x$period_effects, digits = digits, row.names = FALSE)
-    if (nrow(x$period_effects) > 5L) {
-      cat(sprintf("  ... (%d more rows)\n", nrow(x$period_effects) - 5L))
+    pe <- x$period_effects
+    # Select only essential columns for display
+    display_cols <- intersect(
+      c("period", "att", "se", "t_stat", "pvalue", "ci_lower", "ci_upper"),
+      names(pe)
+    )
+    if (length(display_cols) > 0L) {
+      pe_display <- pe[, display_cols, drop = FALSE]
+    } else {
+      pe_display <- pe
+    }
+    n_rows <- nrow(pe_display)
+    max_show <- 12L
+    if (n_rows > max_show) {
+      print(pe_display[seq_len(max_show), , drop = FALSE],
+            digits = digits, row.names = FALSE)
+      cat(sprintf("  ... (%d more rows)\n", n_rows - max_show))
+    } else {
+      print(pe_display, digits = digits, row.names = FALSE)
     }
   }
 
@@ -1653,8 +1679,10 @@ print.summary.lwdid_result <- function(x, digits = 4L,
   cat(paste(rep("-", 60), collapse = ""), "\n")
   cat(sprintf("N = %d | N_treated = %d | N_control = %d",
               x$nobs, x$n_treated, x$n_control))
-  if (!is.null(x$K)) cat(sprintf(" | K = %d", x$K))
-  if (!is.null(x$tpost1)) cat(sprintf(" | tpost1 = %s", x$tpost1))
+  if (!isTRUE(x$is_staggered)) {
+    if (!is.null(x$K)) cat(sprintf(" | K = %d", x$K))
+    if (!is.null(x$tpost1)) cat(sprintf(" | tpost1 = %s", x$tpost1))
+  }
   cat("\n")
 
   # Staggered usage hints
