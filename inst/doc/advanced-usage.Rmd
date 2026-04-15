@@ -47,7 +47,7 @@ cross-sectional data:
 ```{r ipw, eval=FALSE}
 result_ipw <- lwdid(
   data = castle, y = "lhomicide", ivar = "sid", tvar = "year",
-  gvar = "effyear", rolling = "demean", estimator = "ipw",
+  gvar = "gvar", rolling = "demean", estimator = "ipw",
   controls = c("police", "income", "poverty"),
   aggregate = "cohort"
 )
@@ -58,7 +58,7 @@ result_ipw <- lwdid(
 ```{r ipwra, eval=FALSE}
 result_ipwra <- lwdid(
   data = castle, y = "lhomicide", ivar = "sid", tvar = "year",
-  gvar = "effyear", rolling = "demean", estimator = "ipwra",
+  gvar = "gvar", rolling = "demean", estimator = "ipwra",
   controls = c("police", "income", "poverty"),
   aggregate = "cohort"
 )
@@ -69,7 +69,7 @@ result_ipwra <- lwdid(
 ```{r psm, eval=FALSE}
 result_psm <- lwdid(
   data = castle, y = "lhomicide", ivar = "sid", tvar = "year",
-  gvar = "effyear", rolling = "demean", estimator = "psm",
+  gvar = "gvar", rolling = "demean", estimator = "psm",
   controls = c("police", "income", "poverty"),
   aggregate = "cohort"
 )
@@ -115,11 +115,11 @@ summary(result_hc1)
 
 ## Sensitivity Analysis
 
-```{r sensitivity, eval=FALSE}
-sens <- lwdid_sensitivity(
+```{r sensitivity}
+sens <- suppressWarnings(lwdid_sensitivity(
   data = smoking, y = "lcigsale", ivar = "state", tvar = "year",
   d = "d", post = "post", type = "all", verbose = FALSE
-)
+))
 print(sens)
 ```
 
@@ -136,31 +136,31 @@ pre_sens <- lwdid_sensitivity_pre_period(
 
 ### Parallel Trends Testing
 
-```{r pt-test, eval=FALSE}
+```{r pt-test}
 pt <- lwdid_test_parallel_trends(
   data = castle, y = "lhomicide", ivar = "sid",
-  tvar = "year", gvar = "effyear"
+  tvar = "year", gvar = "gvar"
 )
 print(pt)
 ```
 
 ### Transformation Recommendation
 
-```{r recommend, eval=FALSE}
+```{r recommend}
 rec <- lwdid_recommend_transformation(
   data = castle, y = "lhomicide", ivar = "sid",
-  tvar = "year", gvar = "effyear"
+  tvar = "year", gvar = "gvar"
 )
 print(rec)
 ```
 
 ### Full Diagnostic Suite
 
-```{r diagnose, eval=FALSE}
-diag <- lwdid_diagnose(
+```{r diagnose}
+diag <- suppressWarnings(lwdid_diagnose(
   data = castle, y = "lhomicide", ivar = "sid",
-  tvar = "year", gvar = "effyear"
-)
+  tvar = "year", gvar = "gvar"
+))
 summary(diag)
 ```
 
@@ -183,16 +183,22 @@ panel <- as.data.frame(agg_result)
 
 ## Wild Cluster Bootstrap
 
-For inference with few clusters:
+For inference with few clusters, use `vce = "bootstrap"` with a
+`cluster_var`:
 
 ```{r wcb, eval=FALSE}
-wcb <- wild_cluster_bootstrap(
-  data = castle, y = "lhomicide", ivar = "sid",
-  tvar = "year", gvar = "effyear",
-  cluster = "sid", B = 999
+result_wcb <- lwdid(
+  data = smoking, y = "lcigsale", ivar = "state", tvar = "year",
+  d = "d", post = "post", rolling = "demean",
+  vce = "bootstrap", cluster_var = "state",
+  wcb_reps = 999
 )
-print(wcb)
+summary(result_wcb)
 ```
+
+When `vce = "cluster"` is specified and the number of clusters is below
+20, lwdid automatically upgrades to the Wild Cluster Bootstrap
+(`auto_wcb = TRUE` by default).
 
 ## Randomization Inference
 
@@ -213,7 +219,7 @@ Enable parallel processing for staggered designs:
 ```{r parallel, eval=FALSE}
 result_par <- lwdid(
   data = castle, y = "lhomicide", ivar = "sid", tvar = "year",
-  gvar = "effyear", rolling = "demean", aggregate = "cohort",
+  gvar = "gvar", rolling = "demean", aggregate = "cohort",
   parallel = TRUE, n_cores = 4
 )
 ```
@@ -231,8 +237,8 @@ setup_parallel(strategy = "sequential")
 ## Exporting Results
 
 ```{r export, eval=FALSE}
-to_latex(result, file = "results_table.tex")
-to_csv(result, file = "results.csv")
+to_latex(res_dm, file = "results_table.tex")
+to_csv(res_dm, file = "results.csv")
 ```
 
 ## References
