@@ -825,6 +825,104 @@ extract_effects <- function(result, type = NULL) {
   summary_list
 }
 
+# -- Formatting helpers for Stata-quality output ----------------------------
+
+#' Format a numeric value with fixed width
+#' @keywords internal
+.fmt_num <- function(x, width = 10L, digits = 4L) {
+  if (is.null(x) || length(x) == 0L || is.na(x)) return(formatC("", width = width))
+  formatC(x, format = "f", digits = digits, width = width)
+}
+
+#' Format a p-value with consistent display
+#' @keywords internal
+.fmt_pval <- function(p, width = 8L) {
+  if (is.null(p) || length(p) == 0L || is.na(p)) return(formatC("", width = width))
+  if (p < 0.001) return(formatC("<0.001", width = width))
+  formatC(p, format = "f", digits = 4L, width = width)
+}
+
+#' Format significance stars (fixed width 4)
+#' @keywords internal
+.fmt_stars <- function(p) {
+  if (is.null(p) || is.na(p)) return("    ")
+  if (p < 0.001) return(" ***")
+  if (p < 0.01)  return("  **")
+  if (p < 0.05)  return("   *")
+  if (p < 0.10)  return("   .")
+  "    "
+}
+
+#' Print a formatted effects table (period / cohort / event-time)
+#'
+#' @param df data.frame with at least 'att', 'se', 'pvalue' columns.
+#' @param label_col character, name of the leftmost label column (e.g. "Period").
+#' @param label_name character, column name in df for labels.
+#' @param extra_cols named list of list(name, col, width, fmt) for extra columns.
+#' @param digits integer, decimal places.
+#' @param max_rows integer, max rows to show before truncation.
+#' @keywords internal
+.print_effects_table <- function(df, label_col = "Period", label_name = "period",
+                                  extra_cols = NULL, digits = 4L,
+                                  max_rows = 20L) {
+  if (is.null(df) || !is.data.frame(df) || nrow(df) == 0L) return(invisible(NULL))
+
+  n_rows <- nrow(df)
+  show_df <- if (n_rows > max_rows) df[seq_len(max_rows), , drop = FALSE] else df
+
+  # Build header
+  hdr <- sprintf("  %8s %10s %10s %10s %8s     %10s %10s",
+                 label_col, "ATT", "Std. Err.", "t-stat", "p-value",
+                 "CI lower", "CI upper")
+  rule <- paste0("  ", strrep("-", nchar(hdr) - 2L))
+
+  cat(rule, "\n")
+  cat(hdr, "\n")
+  cat(rule, "\n")
+
+  for (i in seq_len(nrow(show_df))) {
+    row <- show_df[i, ]
+    lbl <- if (label_name %in% names(row)) as.character(row[[label_name]]) else ""
+    att_val <- if ("att" %in% names(row)) row$att else NA_real_
+    se_val <- if ("se" %in% names(row)) row$se else NA_real_
+    t_val <- if ("t_stat" %in% names(row)) row$t_stat else NA_real_
+    p_val <- if ("pvalue" %in% names(row)) row$pvalue else NA_real_
+    ci_lo <- if ("ci_lower" %in% names(row)) row$ci_lower else NA_real_
+    ci_hi <- if ("ci_upper" %in% names(row)) row$ci_upper else NA_real_
+
+    cat(sprintf("  %8s %s %s %s %s%s %s %s\n",
+                lbl,
+                .fmt_num(att_val, 10L, digits),
+                .fmt_num(se_val, 10L, digits),
+                .fmt_num(t_val, 10L, digits),
+                .fmt_pval(p_val),
+                .fmt_stars(p_val),
+                .fmt_num(ci_lo, 10L, digits),
+                .fmt_num(ci_hi, 10L, digits)))
+  }
+
+  if (n_rows > max_rows) {
+    cat(sprintf("  ... (%d more rows)\n", n_rows - max_rows))
+  }
+  cat(rule, "\n")
+}
+
+#' Print two-column key-value header
+#' @keywords internal
+.print_header_kv <- function(pairs) {
+  # pairs: list of c(key1, val1, key2, val2) vectors
+  for (p in pairs) {
+    if (length(p) == 4L) {
+      cat(sprintf("  %-13s %-24s %-14s %s\n", p[1], p[2], p[3], p[4]))
+    } else if (length(p) == 2L) {
+      cat(sprintf("  %-13s %s\n", p[1], p[2]))
+    }
+  }
+}
+
+.RULE_DOUBLE <- strrep("=", 78L)
+.RULE_SINGLE <- strrep("-", 78L)
+
 # -- print.lwdid_result -----------------------------------------------------
 
 #' @title Print lwdid result
@@ -1410,9 +1508,7 @@ summary.lwdid_result <- function(object, digits = 4L, ...) {
 # -- print.summary.lwdid_result ---------------------------------------------
 
 #' @title Print lwdid summary
-#' @description Full regression summary output with printCoefmat, cohort
-#'   weights with N, pre-treatment dynamics with anchor marking, parallel
-#'   trends reject/fail-to-reject conclusions, and RI details.
+#' @description Full regression summary with Stata-quality formatting.
 #' @param x summary.lwdid_result object
 #' @param digits integer, decimal places (default 4)
 #' @param signif.stars logical, show significance stars (default TRUE)
@@ -1421,273 +1517,282 @@ summary.lwdid_result <- function(object, digits = 4L, ...) {
 #' @export
 print.summary.lwdid_result <- function(x, digits = 4L,
                                         signif.stars = TRUE, ...) {
-  cat("\nLocal Wald DID Estimation Summary\n")
-  cat("Lee-Wooldridge DiD Estimation\n")
-  if (!is.null(x$call)) cat("Call:", deparse(x$call), "\n")
-  cat(paste(rep("=", 60), collapse = ""), "\n")
+  W <- 78L
+  RULE2 <- strrep("=", W)
+  RULE1 <- strrep("-", W)
 
-  # Model info
-  cat(sprintf("Method: %s | Estimator: %s | Rolling: %s\n",
-              x$method, x$estimator, x$rolling))
-  cat(sprintf("VCE: %s\n", x$vce_description))
-  if (!is.null(x$wcb_details)) {
-    cat(sprintf("Dep.var: %s | df: WCB\n", x$depvar))
-  } else {
-    cat(sprintf("Dep.var: %s | df: %d\n", x$depvar, x$df_inference))
+  # ── Title ──────────────────────────────────────────────────────────────────
+  cat("\nLee-Wooldridge DiD Estimation\n")
+  cat(RULE2, "\n")
+
+  # ── Header: two-column key-value ───────────────────────────────────────────
+  est_label <- x$estimator %||% "ra"
+  vce_label <- x$vce_description %||% "homoskedastic"
+  df_label <- if (!is.null(x$wcb_details)) "WCB" else {
+    if (!is.null(x$df_inference) && !is.na(x$df_inference))
+      as.character(x$df_inference)
+    else "NA"
   }
+
+  .print_header_kv(list(
+    c("Method:", x$method %||% "common_timing",
+      "Dep. var:", x$depvar %||% ""),
+    c("Estimator:", est_label,
+      "VCE:", vce_label),
+    c("Transform:", x$rolling %||% "demean",
+      "df:", df_label)
+  ))
+
+  # Common-timing specific header fields
   if (!isTRUE(x$is_staggered)) {
-    if (!is.null(x$K)) {
-      cat(sprintf("K: %d", x$K))
-      if (!is.null(x$tpost1)) cat(sprintf(" | tpost1: %s", x$tpost1))
-      cat("\n")
+    k_str <- if (!is.null(x$K)) sprintf("K = %d", x$K) else ""
+    tp_str <- if (!is.null(x$tpost1)) sprintf("tpost1 = %s", x$tpost1) else ""
+    if (nzchar(k_str) || nzchar(tp_str)) {
+      .print_header_kv(list(c("Pre-periods:", k_str, "Post start:", tp_str)))
     }
   }
-  cat(paste(rep("-", 60), collapse = ""), "\n")
 
-  # Staggered header
+  # Staggered specific header fields
   if (isTRUE(x$is_staggered)) {
-    cat(sprintf("\nStaggered DID | Cohorts: %s\n",
-                paste(x$cohort_list, collapse = ", ")))
+    agg_label <- x$aggregate %||% "none"
+    .print_header_kv(list(
+      c("Aggregation:", agg_label, "", "")
+    ))
+    if (!is.null(x$cohort_list) && length(x$cohort_list) > 0L) {
+      cat(sprintf("  %-13s %s\n", "Cohorts:",
+                  paste(x$cohort_list, collapse = ", ")))
+    }
     if (!is.null(x$control_group_used)) {
-      cat(sprintf("Control group: %s", x$control_group_used))
+      cg_str <- x$control_group_used
       if (isTRUE(x$control_group_auto_switched) && !is.null(x$control_group)) {
-        cat(sprintf(" [auto-switched from %s]", x$control_group))
+        cg_str <- sprintf("%s [auto-switched]", cg_str)
       }
-      cat("\n")
-    }
-    if (!is.null(x$n_never_treated)) {
-      cat(sprintf("Number of Never Treated Units: %d\n", x$n_never_treated))
-    }
-    if (!is.null(x$aggregate)) {
-      cat(sprintf("Aggregation: %s\n", x$aggregate))
+      nt_str <- if (!is.null(x$n_never_treated))
+        sprintf("N never-treated: %d", x$n_never_treated) else ""
+      .print_header_kv(list(c("Control:", cg_str, nt_str, "")))
     }
   }
 
-  # Overall ATT
+  cat(RULE1, "\n")
+
+  # ── Overall ATT ────────────────────────────────────────────────────────────
+  att_val <- x$coefficients$Estimate
+  se_val <- x$coefficients$Std.Error
+  t_val <- x$coefficients$t.value
+  p_val <- x$coefficients$Pr.t
+  ci_lo <- x$coefficients$CI.lower
+  ci_hi <- x$coefficients$CI.upper
+  has_se <- !is.null(se_val) && !is.na(se_val)
+
   if (isTRUE(x$is_staggered) && isTRUE(x$has_overall_effect)) {
-    cat("\nOverall Weighted Effect (tau_omega):\n")
+    cat("\nOverall ATT (tau_omega):\n")
   } else {
     cat("\nOverall ATT:\n")
   }
-  coef_mat <- as.matrix(x$coefficients[, 1:4])
-  colnames(coef_mat) <- c("Estimate", "Std. Error", "t value", "Pr(>|t|)")
-  stats::printCoefmat(coef_mat, digits = digits,
-                      signif.stars = signif.stars,
-                      P.values = TRUE, has.Pvalue = TRUE,
-                      na.print = "")
-  ci_pct <- as.integer((1 - x$alpha) * 100)
-  cat(sprintf("  CI [%d%%]: [%.*f, %.*f]\n",
-              ci_pct,
-              digits, x$coefficients$CI.lower,
-              digits, x$coefficients$CI.upper))
 
+  # Header line for ATT table
+  hdr <- sprintf("              %10s %10s %10s %8s     %10s %10s",
+                 "Estimate", "Std. Err.", "t value", "Pr(>|t|)",
+                 "CI lower", "CI upper")
+  cat(hdr, "\n")
+
+  # ATT row
+  cat(sprintf("  ATT     %s %s %s %s%s %s %s\n",
+              .fmt_num(att_val, 10L, digits),
+              .fmt_num(se_val, 10L, digits),
+              .fmt_num(t_val, 10L, digits),
+              .fmt_pval(p_val),
+              if (has_se) .fmt_stars(p_val) else "    ",
+              .fmt_num(ci_lo, 10L, digits),
+              .fmt_num(ci_hi, 10L, digits)))
+
+  if (signif.stars && has_se) {
+    cat("  ---\n")
+    cat("  Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1\n")
+  }
+
+  # ── WCB details ────────────────────────────────────────────────────────────
   if (!is.null(x$wcb_details)) {
-    cat("\nWild Cluster Bootstrap:\n")
-    cat(sprintf("  Weight type: %s\n", x$wcb_details$weight_type))
-    cat(sprintf(
-      "  Requested bootstrap: %d | Actual bootstrap: %d\n",
-      as.integer(x$wcb_details$requested_n_bootstrap),
-      as.integer(x$wcb_details$actual_n_bootstrap)
-    ))
-    cat(sprintf(
-      "  Clusters: %d | Method: %s | Restricted model: %s\n",
-      as.integer(x$wcb_details$n_clusters),
-      x$wcb_details$method %||% "native",
-      x$wcb_details$restricted_model %||% "with_controls"
-    ))
-    cat(sprintf(
-      "  Full enumeration: %s\n",
-      if (isTRUE(x$wcb_details$full_enumeration)) "TRUE" else "FALSE"
-    ))
+    cat(sprintf("\n  Wild Cluster Bootstrap: %s | clusters=%d | reps=%d/%d\n",
+                x$wcb_details$weight_type,
+                as.integer(x$wcb_details$n_clusters),
+                as.integer(x$wcb_details$actual_n_bootstrap),
+                as.integer(x$wcb_details$requested_n_bootstrap)))
   }
 
-
-  # Cohort weights (with N)
-  if (!is.null(x$cohort_weights)) {
-    cat("\n--- Cohort Weights ---\n")
-    if (!is.null(x$cohort_sample_sizes)) {
-      for (nm in names(x$cohort_weights)) {
-        cat(sprintf("  %s: w=%.3f, N=%d\n",
-                    nm, x$cohort_weights[nm],
-                    x$cohort_sample_sizes[nm]))
-      }
-    } else {
-      cat(paste(sprintf("  %s: w=%.3f",
-                        names(x$cohort_weights),
-                        x$cohort_weights), collapse = "\n"))
-      cat("\n")
+  # ── Cohort Effects (staggered) ─────────────────────────────────────────────
+  if (isTRUE(x$is_staggered) && !is.null(x$cohort_effects_detail) &&
+      is.data.frame(x$cohort_effects_detail) && nrow(x$cohort_effects_detail) > 0L) {
+    cat("\nCohort Effects:\n")
+    # Build cohort effects with CI from the full cohort_effects list
+    ce <- x$cohort_effects_detail
+    ce_full <- NULL
+    if (!is.null(x$cohort_effects) && is.data.frame(x$cohort_effects)) {
+      ce_full <- x$cohort_effects
     }
-  }
-
-  # Cohort-specific effects
-  if (!is.null(x$cohort_effects)) {
-    cat("\n--- Cohort Effects ---\n")
-    print(x$cohort_effects, digits = digits, row.names = FALSE)
-  }
-
-  # Event-time effects
-  if (!is.null(x$event_time_effects) && length(x$event_time_effects) > 0L) {
-    cat("\n--- Event-Time Effects ---\n")
-    # Convert list-of-lists to data.frame for clean display
-    if (is.data.frame(x$event_time_effects)) {
-      et_display <- x$event_time_effects
+    # Construct display df with CI
+    ce_df <- data.frame(
+      cohort = ce$cohort,
+      att = ce$att,
+      se = ce$se,
+      stringsAsFactors = FALSE
+    )
+    # Add pvalue, ci_lower, ci_upper from full cohort_effects if available
+    if (!is.null(ce_full) && "pvalue" %in% names(ce_full)) {
+      ce_df$pvalue <- ce_full$pvalue
+      ce_df$ci_lower <- ce_full$ci_lower
+      ce_df$ci_upper <- ce_full$ci_upper
     } else {
-      et_display <- do.call(rbind, lapply(x$event_time_effects, function(e) {
+      ce_df$pvalue <- NA_real_
+      ce_df$ci_lower <- NA_real_
+      ce_df$ci_upper <- NA_real_
+    }
+    ce_df$t_stat <- ifelse(ce_df$se > 0, ce_df$att / ce_df$se, NA_real_)
+
+    # Print header
+    hdr_ce <- sprintf("  %8s %7s %7s %10s %10s %10s %8s     %10s %10s",
+                      "Cohort", "N_units", "Periods",
+                      "ATT", "Std. Err.", "t-stat", "p-value",
+                      "CI lower", "CI upper")
+    rule_ce <- paste0("  ", strrep("-", nchar(hdr_ce) - 2L))
+    cat(rule_ce, "\n")
+    cat(hdr_ce, "\n")
+    cat(rule_ce, "\n")
+
+    for (i in seq_len(nrow(ce_df))) {
+      r <- ce_df[i, ]
+      nu <- if (!is.null(ce$n_units)) as.integer(ce$n_units[i]) else NA_integer_
+      np <- if (!is.null(ce$n_periods)) as.integer(ce$n_periods[i]) else NA_integer_
+      cat(sprintf("  %8d %7s %7s %s %s %s %s%s %s %s\n",
+                  r$cohort,
+                  if (!is.na(nu)) formatC(nu, width = 7L) else formatC("", width = 7L),
+                  if (!is.na(np)) formatC(np, width = 7L) else formatC("", width = 7L),
+                  .fmt_num(r$att, 10L, digits),
+                  .fmt_num(r$se, 10L, digits),
+                  .fmt_num(r$t_stat, 10L, digits),
+                  .fmt_pval(r$pvalue),
+                  .fmt_stars(r$pvalue),
+                  .fmt_num(r$ci_lower, 10L, digits),
+                  .fmt_num(r$ci_upper, 10L, digits)))
+    }
+    cat(rule_ce, "\n")
+  }
+
+  # ── Event-Time Effects (staggered) ─────────────────────────────────────────
+  if (!is.null(x$event_time_effects) && length(x$event_time_effects) > 0L) {
+    cat("\nEvent-Time Effects:\n")
+    # Convert to data.frame
+    if (is.data.frame(x$event_time_effects)) {
+      et_df <- x$event_time_effects
+    } else {
+      et_df <- do.call(rbind, lapply(x$event_time_effects, function(e) {
         data.frame(
           event_time = as.integer(e$event_time),
-          att        = round(as.numeric(e$att), digits),
-          se         = round(as.numeric(e$se), digits),
-          ci_lower   = round(as.numeric(e$ci_lower), digits),
-          ci_upper   = round(as.numeric(e$ci_upper), digits),
-          pvalue     = as.numeric(e$pvalue),
-          n_cohorts  = as.integer(e$n_cohorts),
+          att = as.numeric(e$att),
+          se = as.numeric(e$se),
+          t_stat = as.numeric(e$t_stat %||% (e$att / e$se)),
+          pvalue = as.numeric(e$pvalue),
+          ci_lower = as.numeric(e$ci_lower),
+          ci_upper = as.numeric(e$ci_upper),
           stringsAsFactors = FALSE
         )
       }))
     }
-    print(et_display, digits = digits, row.names = FALSE)
+    .print_effects_table(et_df, label_col = "Rel.time",
+                         label_name = "event_time", digits = digits)
   }
 
-  # Period-specific effects
-  if (!is.null(x$period_effects)) {
-    cat("\n--- Period-Specific Effects ---\n")
-    pe <- x$period_effects
-    # Select only essential columns for display
-    display_cols <- intersect(
-      c("period", "att", "se", "t_stat", "pvalue", "ci_lower", "ci_upper"),
-      names(pe)
-    )
-    if (length(display_cols) > 0L) {
-      pe_display <- pe[, display_cols, drop = FALSE]
-    } else {
-      pe_display <- pe
-    }
-    n_rows <- nrow(pe_display)
-    max_show <- 12L
-    if (n_rows > max_show) {
-      print(pe_display[seq_len(max_show), , drop = FALSE],
-            digits = digits, row.names = FALSE)
-      cat(sprintf("  ... (%d more rows)\n", n_rows - max_show))
-    } else {
-      print(pe_display, digits = digits, row.names = FALSE)
-    }
+  # ── Period-Specific Effects (common timing) ────────────────────────────────
+  if (!is.null(x$period_effects) && is.data.frame(x$period_effects) &&
+      nrow(x$period_effects) > 0L) {
+    cat("\nPeriod-Specific Effects:\n")
+    .print_effects_table(x$period_effects, label_col = "Period",
+                         label_name = "period", digits = digits)
   }
 
-  # Pre-treatment dynamics (with anchor point marking)
+  # ── Pre-treatment Dynamics ─────────────────────────────────────────────────
   if (!is.null(x$att_pre_treatment) && isTRUE(x$include_pretreatment)) {
-    cat("\n--- Pre-treatment Dynamics ---\n")
-    pre_df <- x$att_pre_treatment
-    anchor_idx <- which(pre_df$event_time == -1)
-    if (length(anchor_idx) > 0L) {
-      pre_display <- pre_df
-      pre_display$note <- ""
-      pre_display$note[anchor_idx] <- "<- anchor (by construction)"
-      print(pre_display, digits = digits, row.names = FALSE)
-    } else {
-      print(pre_df, digits = digits, row.names = FALSE)
-      cat("  e=-1: ATT=0 by construction (anchor point)\n")
-    }
+    cat("\nPre-treatment Dynamics:\n")
+    .print_effects_table(x$att_pre_treatment, label_col = "e(t)",
+                         label_name = "event_time", digits = digits)
   }
 
-  # Parallel trends test (with reject conclusion)
+  # ── Parallel Trends Test ───────────────────────────────────────────────────
   if (!is.null(x$parallel_trends)) {
     pt <- x$parallel_trends
-    cat("\n--- Parallel Trends Test ---\n")
+    cat("\nParallel Trends Test:\n")
     f_stat_val <- pt$f_stat %||% NA_real_
     f_pval_val <- pt$f_pvalue %||% NA_real_
     df1_val <- pt$df1 %||% 0L
     df2_val <- pt$df2 %||% 0L
     if (!is.na(f_stat_val) && !is.na(f_pval_val)) {
-      cat(sprintf("Joint F-test: F(%d,%d) = %.3f, p = %s\n",
-                  df1_val, df2_val,
-                  f_stat_val,
-                  .format_pvalue(f_pval_val, digits)))
+      cat(sprintf("  Joint F-test: F(%d,%d) = %.4f, p = %s\n",
+                  df1_val, df2_val, f_stat_val, .fmt_pval(f_pval_val, 1L)))
     }
     alpha_val <- x$alpha %||% 0.05
     if (isTRUE(pt$reject)) {
-      cat(sprintf("  => Reject H0 at alpha=%.2f: ", alpha_val))
-      cat("Evidence against parallel trends\n")
+      cat(sprintf("  => Reject H0 at alpha=%.2f: evidence against parallel trends\n",
+                  alpha_val))
     } else {
-      cat(sprintf("  => Fail to reject H0 at alpha=%.2f: ", alpha_val))
-      cat("No evidence against parallel trends\n")
+      cat(sprintf("  => Fail to reject H0 at alpha=%.2f: no evidence against PT\n",
+                  alpha_val))
     }
   }
 
-  # RI details
+  # ── Randomization Inference ────────────────────────────────────────────────
   if (!is.null(x$ri_pvalue) || !is.null(x$ri_error)) {
-    cat(sprintf("\nRandomization Inference (RI):\n"))
+    cat("\nRandomization Inference (RI):\n")
     if (!is.null(x$ri_pvalue)) {
-      cat(sprintf("  RI p-value = %s\n", .format_pvalue(x$ri_pvalue, digits)))
+      cat(sprintf("  RI p-value = %s%s\n",
+                  .fmt_pval(x$ri_pvalue, 1L), .fmt_stars(x$ri_pvalue)))
     }
     details <- c()
     ri_total <- .ri_total_permutations(
-      valid = x$ri_n_valid,
-      failed = x$ri_n_failed,
+      valid = x$ri_n_valid, failed = x$ri_n_failed,
       reps = x$ri_n_permutations
     )
-    if (!is.null(x$ri_method)) {
-      details <- c(details, sprintf("method=%s", x$ri_method))
-    }
-    if (!is.null(x$rireps)) {
-      details <- c(details, sprintf("reps=%d", x$rireps))
-    }
-    if (!is.null(x$ri_seed)) {
-      details <- c(details, sprintf("seed=%d", x$ri_seed))
-    }
+    if (!is.null(x$ri_method))  details <- c(details, sprintf("method=%s", x$ri_method))
+    if (!is.null(x$rireps))     details <- c(details, sprintf("reps=%d", x$rireps))
+    if (!is.null(x$ri_seed))    details <- c(details, sprintf("seed=%d", x$ri_seed))
     if (!is.null(x$ri_n_valid)) {
-      details <- c(
-        details,
-        sprintf("valid=%s", .format_ri_valid_count(x$ri_n_valid, ri_total))
-      )
+      details <- c(details,
+                   sprintf("valid=%s", .format_ri_valid_count(x$ri_n_valid, ri_total)))
     }
-    if (!is.null(x$ri_n_failed)) {
-      details <- c(details, sprintf("failed=%d", x$ri_n_failed))
-    }
-    if (length(details) > 0L) {
-      cat(sprintf("  %s\n", paste(details, collapse = " | ")))
-    }
-    if (!is.null(x$ri_target)) {
-      cat(sprintf("  Target: %s\n", x$ri_target))
-    }
-    # RI distribution summary (E7-06.4.6)
+    if (!is.null(x$ri_n_failed)) details <- c(details, sprintf("failed=%d", x$ri_n_failed))
+    if (length(details) > 0L) cat(sprintf("  %s\n", paste(details, collapse = " | ")))
     if (!is.null(x$ri_dist_summary)) {
       ds <- x$ri_dist_summary
       cat(sprintf("  Distribution: mean=%.*f, median=%.*f, sd=%.*f\n",
                   digits, ds$mean, digits, ds$median, digits, ds$sd))
     }
-    # RI error
-    if (!is.null(x$ri_error)) {
-      cat(sprintf("  RI Error: %s\n", x$ri_error))
-    }
+    if (!is.null(x$ri_error)) cat(sprintf("  RI Error: %s\n", x$ri_error))
   }
 
-  # Diagnostics summary
-  if (!is.null(x$diagnostics_summary) &&
-      length(x$diagnostics_summary) > 0L) {
-    cat("\n--- Diagnostics ---\n")
+  # ── Diagnostics ────────────────────────────────────────────────────────────
+  if (!is.null(x$diagnostics_summary) && length(x$diagnostics_summary) > 0L) {
+    cat("\nDiagnostics:\n")
     for (nm in names(x$diagnostics_summary)) {
       cat(sprintf("  %s: %s\n", nm, x$diagnostics_summary[[nm]]))
     }
   }
 
-  # Exclude pre-periods
   if (!is.null(x$exclude_pre_periods) && x$exclude_pre_periods > 0L) {
-    cat(sprintf("\nExcluded pre-periods: %d\n", x$exclude_pre_periods))
+    cat(sprintf("  Excluded pre-periods: %d\n", x$exclude_pre_periods))
   }
 
-  # Sample info
-  cat(paste(rep("-", 60), collapse = ""), "\n")
-  cat(sprintf("N = %d | N_treated = %d | N_control = %d",
-              x$nobs, x$n_treated, x$n_control))
+  # ── Footer ─────────────────────────────────────────────────────────────────
+  cat(RULE2, "\n")
+  parts <- c(sprintf("N = %d", x$nobs),
+             sprintf("N_treated = %d", x$n_treated),
+             sprintf("N_control = %d", x$n_control))
   if (!isTRUE(x$is_staggered)) {
-    if (!is.null(x$K)) cat(sprintf(" | K = %d", x$K))
-    if (!is.null(x$tpost1)) cat(sprintf(" | tpost1 = %s", x$tpost1))
+    if (!is.null(x$K)) parts <- c(parts, sprintf("K = %d", x$K))
+    if (!is.null(x$tpost1)) parts <- c(parts, sprintf("tpost1 = %s", x$tpost1))
   }
-  cat("\n")
+  cat(sprintf("  %s\n", paste(parts, collapse = "    ")))
 
-  # Staggered usage hints
   if (isTRUE(x$is_staggered)) {
-    cat("\nHint: Use coef(x, type='all') for (g,r)-level effects, plot(x) for event study.\n")
+    cat("  Hint: coef(x, type='all') for (g,r)-level effects, plot(x) for event study\n")
   }
 
   invisible(x)
