@@ -47,7 +47,7 @@ The package provides fast and flexible estimation for both common timing and sta
 
 ```r
 # install.packages("devtools")
-devtools::install_github("gorgeousfish/lwdid_r")
+devtools::install_github("gorgeousfish/lwdid-r")
 ```
 
 ### From CRAN (planned)
@@ -290,7 +290,7 @@ If you use `lwdid` in your research, please cite the following papers:
 
 **APA Format:**
 
-> Cai, X., & Xu, W. (2026). *lwdid: Lee-Wooldridge Difference-in-Differences Estimation for R* (Version 0.1.0) [Computer software]. GitHub. https://github.com/gorgeousfish/lwdid_r
+> Cai, X., & Xu, W. (2026). *lwdid: Lee-Wooldridge Difference-in-Differences Estimation for R* (Version 0.1.0) [Computer software]. GitHub. https://github.com/gorgeousfish/lwdid-r
 >
 > Lee, S. J., & Wooldridge, J. M. (2025). A simple transformation approach to difference-in-differences estimation for panel data. Available at SSRN 4516518.
 >
@@ -304,7 +304,7 @@ If you use `lwdid` in your research, please cite the following papers:
   author={Xuanyu Cai and Wenli Xu},
   year={2026},
   version={0.1.0},
-  url={https://github.com/gorgeousfish/lwdid_r}
+  url={https://github.com/gorgeousfish/lwdid-r}
 }
 
 @article{lee2025simple,

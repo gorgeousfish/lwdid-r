@@ -40,7 +40,7 @@ that converts panel DiD into a cross-sectional treatment effects problem.
 ```{r eval=FALSE}
 # From GitHub
 # install.packages("devtools")
-devtools::install_github("gorgeousfish/lwdid_r")
+devtools::install_github("gorgeousfish/lwdid-r")
 ```
 
 ## Data Format
