@@ -1,0 +1,23 @@
+version: 1
+policy: evidence-first
+entries:
+  - metric: common_timing_att_vs_stata
+    default_tolerance: 1.0e-6
+    evidence_status: accepted
+  - metric: common_timing_se_vs_stata
+    default_tolerance: 1.0e-4
+    evidence_status: accepted
+  - metric: staggered_effect_vs_python
+    default_tolerance: 1.0e-5
+    evidence_status: accepted
+  - metric: aggregated_effect_vs_python
+    default_tolerance: 1.0e-5
+    evidence_status: accepted
+  - metric: monte_carlo_bias
+    default_tolerance: 5.0e-2
+    evidence_status: accepted
+  - metric: monte_carlo_coverage
+    default_tolerance: 2.0e-2
+    evidence_status: accepted
+notes:
+  - 新增或放宽容差时，必须补充证据说明。

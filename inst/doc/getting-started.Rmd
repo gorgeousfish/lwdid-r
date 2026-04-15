@@ -1,0 +1,239 @@
+---
+title: "Getting Started with lwdid"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Getting Started with lwdid}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7,
+  fig.height = 5,
+  warning = FALSE,
+  message = FALSE
+)
+```
+
+## Introduction
+
+The **lwdid** package implements the Lee and Wooldridge (2025, 2026) simple
+transformation approach for Difference-in-Differences (DiD) estimation with
+panel data. The key innovation is a unit-level time-series transformation
+that converts panel DiD into a cross-sectional treatment effects problem.
+
+**Key features:**
+
+- **Two designs**: Common Timing and Staggered Adoption
+- **Four estimators**: RA, IPW, IPWRA, PSM
+- **Robust inference**: HC0--HC4, cluster-robust, Wild Cluster Bootstrap,
+  Fisher Randomization Inference
+- **Exact small-sample inference**: valid even with $N_1 = 1$
+- **Diagnostics**: parallel trends tests, sensitivity analysis, clustering
+  diagnostics
+
+## Installation
+
+```{r eval=FALSE}
+# From GitHub
+# install.packages("devtools")
+devtools::install_github("gorgeousfish/lwdid-r")
+```
+
+## Data Format
+
+lwdid requires **long-format panel data** where each row is one
+unit-period observation. Required columns:
+
+| Role | Parameter | Type |
+|------|-----------|------|
+| Unit ID | `ivar` | integer or character |
+| Time | `tvar` | integer |
+| Outcome | `y` | numeric |
+| Treatment (Common Timing) | `d` + `post` | binary (0/1) |
+| Treatment (Staggered) | `gvar` | integer or NA |
+
+## Demean vs Detrend
+
+The `rolling` parameter controls pre-treatment transformation:
+
+- **`"demean"`** (default): Subtracts the pre-treatment mean.
+  Requires parallel trends. At least 1 pre-treatment period.
+- **`"detrend"`**: Removes unit-specific linear trends. Allows
+  heterogeneous trends. At least 2 pre-treatment periods.
+
+## Common Timing: California Proposition 99
+
+The `smoking` dataset contains the classic California tobacco control
+study (1970--2000). California is the sole treated state ($N_1 = 1$),
+with treatment starting in 1989.
+
+```{r common-timing-basic}
+library(lwdid)
+data(smoking)
+
+result <- lwdid(
+  data = smoking,
+  y = "lcigsale",
+  ivar = "state",
+  tvar = "year",
+  d = "d",
+  post = "post",
+  rolling = "demean",
+  estimator = "ra"
+)
+
+print(result)
+```
+
+### Detrending
+
+When unit-specific trends are suspected:
+
+```{r common-timing-detrend}
+result_dt <- lwdid(
+  data = smoking,
+  y = "lcigsale",
+  ivar = "state",
+  tvar = "year",
+  d = "d",
+  post = "post",
+  rolling = "detrend",
+  estimator = "ra"
+)
+
+summary(result_dt)
+```
+
+## Staggered Adoption: Castle Doctrine Laws
+
+The `castle` dataset examines the effect of Castle Doctrine laws on
+homicide rates across US states. States adopted the law at different
+times between 2005 and 2009.
+
+```{r staggered-basic}
+data(castle)
+
+result_stag <- lwdid(
+  data = castle,
+  y = "lhomicide",
+  ivar = "sid",
+  tvar = "year",
+  gvar = "gvar",
+  rolling = "demean",
+  estimator = "ra",
+  aggregate = "cohort"
+)
+
+print(result_stag)
+```
+
+### Event Study
+
+```{r staggered-event-study, eval=requireNamespace("ggplot2", quietly=TRUE)}
+result_event <- lwdid(
+  data = castle,
+  y = "lhomicide",
+  ivar = "sid",
+  tvar = "year",
+  gvar = "gvar",
+  rolling = "demean",
+  estimator = "ra",
+  aggregate = "event_time"
+)
+
+plot(result_event)
+```
+
+## Control Variables
+
+Controls improve efficiency and relax the parallel trends assumption.
+They must be **time-invariant** (or pre-treatment averages):
+
+```{r controls, eval=FALSE}
+result_ctrl <- lwdid(
+  data = castle,
+  y = "lhomicide",
+  ivar = "sid",
+  tvar = "year",
+  gvar = "gvar",
+  rolling = "demean",
+  estimator = "ra",
+  controls = c("police", "income", "poverty", "unemployrt"),
+  aggregate = "cohort"
+)
+```
+
+## Robust Variance Estimation
+
+| `vce` | Description |
+|-------|-------------|
+| `NULL` | OLS (homoskedastic) |
+| `"robust"` / `"hc1"` | HC1 heteroskedasticity-robust |
+| `"hc3"` | HC3 (recommended for small samples) |
+| `"cluster"` | Cluster-robust (requires `cluster_var`) |
+
+```{r vce}
+# HC1 is recommended for the smoking data (single treated unit makes HC3
+# numerically unstable due to hat value = 1)
+result_hc1 <- suppressWarnings(lwdid(
+  data = smoking,
+  y = "lcigsale",
+  ivar = "state",
+  tvar = "year",
+  d = "d",
+  post = "post",
+  rolling = "demean",
+  estimator = "ra",
+  vce = "hc1"
+))
+
+summary(result_hc1)
+```
+
+## Extracting Results
+
+```{r extract}
+coef(result)
+confint(result)
+vcov(result)
+nobs(result)
+```
+
+## Parallel Computation
+
+For staggered designs with many cohort-period pairs, enable parallel
+processing:
+
+```{r parallel, eval=FALSE}
+result_par <- lwdid(
+  data = castle,
+  y = "lhomicide",
+  ivar = "sid",
+  tvar = "year",
+  gvar = "gvar",
+  rolling = "demean",
+  estimator = "ra",
+  aggregate = "cohort",
+  parallel = TRUE,
+  n_cores = 4
+)
+```
+
+## Next Steps
+
+- `vignette("advanced-usage")`: IPW, IPWRA, PSM, sensitivity analysis,
+  diagnostics, WCB, RI, data preprocessing
+- `vignette("methodology")`: mathematical framework and identification
+
+## References
+
+Lee, S. and Wooldridge, J.M. (2025). "A Simple Transformation Approach to
+Difference-in-Differences Estimation for Panel Data."
+
+Lee, S. and Wooldridge, J.M. (2026). "Simple Approaches to Inference with
+Difference-in-Differences Estimators with Small Cross-Sectional Sample
+Sizes."

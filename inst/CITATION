@@ -1,0 +1,37 @@
+citHeader("To cite lwdid in publications, use:")
+
+bibentry(
+  bibtype  = "Manual",
+  title    = "lwdid: Lee-Wooldridge Difference-in-Differences Estimation",
+  author   = c(
+    person("Xuanyu", "Cai"),
+    person("Wenli", "Xu")
+  ),
+  year     = "2026",
+  note     = "R package version 0.1.0",
+  url      = "https://github.com/gorgeousfish/lwdid-r"
+)
+
+bibentry(
+  bibtype  = "Article",
+  title    = "A Simple Transformation Approach to Difference-in-Differences Estimation for Panel Data",
+  author   = c(
+    person("Soo Jeong", "Lee"),
+    person("Jeffrey M.", "Wooldridge")
+  ),
+  year     = "2025",
+  journal  = "Working Paper",
+  note     = "SSRN 4516518"
+)
+
+bibentry(
+  bibtype  = "Article",
+  title    = "Simple Approaches to Inference with Difference-in-Differences Estimators with Small Cross-Sectional Sample Sizes",
+  author   = c(
+    person("Soo Jeong", "Lee"),
+    person("Jeffrey M.", "Wooldridge")
+  ),
+  year     = "2026",
+  journal  = "Working Paper",
+  note     = "SSRN 5325686"
+)

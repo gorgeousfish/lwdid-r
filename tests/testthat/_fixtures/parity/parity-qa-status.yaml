@@ -1,0 +1,82 @@
+version: 1
+phase: package-hardening
+active_story: story-E8-04
+story_status: in-progress
+closure_ready: false
+current_focus: >-
+  `2026-03-24 21:20 CST` correct-course 已新增
+  `_automation/test-artifacts/parity/20260324-correct-course-e8-04-check-time-tests-bucket-shift.md`。
+  fresh
+  `devtools::test(filter="staggered-integration|staggered-numerical|conditions")`
+  当前通过；随后 fresh full
+  `devtools::check(args = c("--no-manual"), error_on = "never")`
+  在 tests 阶段超时，但同轮 `00check.log` 已确认 `R code for possible problems`
+  与全部 `Rd/doc` hardening bucket 当前转绿；`tests/testthat.Rout` 则继续保存
+  `_problems/test-clustering-diagnostics-parity-*` 与 `_problems/test-export-*`。
+  因此当前 canonical blocker 不能再写成 doc bucket、也不能只写成旧的
+  three-test stale contract，而应收敛为 installed-package / full-check tests
+  bucket。`story-E8-04` 仍不得写成 closure-ready。
+exact_status: passed
+numeric_status: passed
+real_data_status: passed
+monte_carlo_status: passed
+blockers:
+  - >-
+    `AC-17` 当前仍被 package-hardening 阻塞；`2026-03-24 21:20 CST`
+    correct-course 已通过 fresh ordinary
+    `devtools::test(filter="staggered-integration|staggered-numerical|conditions")`
+    把 staggered stale contracts 与 condition-class drift 修回绿色；同轮 fresh full
+    `devtools::check(--no-manual)` 又把 `R code for possible problems` 与
+    全部 `Rd/doc` hardening bucket 证明为 `OK`。因此当前不应再把
+    doc/codoc/usage hygiene 或旧的 three-test stale contract 写成 live blocker。
+    但由于同轮 `tests/testthat.Rout` 仍保存
+    `_problems/test-clustering-diagnostics-parity-*` 与 `_problems/test-export-*`，
+    当前 remaining blocker 必须收敛为 installed-package / full-check tests
+    bucket。只要这组 hardening 问题未收口，`story-E8-04` 就不得写成
+    closure-ready，也不能切换到 `story-E8-05`。
+recent_evidence:
+  - >-
+    2026-03-24 correct-course：
+    `_automation/test-artifacts/parity/20260324-correct-course-e8-04-check-time-tests-bucket-shift.md`
+  - >-
+    2026-03-24 correct-course：
+    `_automation/test-artifacts/parity/20260324-correct-course-e8-04-doc-hardening-convergence.md`
+  - >-
+    2026-03-24 theory-parity：
+    `_automation/test-artifacts/parity/20260324-theory-parity-e8-04-check-only-staggered-contract-audit.md`
+  - >-
+    2026-03-24 qa-parity：
+    `_automation/test-artifacts/parity/20260324-qa-parity-e8-04-layer5-tests-rebucket.md`
+  - >-
+    2026-03-24 qa-parity：
+    `_automation/test-artifacts/parity/20260324-qa-parity-e8-04-layer5-interactive-bucket.md`
+  - >-
+    2026-03-24 controller：
+    `_automation/test-artifacts/parity/20260324-controller-e8-04-ac17-fresh-full-check-relock.md`
+  - >-
+    2026-03-24 controller：
+    `_automation/test-artifacts/parity/20260324-controller-e8-04-ac17-check-bucket-shift.md`
+  - >-
+    2026-03-24 theory-parity：
+    `_automation/test-artifacts/parity/20260324-theory-parity-e8-04-release-blocker-relabel.md`
+  - >-
+    2026-03-24 correct-course：
+    `_automation/test-artifacts/parity/20260324-correct-course-e8-04-release-state-convergence.md`
+  - >-
+    2026-03-24 correct-course：
+    `_automation/test-artifacts/parity/20260324-correct-course-e8-04-hardening-static-convergence.md`
+  - >-
+    2026-03-24 qa-parity：
+    `_automation/test-artifacts/parity/20260324-qa-parity-e8-04-layer5-release-regression.md`
+  - >-
+    2026-03-24 theory-parity：
+    `_automation/test-artifacts/parity/20260324-theory-parity-e8-04-ac17-hardening-boundary-audit.md`
+  - >-
+    2026-03-24 qa-parity：
+    `_automation/test-artifacts/parity/20260324-qa-parity-e8-04-layer4-wild-bootstrap-scenarios.md`
+  - >-
+    2026-03-24 story-worker：
+    `_automation/test-artifacts/parity/20260324-story-worker-e8-04-layer4-wild-bootstrap.md`
+  - >-
+    2026-03-24 controller：
+    `.kiro/specs/story-E8-05/tasks.md`

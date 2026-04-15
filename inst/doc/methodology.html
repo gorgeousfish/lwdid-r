@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>Methodology</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Methodology</h1>
+
+
+
+<div id="overview" class="section level2">
+<h2>Overview</h2>
+<p>This vignette describes the mathematical framework underlying
+<strong>lwdid</strong>, based on Lee and Wooldridge (2025, 2026). The
+core idea is a unit-level time-series transformation that converts panel
+DiD estimation into a cross-sectional treatment effects problem,
+enabling:</p>
+<ol style="list-style-type: decimal">
+<li>Application of any treatment effect estimator (RA, IPW, IPWRA,
+PSM)</li>
+<li>Exact small-sample inference via the t-distribution</li>
+<li>Efficiency gains from using all pre-treatment periods</li>
+</ol>
+</div>
+<div id="common-timing-case" class="section level2">
+<h2>1. Common Timing Case</h2>
+<div id="setup" class="section level3">
+<h3>Setup</h3>
+<p>Consider <span class="math inline">\(N\)</span> units observed over
+<span class="math inline">\(T\)</span> periods. Treatment begins at time
+<span class="math inline">\(S\)</span> (<span class="math inline">\(1
+&lt; S \leq T\)</span>). Define:</p>
+<ul>
+<li><span class="math inline">\(D_i \in \{0, 1\}\)</span>: binary
+treatment indicator</li>
+<li><span class="math inline">\(Y_{it}(0), Y_{it}(1)\)</span>: potential
+outcomes</li>
+<li><span class="math inline">\(W_{it} = D_i \cdot \mathbf{1}(t \geq
+S)\)</span>: time-varying treatment</li>
+</ul>
+<p>The ATT in period <span class="math inline">\(t\)</span> is: <span class="math display">\[\tau_t = E[Y_t(1) - Y_t(0) \mid D = 1], \quad t =
+S, \ldots, T\]</span></p>
+</div>
+<div id="identification" class="section level3">
+<h3>Identification</h3>
+<p><strong>No Anticipation (NA):</strong> <span class="math inline">\(E[Y_{it}(1) - Y_{it}(0) \mid D_i = 1] = 0\)</span>
+for <span class="math inline">\(t &lt; S\)</span>.</p>
+<p><strong>Parallel Trends (PT):</strong> <span class="math inline">\(E[Y_{it}(0) - Y_{i1}(0) \mid D_i] =
+\delta_t\)</span> for all <span class="math inline">\(t\)</span>.</p>
+</div>
+<div id="procedure-2.1-demeaning" class="section level3">
+<h3>Procedure 2.1: Demeaning</h3>
+<p><strong>Step 1.</strong> Pre-treatment mean: <span class="math display">\[\bar{Y}_{i,\text{pre}} = \frac{1}{S-1}
+\sum_{t=1}^{S-1} Y_{it}\]</span></p>
+<p><strong>Step 2.</strong> Transformed outcome: <span class="math display">\[\dot{Y}_{it} = Y_{it} - \bar{Y}_{i,\text{pre}},
+\quad t = S, \ldots, T\]</span></p>
+<p><strong>Step 3.</strong> Cross-sectional regression: <span class="math display">\[\dot{Y}_{it} \text{ on } 1, D_i \quad \Rightarrow
+\quad \hat{\tau}_t = \text{coef on } D_i\]</span></p>
+<p>Under NA and PT, the key unconfoundedness result holds: <span class="math display">\[E[\dot{Y}_{it}(0) \mid D_i] =
+E[\dot{Y}_{it}(0)]\]</span></p>
+<p>This enables any treatment effects estimator on the cross-sectional
+data <span class="math inline">\(\{(\dot{Y}_{it}, D_i,
+\mathbf{X}_i)\}\)</span>.</p>
+</div>
+<div id="with-controls" class="section level3">
+<h3>With Controls</h3>
+<p>Under conditional PT: <span class="math inline">\(E[Y_{it}(0) -
+Y_{i1}(0) \mid D_i, \mathbf{X}_i] = \alpha_t + \mathbf{X}_i
+\beta_t\)</span>, the regression becomes: <span class="math display">\[\dot{Y}_{it} \text{ on } 1, D_i, \mathbf{X}_i,
+D_i \cdot (\mathbf{X}_i - \bar{\mathbf{X}}_1)\]</span></p>
+</div>
+<div id="aggregation" class="section level3">
+<h3>Aggregation</h3>
+<p>Overall ATT: <span class="math inline">\(\bar{\tau} = \frac{1}{T-S+1}
+\sum_{t=S}^T \tau_t\)</span></p>
+</div>
+</div>
+<div id="detrending-procedure-3.1" class="section level2">
+<h2>2. Detrending (Procedure 3.1)</h2>
+<p>When unit-specific linear trends are suspected:</p>
+<p><strong>Step 1.</strong> Fit pre-treatment OLS: <span class="math inline">\(Y_{it} = A_i + B_i t + e_{it}\)</span> for <span class="math inline">\(t = 1, \ldots, S-1\)</span></p>
+<p><strong>Step 2.</strong> Detrended outcome: <span class="math display">\[\ddot{Y}_{it} = Y_{it} - \hat{A}_i - \hat{B}_i t,
+\quad t = S, \ldots, T\]</span></p>
+<p><strong>Step 3.</strong> Regress <span class="math inline">\(\ddot{Y}_{it}\)</span> on <span class="math inline">\(1, D_i\)</span>.</p>
+<p>Requires <span class="math inline">\(\geq 2\)</span> pre-treatment
+periods (for intercept and slope).</p>
+</div>
+<div id="staggered-adoption" class="section level2">
+<h2>3. Staggered Adoption</h2>
+<div id="setup-1" class="section level3">
+<h3>Setup</h3>
+<p>Units enter treatment at different times <span class="math inline">\(g \in \{g_1, \ldots, g_G, \infty\}\)</span>. The
+cohort-period ATT is: <span class="math display">\[\tau_{gr} = E[Y_r(g)
+- Y_r(\infty) \mid G_i = g], \quad r \geq g\]</span></p>
+</div>
+<div id="rolling-transformation" class="section level3">
+<h3>Rolling Transformation</h3>
+<p>For cohort <span class="math inline">\(g\)</span> and period <span class="math inline">\(r\)</span>: <span class="math display">\[\dot{Y}_{irg} = Y_{ir} - \frac{1}{g-1}
+\sum_{s=1}^{g-1} Y_{is}\]</span></p>
+<p>Under conditional NA and PT: <span class="math display">\[\tau_{gr} =
+E[\dot{Y}_{rg}(g) \mid G_i = g] - E[\dot{Y}_{rg}(\infty) \mid G_i =
+g]\]</span></p>
+</div>
+<div id="control-groups" class="section level3">
+<h3>Control Groups</h3>
+<ul>
+<li><strong>Never treated</strong>: <span class="math inline">\(G_i =
+\infty\)</span>. Required for cohort/overall aggregation.</li>
+<li><strong>Not yet treated</strong>: <span class="math inline">\(G_i
+&gt; r\)</span>. Larger control group, varies by <span class="math inline">\((g, r)\)</span>.</li>
+</ul>
+</div>
+<div id="aggregation-1" class="section level3">
+<h3>Aggregation</h3>
+<p><strong>Cohort:</strong> <span class="math inline">\(\hat{\tau}_g =
+\frac{1}{|\mathcal{R}_g|} \sum_{r \in \mathcal{R}_g}
+\hat{\tau}_{gr}\)</span></p>
+<p><strong>Overall:</strong> <span class="math inline">\(\hat{\tau} =
+\sum_g \frac{N_g}{\sum_{g&#39;} N_{g&#39;}} \hat{\tau}_g\)</span></p>
+<p><strong>Event-time:</strong> <span class="math inline">\(\hat{\tau}_e
+= \sum_g \omega_{ge} \hat{\tau}_{g,g+e}\)</span></p>
+</div>
+</div>
+<div id="estimation-methods" class="section level2">
+<h2>4. Estimation Methods</h2>
+<div id="regression-adjustment-ra" class="section level3">
+<h3>Regression Adjustment (RA)</h3>
+<p><span class="math display">\[\dot{Y}_{ir} \text{ on } 1, D_i,
+\mathbf{X}_i, D_i (\mathbf{X}_i - \bar{\mathbf{X}}_1)\]</span></p>
+</div>
+<div id="inverse-probability-weighting-ipw" class="section level3">
+<h3>Inverse Probability Weighting (IPW)</h3>
+<p>Propensity score: <span class="math inline">\(\hat{p}(\mathbf{X}_i) =
+\Pr(D_i = 1 \mid \mathbf{X}_i)\)</span></p>
+<p><span class="math display">\[\hat{\tau}_{\text{IPW}} = \frac{1}{N_1}
+\sum_{D_i=1} \dot{Y}_{ir} - \frac{\sum_{D_i=0} \hat{w}_i
+\dot{Y}_{ir}}{\sum_{D_i=0} \hat{w}_i}\]</span></p>
+<p>with <span class="math inline">\(\hat{w}_i = \hat{p}(\mathbf{X}_i) /
+[1 - \hat{p}(\mathbf{X}_i)]\)</span>.</p>
+</div>
+<div id="ipwra-doubly-robust" class="section level3">
+<h3>IPWRA (Doubly Robust)</h3>
+<p>Consistent if either the propensity score or outcome model is
+correct.</p>
+</div>
+<div id="psm" class="section level3">
+<h3>PSM</h3>
+<p>Matches each treated unit to the nearest control on the propensity
+score.</p>
+</div>
+</div>
+<div id="inference" class="section level2">
+<h2>5. Inference</h2>
+<div id="exact-small-sample-inference" class="section level3">
+<h3>Exact Small-Sample Inference</h3>
+<p>Under CLM assumptions (<span class="math inline">\(U_i | D_i \sim
+N(0, \sigma^2)\)</span>): <span class="math display">\[\frac{\hat{\tau}
+- \tau}{\text{se}(\hat{\tau})} \sim t_{N-K-2}\]</span></p>
+<p>Valid even with <span class="math inline">\(N_1 = 1\)</span>
+(studentized residual interpretation).</p>
+</div>
+<div id="hc-robust-standard-errors" class="section level3">
+<h3>HC Robust Standard Errors</h3>
+<p>For moderate <span class="math inline">\(N\)</span>, HC3 is
+recommended (Simonsohn, 2021): <span class="math display">\[\text{HC3: }
+\hat{\Sigma} = (X&#39;X)^{-1} \left(\sum_i
+\frac{\hat{e}_i^2}{(1-h_{ii})^2} x_i x_i&#39;\right)
+(X&#39;X)^{-1}\]</span></p>
+</div>
+<div id="randomization-inference" class="section level3">
+<h3>Randomization Inference</h3>
+<p>Under sharp null <span class="math inline">\(H_0: \tau_i = 0\)</span>
+for all <span class="math inline">\(i\)</span>: <span class="math display">\[p_{\text{RI}} = \frac{1 + \sum_{b=1}^B
+\mathbf{1}(|T_b| \geq |T_{\text{obs}}|)}{1 + B}\]</span></p>
+</div>
+</div>
+<div id="comparison-with-callaway-and-santanna-2021" class="section level2">
+<h2>6. Comparison with Callaway and Sant’Anna (2021)</h2>
+<table>
+<colgroup>
+<col width="14%" />
+<col width="52%" />
+<col width="33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th>CS (2021)</th>
+<th>lwdid</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Reference period</td>
+<td>Single period <span class="math inline">\(t = g-1\)</span></td>
+<td>All pre-treatment</td>
+</tr>
+<tr class="even">
+<td>Transformation</td>
+<td><span class="math inline">\(Y_{ir} - Y_{i,g-1}\)</span></td>
+<td><span class="math inline">\(Y_{ir} -
+\bar{Y}_{i,\text{pre}}\)</span></td>
+</tr>
+<tr class="odd">
+<td>Efficiency</td>
+<td>Lower (uses less info)</td>
+<td>BLUE under standard assumptions</td>
+</tr>
+<tr class="even">
+<td>Heterogeneous trends</td>
+<td>Not supported</td>
+<td>Supported (detrend)</td>
+</tr>
+<tr class="odd">
+<td>Estimators</td>
+<td>RA, IPW, IPWRA</td>
+<td>RA, IPW, IPWRA, PSM</td>
+</tr>
+</tbody>
+</table>
+<p>Under the error-components structure, the lwdid estimator is BLUE and
+asymptotically efficient (Wooldridge, 2025a, Theorem 6.2).</p>
+</div>
+<div id="references" class="section level2">
+<h2>References</h2>
+<p>Lee, S. and Wooldridge, J.M. (2025). “A Simple Transformation
+Approach to Difference-in-Differences Estimation for Panel Data.”</p>
+<p>Lee, S. and Wooldridge, J.M. (2026). “Simple Approaches to Inference
+with Difference-in-Differences Estimators with Small Cross-Sectional
+Sample Sizes.”</p>
+<p>Wooldridge, J.M. (2025a). “Two-Way Fixed Effects, the Two-Way Mundlak
+Regression, and Difference-in-Differences Estimators.”</p>
+<p>Callaway, B. and Sant’Anna, P.H.C. (2021). “Difference-in-Differences
+with Multiple Time Periods.” <em>Journal of Econometrics</em>, 225(2),
+200-230.</p>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

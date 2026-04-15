@@ -1,0 +1,229 @@
+{
+  "story": "story-E8-03",
+  "generated_at_utc": "2026-03-23T11:50:12.153186+00:00",
+  "dataset": {
+    "source": "/Users/cxy/Desktop/lwdid_r/lwdid-py_v0.2.3/data/castle.csv",
+    "rows": 550,
+    "units": 50,
+    "treated_units": 21,
+    "never_treated_units": 29,
+    "years": [
+      2000,
+      2010
+    ],
+    "cohorts": [
+      2005,
+      2006,
+      2007,
+      2008,
+      2009
+    ]
+  },
+  "paper_reference": {
+    "table_3": {
+      "demean_att": 0.092,
+      "detrend_att": 0.067
+    }
+  },
+  "python_reference": {
+    "warnings": [
+      "Unbalanced panel detected: observation counts range from 3 to 7.\n\nSELECTION MECHANISM ASSUMPTION:\n  Selection (missing data) may depend on unobserved time-invariant heterogeneity,\n  but cannot systematically depend on Y_it(∞) shocks.\n\nThis is analogous to the standard fixed effects assumption. The method remains\nvalid if missingness is related to:\n  ✓ Unit-specific fixed characteristics (e.g., firm size, location)\n  ✓ Time-invariant unobservables (e.g., management quality)\n\nThe method may be biased if missingness is related to:\n  ✗ Time-varying outcome shocks (e.g., units drop out after negative shocks)\n  ✗ Anticipation of treatment effects\n\nDIAGNOSTICS:\n  - Units usable for demean: 100.0% (require ≥1 pre-treatment period)\n  - Units usable for detrend: 0.0% (require ≥2 pre-treatment periods)\n\nRECOMMENDATIONS:\n  1. Run `diagnose_selection_mechanism()` for detailed diagnostics\n  2. Consider using `rolling='detrend'` for additional robustness\n  3. Compare results with balanced subsample as sensitivity check",
+      "cohort effect estimation requires never_treated control group, automatically switched from 'not_yet_treated' to 'never_treated'.",
+      "Aggregation: 20 units excluded due to missing data.",
+      "Aggregation: 7 units excluded due to missing data.",
+      "Aggregation: 3 units excluded due to missing data.",
+      "Aggregation: 1 units excluded due to missing data.",
+      "Unbalanced panel detected: observation counts range from 4 to 8.\n\nSELECTION MECHANISM ASSUMPTION:\n  Selection (missing data) may depend on unobserved time-invariant heterogeneity,\n  but cannot systematically depend on Y_it(∞) shocks.\n\nThis is analogous to the standard fixed effects assumption. The method remains\nvalid if missingness is related to:\n  ✓ Unit-specific fixed characteristics (e.g., firm size, location)\n  ✓ Time-invariant unobservables (e.g., management quality)\n\nThe method may be biased if missingness is related to:\n  ✗ Time-varying outcome shocks (e.g., units drop out after negative shocks)\n  ✗ Anticipation of treatment effects\n\nDIAGNOSTICS:\n  - Units usable for demean: 100.0% (require ≥1 pre-treatment period)\n  - Units usable for detrend: 100.0% (require ≥2 pre-treatment periods)\n\nRECOMMENDATIONS:\n  1. Run `diagnose_selection_mechanism()` for detailed diagnostics\n  2. Consider using `rolling='detrend'` for additional robustness\n  3. Compare results with balanced subsample as sensitivity check",
+      "cohort effect estimation requires never_treated control group, automatically switched from 'not_yet_treated' to 'never_treated'.",
+      "Aggregation: 7 units excluded due to missing data.",
+      "Aggregation: 3 units excluded due to missing data.",
+      "Aggregation: 1 units excluded due to missing data.",
+      "Unbalanced panel detected: observation counts range from 5 to 9.\n\nSELECTION MECHANISM ASSUMPTION:\n  Selection (missing data) may depend on unobserved time-invariant heterogeneity,\n  but cannot systematically depend on Y_it(∞) shocks.\n\nThis is analogous to the standard fixed effects assumption. The method remains\nvalid if missingness is related to:\n  ✓ Unit-specific fixed characteristics (e.g., firm size, location)\n  ✓ Time-invariant unobservables (e.g., management quality)\n\nThe method may be biased if missingness is related to:\n  ✗ Time-varying outcome shocks (e.g., units drop out after negative shocks)\n  ✗ Anticipation of treatment effects\n\nDIAGNOSTICS:\n  - Units usable for demean: 100.0% (require ≥1 pre-treatment period)\n  - Units usable for detrend: 100.0% (require ≥2 pre-treatment periods)\n\nRECOMMENDATIONS:\n  1. Run `diagnose_selection_mechanism()` for detailed diagnostics\n  2. Consider using `rolling='detrend'` for additional robustness\n  3. Compare results with balanced subsample as sensitivity check",
+      "cohort effect estimation requires never_treated control group, automatically switched from 'not_yet_treated' to 'never_treated'.",
+      "Aggregation: 3 units excluded due to missing data.",
+      "Aggregation: 1 units excluded due to missing data.",
+      "Unbalanced panel detected: observation counts range from 6 to 10.\n\nSELECTION MECHANISM ASSUMPTION:\n  Selection (missing data) may depend on unobserved time-invariant heterogeneity,\n  but cannot systematically depend on Y_it(∞) shocks.\n\nThis is analogous to the standard fixed effects assumption. The method remains\nvalid if missingness is related to:\n  ✓ Unit-specific fixed characteristics (e.g., firm size, location)\n  ✓ Time-invariant unobservables (e.g., management quality)\n\nThe method may be biased if missingness is related to:\n  ✗ Time-varying outcome shocks (e.g., units drop out after negative shocks)\n  ✗ Anticipation of treatment effects\n\nDIAGNOSTICS:\n  - Units usable for demean: 100.0% (require ≥1 pre-treatment period)\n  - Units usable for detrend: 100.0% (require ≥2 pre-treatment periods)\n\nRECOMMENDATIONS:\n  1. Run `diagnose_selection_mechanism()` for detailed diagnostics\n  2. Consider using `rolling='detrend'` for additional robustness\n  3. Compare results with balanced subsample as sensitivity check",
+      "cohort effect estimation requires never_treated control group, automatically switched from 'not_yet_treated' to 'never_treated'.",
+      "Aggregation: 1 units excluded due to missing data.",
+      "Unbalanced panel detected: observation counts range from 7 to 11.\n\nSELECTION MECHANISM ASSUMPTION:\n  Selection (missing data) may depend on unobserved time-invariant heterogeneity,\n  but cannot systematically depend on Y_it(∞) shocks.\n\nThis is analogous to the standard fixed effects assumption. The method remains\nvalid if missingness is related to:\n  ✓ Unit-specific fixed characteristics (e.g., firm size, location)\n  ✓ Time-invariant unobservables (e.g., management quality)\n\nThe method may be biased if missingness is related to:\n  ✗ Time-varying outcome shocks (e.g., units drop out after negative shocks)\n  ✗ Anticipation of treatment effects\n\nDIAGNOSTICS:\n  - Units usable for demean: 100.0% (require ≥1 pre-treatment period)\n  - Units usable for detrend: 100.0% (require ≥2 pre-treatment periods)\n\nRECOMMENDATIONS:\n  1. Run `diagnose_selection_mechanism()` for detailed diagnostics\n  2. Consider using `rolling='detrend'` for additional robustness\n  3. Compare results with balanced subsample as sensitivity check",
+      "cohort effect estimation requires never_treated control group, automatically switched from 'not_yet_treated' to 'never_treated'.",
+      "cohort effect estimation requires never_treated control group, automatically switched from 'not_yet_treated' to 'never_treated'.",
+      "Unbalanced panel detected: observation counts range from 10 to 11.\n\nSELECTION MECHANISM ASSUMPTION:\n  Selection (missing data) may depend on unobserved time-invariant heterogeneity,\n  but cannot systematically depend on Y_it(∞) shocks.\n\nThis is analogous to the standard fixed effects assumption. The method remains\nvalid if missingness is related to:\n  ✓ Unit-specific fixed characteristics (e.g., firm size, location)\n  ✓ Time-invariant unobservables (e.g., management quality)\n\nThe method may be biased if missingness is related to:\n  ✗ Time-varying outcome shocks (e.g., units drop out after negative shocks)\n  ✗ Anticipation of treatment effects\n\nDIAGNOSTICS:\n  - Units usable for demean: 100.0% (require ≥1 pre-treatment period)\n  - Units usable for detrend: 100.0% (require ≥2 pre-treatment periods)\n\nRECOMMENDATIONS:\n  1. Run `diagnose_selection_mechanism()` for detailed diagnostics\n  2. Consider using `rolling='detrend'` for additional robustness\n  3. Compare results with balanced subsample as sensitivity check",
+      "cohort effect estimation requires never_treated control group, automatically switched from 'not_yet_treated' to 'never_treated'.",
+      "Unbalanced panel detected: observation counts range from 9 to 11.\n\nSELECTION MECHANISM ASSUMPTION:\n  Selection (missing data) may depend on unobserved time-invariant heterogeneity,\n  but cannot systematically depend on Y_it(∞) shocks.\n\nThis is analogous to the standard fixed effects assumption. The method remains\nvalid if missingness is related to:\n  ✓ Unit-specific fixed characteristics (e.g., firm size, location)\n  ✓ Time-invariant unobservables (e.g., management quality)\n\nThe method may be biased if missingness is related to:\n  ✗ Time-varying outcome shocks (e.g., units drop out after negative shocks)\n  ✗ Anticipation of treatment effects\n\nDIAGNOSTICS:\n  - Units usable for demean: 100.0% (require ≥1 pre-treatment period)\n  - Units usable for detrend: 100.0% (require ≥2 pre-treatment periods)\n\nRECOMMENDATIONS:\n  1. Run `diagnose_selection_mechanism()` for detailed diagnostics\n  2. Consider using `rolling='detrend'` for additional robustness\n  3. Compare results with balanced subsample as sensitivity check",
+      "cohort effect estimation requires never_treated control group, automatically switched from 'not_yet_treated' to 'never_treated'.",
+      "Unbalanced panel detected: observation counts range from 8 to 11.\n\nSELECTION MECHANISM ASSUMPTION:\n  Selection (missing data) may depend on unobserved time-invariant heterogeneity,\n  but cannot systematically depend on Y_it(∞) shocks.\n\nThis is analogous to the standard fixed effects assumption. The method remains\nvalid if missingness is related to:\n  ✓ Unit-specific fixed characteristics (e.g., firm size, location)\n  ✓ Time-invariant unobservables (e.g., management quality)\n\nThe method may be biased if missingness is related to:\n  ✗ Time-varying outcome shocks (e.g., units drop out after negative shocks)\n  ✗ Anticipation of treatment effects\n\nDIAGNOSTICS:\n  - Units usable for demean: 100.0% (require ≥1 pre-treatment period)\n  - Units usable for detrend: 100.0% (require ≥2 pre-treatment periods)\n\nRECOMMENDATIONS:\n  1. Run `diagnose_selection_mechanism()` for detailed diagnostics\n  2. Consider using `rolling='detrend'` for additional robustness\n  3. Compare results with balanced subsample as sensitivity check",
+      "cohort effect estimation requires never_treated control group, automatically switched from 'not_yet_treated' to 'never_treated'.",
+      "cohort effect estimation requires never_treated control group, automatically switched from 'not_yet_treated' to 'never_treated'.",
+      "cohort effect estimation requires never_treated control group, automatically switched from 'not_yet_treated' to 'never_treated'."
+    ],
+    "result": {
+      "overall_assessment": "Multiple concerns: pre-period sensitivity, anticipation effects, transformation sensitivity. Interpret with caution.",
+      "recommendations": [
+        "Pre-period sensitivity detected (ratio=47.4%). Consider using detrend method or investigating data quality.",
+        "Anticipation effects detected. Consider excluding 2 period(s) before treatment.",
+        "Substantial difference between demean and detrend (27.5%). This suggests heterogeneous trends may be present."
+      ],
+      "pre_period": {
+        "sensitivity_ratio": 0.47436676023089314,
+        "is_robust": false,
+        "robustness_level": "sensitive"
+      },
+      "anticipation": {
+        "anticipation_detected": true,
+        "recommended_exclusion": 2
+      },
+      "transformation": {
+        "demean_att": 0.0917453871396135,
+        "demean_se": 0.051177650374252745,
+        "detrend_att": 0.06655033512882683,
+        "detrend_se": 0.05375635541218712,
+        "difference": 0.025195052010786673
+      },
+      "estimator": null
+    }
+  },
+  "r_result": {
+    "warnings": [
+      "Unbalanced panel: obs per unit ranges from 3 to 7. 20 units (40.0%) incomplete.\nDiagnostics: 100.0% usable for demean, 0.0% usable for detrend.",
+      "aggregate='cohort' with control_group='not_yet_treated': auto-switching to control_group='never_treated' for aggregation. Cross-cohort aggregation requires a common control group (NT units).",
+      "Unbalanced panel: obs per unit ranges from 4 to 8. 20 units (40.0%) incomplete.\nDiagnostics: 100.0% usable for demean, 100.0% usable for detrend.",
+      "aggregate='cohort' with control_group='not_yet_treated': auto-switching to control_group='never_treated' for aggregation. Cross-cohort aggregation requires a common control group (NT units).",
+      "Unbalanced panel: obs per unit ranges from 5 to 9. 20 units (40.0%) incomplete.\nDiagnostics: 100.0% usable for demean, 100.0% usable for detrend.",
+      "aggregate='cohort' with control_group='not_yet_treated': auto-switching to control_group='never_treated' for aggregation. Cross-cohort aggregation requires a common control group (NT units).",
+      "Unbalanced panel: obs per unit ranges from 6 to 10. 20 units (40.0%) incomplete.\nDiagnostics: 100.0% usable for demean, 100.0% usable for detrend.",
+      "aggregate='cohort' with control_group='not_yet_treated': auto-switching to control_group='never_treated' for aggregation. Cross-cohort aggregation requires a common control group (NT units).",
+      "Unbalanced panel: obs per unit ranges from 7 to 11. 20 units (40.0%) incomplete.\nDiagnostics: 100.0% usable for demean, 100.0% usable for detrend.",
+      "aggregate='cohort' with control_group='not_yet_treated': auto-switching to control_group='never_treated' for aggregation. Cross-cohort aggregation requires a common control group (NT units).",
+      "aggregate='cohort' with control_group='not_yet_treated': auto-switching to control_group='never_treated' for aggregation. Cross-cohort aggregation requires a common control group (NT units).",
+      "Unbalanced panel: obs per unit ranges from 10 to 11. 21 units (42.0%) incomplete.\nDiagnostics: 100.0% usable for demean, 100.0% usable for detrend.",
+      "aggregate='cohort' with control_group='not_yet_treated': auto-switching to control_group='never_treated' for aggregation. Cross-cohort aggregation requires a common control group (NT units).",
+      "Unbalanced panel: obs per unit ranges from 9 to 11. 21 units (42.0%) incomplete.\nDiagnostics: 100.0% usable for demean, 100.0% usable for detrend.",
+      "aggregate='cohort' with control_group='not_yet_treated': auto-switching to control_group='never_treated' for aggregation. Cross-cohort aggregation requires a common control group (NT units).",
+      "Unbalanced panel: obs per unit ranges from 8 to 11. 21 units (42.0%) incomplete.\nDiagnostics: 100.0% usable for demean, 100.0% usable for detrend.",
+      "aggregate='cohort' with control_group='not_yet_treated': auto-switching to control_group='never_treated' for aggregation. Cross-cohort aggregation requires a common control group (NT units).",
+      "aggregate='cohort' with control_group='not_yet_treated': auto-switching to control_group='never_treated' for aggregation. Cross-cohort aggregation requires a common control group (NT units).",
+      "aggregate='cohort' with control_group='not_yet_treated': auto-switching to control_group='never_treated' for aggregation. Cross-cohort aggregation requires a common control group (NT units)."
+    ],
+    "error": null,
+    "result": {
+      "overall_assessment": "多项问题：前期敏感性、预期效应、变换方法敏感性，需谨慎解读",
+      "recommendations": [
+        "前期敏感性检测到(SR=47.4%)，建议使用 detrend 或检查数据质量",
+        "检测到预期效应，建议排除处理前 2 期",
+        "demean 与 detrend 差异显著(27.5%)，可能存在异质性趋势"
+      ],
+      "pre_period": {
+        "sensitivity_ratio": 0.474366760230892,
+        "is_robust": false,
+        "robustness_level": "sensitive"
+      },
+      "anticipation": {
+        "anticipation_detected": true,
+        "recommended_exclusion": 2
+      },
+      "transformation": {
+        "demean_att": 0.09174538713961349,
+        "demean_se": 0.05117765037425274,
+        "detrend_att": 0.06655033512882685,
+        "detrend_se": 0.05375635541218865,
+        "difference": 0.02519505201078663,
+        "rel_diff": 0.2746192783779535
+      },
+      "estimator": null
+    },
+    "stderr": ""
+  },
+  "comparison": {
+    "status": "passed",
+    "exact_status": "passed",
+    "numeric_status": "passed",
+    "exact_findings": [
+      {
+        "name": "pre_period.is_robust",
+        "status": "pass",
+        "expected": false,
+        "actual": false
+      },
+      {
+        "name": "pre_period.robustness_level",
+        "status": "pass",
+        "expected": "sensitive",
+        "actual": "sensitive"
+      },
+      {
+        "name": "anticipation.anticipation_detected",
+        "status": "pass",
+        "expected": true,
+        "actual": true
+      },
+      {
+        "name": "anticipation.recommended_exclusion",
+        "status": "pass",
+        "expected": 2,
+        "actual": 2
+      },
+      {
+        "name": "estimator.is_null",
+        "status": "pass",
+        "expected": true,
+        "actual": true
+      }
+    ],
+    "numeric_findings": [
+      {
+        "name": "pre_period.sensitivity_ratio",
+        "status": "pass",
+        "expected": 0.47436676023089314,
+        "actual": 0.474366760230892,
+        "abs_diff": 1.1102230246251565e-15,
+        "tolerance": 1e-06
+      },
+      {
+        "name": "transformation.demean_att",
+        "status": "pass",
+        "expected": 0.0917453871396135,
+        "actual": 0.09174538713961349,
+        "abs_diff": 1.3877787807814457e-17,
+        "tolerance": 1e-06
+      },
+      {
+        "name": "transformation.detrend_att",
+        "status": "pass",
+        "expected": 0.06655033512882683,
+        "actual": 0.06655033512882685,
+        "abs_diff": 2.7755575615628914e-17,
+        "tolerance": 1e-06
+      },
+      {
+        "name": "transformation.difference",
+        "status": "pass",
+        "expected": 0.025195052010786673,
+        "actual": 0.02519505201078663,
+        "abs_diff": 4.163336342344337e-17,
+        "tolerance": 1e-06
+      },
+      {
+        "name": "transformation.demean_se",
+        "status": "pass",
+        "expected": 0.051177650374252745,
+        "actual": 0.05117765037425274,
+        "abs_diff": 6.938893903907228e-18,
+        "tolerance": 0.0001
+      },
+      {
+        "name": "transformation.detrend_se",
+        "status": "pass",
+        "expected": 0.05375635541218712,
+        "actual": 0.05375635541218865,
+        "abs_diff": 1.5265566588595902e-15,
+        "tolerance": 0.0001
+      }
+    ],
+    "blockers": []
+  },
+  "paper_alignment": {
+    "demean_att_abs_diff_vs_table3": 0.0002546128603865133,
+    "detrend_att_abs_diff_vs_table3": 0.0004496648711731499
+  }
+}

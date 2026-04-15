@@ -1,0 +1,34 @@
+{
+  "story": "story-E8-04",
+  "layer": "layer_5",
+  "role": "qa-parity",
+  "generated_at": "2026-03-27 09:11:09 CST",
+  "legacy_hardening_probe": {
+    "script": "e8_04_package_hardening_regression.R",
+    "status": "passed",
+    "output_tail": ["Package hardening static regression passed.", "Package hardening regression passed."]
+  },
+  "visualization_export_suite": {
+    "status": "passed",
+    "failure_labels": [],
+    "warning_lines": ["1. TC-10.6.51: plot_event_study aggregation produces different ATT ('test-visualization-export.R:755:3') - <U+7B80><U+5355><U+5E73><U+5747>SE<U+5047><U+8BBE>2<U+4E2A><U+961F><U+5217><U+95F4><U+76F8><U+4E92><U+72EC><U+7ACB><U+3002><U+5F53><U+961F><U+5217><U+5171><U+4EAB><U+63A7><U+5236><U+5355><U+5143><U+65F6><U+FF0C><U+6B64><U+5047><U+8BBE><U+53EF><U+80FD><U+5BFC><U+81F4>SE<U+88AB><U+4F4E><U+4F30><U+3002><U+8003><U+8651><U+4F7F><U+7528>aggregation='weighted'<U+6216><U+68C0><U+67E5><U+961F><U+5217><U+95F4><U+72EC><U+7ACB><U+6027><U+3002>", "2. TC-10.6.52: plot_event_study ref_period=0 normalizes anchor ('test-visualization-export.R:771:3') - <U+7B80><U+5355><U+5E73><U+5747>SE<U+5047><U+8BBE>2<U+4E2A><U+961F><U+5217><U+95F4><U+76F8><U+4E92><U+72EC><U+7ACB><U+3002><U+5F53><U+961F><U+5217><U+5171><U+4EAB><U+63A7><U+5236><U+5355><U+5143><U+65F6><U+FF0C><U+6B64><U+5047><U+8BBE><U+53EF><U+80FD><U+5BFC><U+81F4>SE<U+88AB><U+4F4E><U+4F30><U+3002><U+8003><U+8651><U+4F7F><U+7528>aggregation='weighted'<U+6216><U+68C0><U+67E5><U+961F><U+5217><U+95F4><U+72EC><U+7ACB><U+6027><U+3002>", "3. TC-10.6.53: Staggered full pipeline print->summary->plot->export ('test-visualization-export.R:792:3') - <U+7B80><U+5355><U+5E73><U+5747>SE<U+5047><U+8BBE>2<U+4E2A><U+961F><U+5217><U+95F4><U+76F8><U+4E92><U+72EC><U+7ACB><U+3002><U+5F53><U+961F><U+5217><U+5171><U+4EAB><U+63A7><U+5236><U+5355><U+5143><U+65F6><U+FF0C><U+6B64><U+5047><U+8BBE><U+53EF><U+80FD><U+5BFC><U+81F4>SE<U+88AB><U+4F4E><U+4F30><U+3002><U+8003><U+8651><U+4F7F><U+7528>aggregation='weighted'<U+6216><U+68C0><U+67E5><U+961F><U+5217><U+95F4><U+72EC><U+7ACB><U+6027><U+3002>"]
+  },
+  "direct_probes": {
+    "by_cohort_export": {
+      "expected_literal": "No cohort-specific results (Staggered mode only).",
+      "actual_message": "No cohort-specific results (Staggered mode only).",
+      "literal_match": true,
+      "contains_u_escape": false
+    },
+    "ri_summary": {
+      "header_present": true,
+      "valid_token_present": true,
+      "valid_fraction_present": true,
+      "detail_line": "  method=permutation | reps=999 | seed=42 | valid=999/999"
+    }
+  },
+  "exact_status": "passed",
+  "numeric_status": "not-applicable",
+  "blocker_boundary": "targeted-release-contracts-cleared-full-check-pending",
+  "remaining_gap": "none"
+}

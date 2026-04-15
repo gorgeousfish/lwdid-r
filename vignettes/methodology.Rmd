@@ -1,0 +1,188 @@
+---
+title: "Methodology"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Methodology}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+## Overview
+
+This vignette describes the mathematical framework underlying **lwdid**,
+based on Lee and Wooldridge (2025, 2026). The core idea is a unit-level
+time-series transformation that converts panel DiD estimation into a
+cross-sectional treatment effects problem, enabling:
+
+1. Application of any treatment effect estimator (RA, IPW, IPWRA, PSM)
+2. Exact small-sample inference via the t-distribution
+3. Efficiency gains from using all pre-treatment periods
+
+## 1. Common Timing Case
+
+### Setup
+
+Consider $N$ units observed over $T$ periods. Treatment begins at time
+$S$ ($1 < S \leq T$). Define:
+
+- $D_i \in \{0, 1\}$: binary treatment indicator
+- $Y_{it}(0), Y_{it}(1)$: potential outcomes
+- $W_{it} = D_i \cdot \mathbf{1}(t \geq S)$: time-varying treatment
+
+The ATT in period $t$ is:
+$$\tau_t = E[Y_t(1) - Y_t(0) \mid D = 1], \quad t = S, \ldots, T$$
+
+### Identification
+
+**No Anticipation (NA):** $E[Y_{it}(1) - Y_{it}(0) \mid D_i = 1] = 0$
+for $t < S$.
+
+**Parallel Trends (PT):**
+$E[Y_{it}(0) - Y_{i1}(0) \mid D_i] = \delta_t$ for all $t$.
+
+### Procedure 2.1: Demeaning
+
+**Step 1.** Pre-treatment mean:
+$$\bar{Y}_{i,\text{pre}} = \frac{1}{S-1} \sum_{t=1}^{S-1} Y_{it}$$
+
+**Step 2.** Transformed outcome:
+$$\dot{Y}_{it} = Y_{it} - \bar{Y}_{i,\text{pre}}, \quad t = S, \ldots, T$$
+
+**Step 3.** Cross-sectional regression:
+$$\dot{Y}_{it} \text{ on } 1, D_i \quad \Rightarrow \quad \hat{\tau}_t = \text{coef on } D_i$$
+
+Under NA and PT, the key unconfoundedness result holds:
+$$E[\dot{Y}_{it}(0) \mid D_i] = E[\dot{Y}_{it}(0)]$$
+
+This enables any treatment effects estimator on the cross-sectional data
+$\{(\dot{Y}_{it}, D_i, \mathbf{X}_i)\}$.
+
+### With Controls
+
+Under conditional PT:
+$E[Y_{it}(0) - Y_{i1}(0) \mid D_i, \mathbf{X}_i] = \alpha_t + \mathbf{X}_i \beta_t$,
+the regression becomes:
+$$\dot{Y}_{it} \text{ on } 1, D_i, \mathbf{X}_i, D_i \cdot (\mathbf{X}_i - \bar{\mathbf{X}}_1)$$
+
+### Aggregation
+
+Overall ATT: $\bar{\tau} = \frac{1}{T-S+1} \sum_{t=S}^T \tau_t$
+
+## 2. Detrending (Procedure 3.1)
+
+When unit-specific linear trends are suspected:
+
+**Step 1.** Fit pre-treatment OLS: $Y_{it} = A_i + B_i t + e_{it}$
+for $t = 1, \ldots, S-1$
+
+**Step 2.** Detrended outcome:
+$$\ddot{Y}_{it} = Y_{it} - \hat{A}_i - \hat{B}_i t, \quad t = S, \ldots, T$$
+
+**Step 3.** Regress $\ddot{Y}_{it}$ on $1, D_i$.
+
+Requires $\geq 2$ pre-treatment periods (for intercept and slope).
+
+## 3. Staggered Adoption
+
+### Setup
+
+Units enter treatment at different times $g \in \{g_1, \ldots, g_G, \infty\}$.
+The cohort-period ATT is:
+$$\tau_{gr} = E[Y_r(g) - Y_r(\infty) \mid G_i = g], \quad r \geq g$$
+
+### Rolling Transformation
+
+For cohort $g$ and period $r$:
+$$\dot{Y}_{irg} = Y_{ir} - \frac{1}{g-1} \sum_{s=1}^{g-1} Y_{is}$$
+
+Under conditional NA and PT:
+$$\tau_{gr} = E[\dot{Y}_{rg}(g) \mid G_i = g] - E[\dot{Y}_{rg}(\infty) \mid G_i = g]$$
+
+### Control Groups
+
+- **Never treated**: $G_i = \infty$. Required for cohort/overall aggregation.
+- **Not yet treated**: $G_i > r$. Larger control group, varies by $(g, r)$.
+
+### Aggregation
+
+**Cohort:** $\hat{\tau}_g = \frac{1}{|\mathcal{R}_g|} \sum_{r \in \mathcal{R}_g} \hat{\tau}_{gr}$
+
+**Overall:** $\hat{\tau} = \sum_g \frac{N_g}{\sum_{g'} N_{g'}} \hat{\tau}_g$
+
+**Event-time:** $\hat{\tau}_e = \sum_g \omega_{ge} \hat{\tau}_{g,g+e}$
+
+## 4. Estimation Methods
+
+### Regression Adjustment (RA)
+
+$$\dot{Y}_{ir} \text{ on } 1, D_i, \mathbf{X}_i, D_i (\mathbf{X}_i - \bar{\mathbf{X}}_1)$$
+
+### Inverse Probability Weighting (IPW)
+
+Propensity score: $\hat{p}(\mathbf{X}_i) = \Pr(D_i = 1 \mid \mathbf{X}_i)$
+
+$$\hat{\tau}_{\text{IPW}} = \frac{1}{N_1} \sum_{D_i=1} \dot{Y}_{ir} - \frac{\sum_{D_i=0} \hat{w}_i \dot{Y}_{ir}}{\sum_{D_i=0} \hat{w}_i}$$
+
+with $\hat{w}_i = \hat{p}(\mathbf{X}_i) / [1 - \hat{p}(\mathbf{X}_i)]$.
+
+### IPWRA (Doubly Robust)
+
+Consistent if either the propensity score or outcome model is correct.
+
+### PSM
+
+Matches each treated unit to the nearest control on the propensity score.
+
+## 5. Inference
+
+### Exact Small-Sample Inference
+
+Under CLM assumptions ($U_i | D_i \sim N(0, \sigma^2)$):
+$$\frac{\hat{\tau} - \tau}{\text{se}(\hat{\tau})} \sim t_{N-K-2}$$
+
+Valid even with $N_1 = 1$ (studentized residual interpretation).
+
+### HC Robust Standard Errors
+
+For moderate $N$, HC3 is recommended (Simonsohn, 2021):
+$$\text{HC3: } \hat{\Sigma} = (X'X)^{-1} \left(\sum_i \frac{\hat{e}_i^2}{(1-h_{ii})^2} x_i x_i'\right) (X'X)^{-1}$$
+
+### Randomization Inference
+
+Under sharp null $H_0: \tau_i = 0$ for all $i$:
+$$p_{\text{RI}} = \frac{1 + \sum_{b=1}^B \mathbf{1}(|T_b| \geq |T_{\text{obs}}|)}{1 + B}$$
+
+## 6. Comparison with Callaway and Sant'Anna (2021)
+
+| | CS (2021) | lwdid |
+|---|-----------|-------|
+| Reference period | Single period $t = g-1$ | All pre-treatment |
+| Transformation | $Y_{ir} - Y_{i,g-1}$ | $Y_{ir} - \bar{Y}_{i,\text{pre}}$ |
+| Efficiency | Lower (uses less info) | BLUE under standard assumptions |
+| Heterogeneous trends | Not supported | Supported (detrend) |
+| Estimators | RA, IPW, IPWRA | RA, IPW, IPWRA, PSM |
+
+Under the error-components structure, the lwdid estimator is BLUE and
+asymptotically efficient (Wooldridge, 2025a, Theorem 6.2).
+
+## References
+
+Lee, S. and Wooldridge, J.M. (2025). "A Simple Transformation Approach to
+Difference-in-Differences Estimation for Panel Data."
+
+Lee, S. and Wooldridge, J.M. (2026). "Simple Approaches to Inference with
+Difference-in-Differences Estimators with Small Cross-Sectional Sample
+Sizes."
+
+Wooldridge, J.M. (2025a). "Two-Way Fixed Effects, the Two-Way Mundlak
+Regression, and Difference-in-Differences Estimators."
+
+Callaway, B. and Sant'Anna, P.H.C. (2021). "Difference-in-Differences with
+Multiple Time Periods." *Journal of Econometrics*, 225(2), 200-230.

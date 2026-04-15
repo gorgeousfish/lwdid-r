@@ -1,0 +1,67 @@
+{
+  "cases": {
+    "smoking_common_timing": {
+      "consistency_cluster_var": "state",
+      "d": "d",
+      "diagnosis_cluster_structure": {
+        "state": {
+          "level_relative_to_unit": "same",
+          "n_clusters": 39,
+          "reliability_score": 0.6053846153846154,
+          "treatment_varies_within": false
+        }
+      },
+      "ivar": "state",
+      "min_clusters": 20,
+      "potential_cluster_vars": [
+        "state"
+      ],
+      "python_consistency": {
+        "cluster_level": "same",
+        "details": "Analyzed 39 clusters.\nTreatment varies within 0 clusters (0.0%).\nTreatment variation level: state\nCluster level: same",
+        "is_consistent": true,
+        "n_clusters": 39,
+        "n_treatment_changes_within_cluster": 0,
+        "pct_clusters_with_variation": 0.0,
+        "recommendation": "Clustering choice is appropriate.",
+        "treatment_variation_level": "state"
+      },
+      "python_data_csv": "data/smoking.csv",
+      "python_diagnose_clustering": {
+        "recommendation_reason": "Clustering at treatment variation level (state) with 39 clusters.",
+        "recommended_cluster_var": "state",
+        "treatment_variation_level": "state",
+        "warnings": []
+      },
+      "python_recommend_clustering": {
+        "alternatives": [],
+        "confidence": 0.6053846153846154,
+        "n_clusters": 39,
+        "n_control_clusters": 38,
+        "n_treated_clusters": 1,
+        "reasons": [
+          "Treatment varies at state level - clustering at this level is appropriate",
+          "Sufficient clusters (39) for reliable inference"
+        ],
+        "recommended_var": "state",
+        "use_wild_bootstrap": false,
+        "warnings": [],
+        "wild_bootstrap_reason": null
+      },
+      "r_dataset": "smoking",
+      "tvar": "year"
+    }
+  },
+  "data_sources": [
+    "lwdid-py_v0.2.3/data/smoking.csv",
+    "lwdid-r/data/smoking.rda"
+  ],
+  "generated_at": "2026-03-24T04:41:22.007878+00:00",
+  "role": "story-worker",
+  "source_tests": [
+    "lwdid-py_v0.2.3/tests/_archived_dev_tests/test_to_stata.py::common_timing_data",
+    "lwdid-py_v0.2.3/tests/_archived_dev_tests/test_to_stata_numerical.py::smoking_data"
+  ],
+  "status": "layer-3-smoking-common-timing-contract-established",
+  "story": "story-E8-04"
+}

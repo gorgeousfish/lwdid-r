@@ -1,0 +1,245 @@
+---
+title: "Advanced Usage"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Advanced Usage}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7,
+  fig.height = 5,
+  warning = FALSE,
+  message = FALSE
+)
+```
+
+## Overview
+
+This vignette covers advanced features of **lwdid**: multiple estimators,
+sensitivity analysis, diagnostics, wild cluster bootstrap, randomization
+inference, data preprocessing, parallel computation, and result export.
+
+```{r load}
+library(lwdid)
+data(smoking)
+data(castle)
+```
+
+## Multiple Estimators
+
+lwdid supports four estimators, all applied to the transformed
+cross-sectional data:
+
+| Estimator | `estimator =` | Controls Required | Double Robust |
+|-----------|--------------|-------------------|---------------|
+| Regression Adjustment | `"ra"` | Optional | No |
+| Inverse Probability Weighting | `"ipw"` | Yes | No |
+| Doubly Robust | `"ipwra"` | Yes | Yes |
+| Propensity Score Matching | `"psm"` | Yes | No |
+
+### IPW
+
+```{r ipw, eval=FALSE}
+result_ipw <- lwdid(
+  data = castle, y = "lhomicide", ivar = "sid", tvar = "year",
+  gvar = "effyear", rolling = "demean", estimator = "ipw",
+  controls = c("police", "income", "poverty"),
+  aggregate = "cohort"
+)
+```
+
+### IPWRA (Doubly Robust)
+
+```{r ipwra, eval=FALSE}
+result_ipwra <- lwdid(
+  data = castle, y = "lhomicide", ivar = "sid", tvar = "year",
+  gvar = "effyear", rolling = "demean", estimator = "ipwra",
+  controls = c("police", "income", "poverty"),
+  aggregate = "cohort"
+)
+```
+
+### PSM
+
+```{r psm, eval=FALSE}
+result_psm <- lwdid(
+  data = castle, y = "lhomicide", ivar = "sid", tvar = "year",
+  gvar = "effyear", rolling = "demean", estimator = "psm",
+  controls = c("police", "income", "poverty"),
+  aggregate = "cohort"
+)
+```
+
+## Transformation Comparison
+
+```{r transforms}
+res_dm <- lwdid(
+  data = smoking, y = "lcigsale", ivar = "state", tvar = "year",
+  d = "d", post = "post", rolling = "demean"
+)
+
+res_dt <- lwdid(
+  data = smoking, y = "lcigsale", ivar = "state", tvar = "year",
+  d = "d", post = "post", rolling = "detrend"
+)
+
+cat("Demean ATT:", round(res_dm$att, 4), "\n")
+cat("Detrend ATT:", round(res_dt$att, 4), "\n")
+```
+
+For quarterly data, use `"demeanq"` or `"detrendq"` with the
+`season_var` parameter.
+
+## Variance-Covariance Estimation
+
+| `vce` | Description |
+|-------|-------------|
+| `NULL` | OLS (homoskedastic) |
+| `"robust"` / `"hc1"` | HC1 heteroskedasticity-robust |
+| `"hc0"` -- `"hc4"` | HC-family (HC3 recommended for small $N$) |
+| `"cluster"` | Cluster-robust (requires `cluster_var`) |
+
+```{r vce-example}
+# HC1 for smoking data (single treated unit makes HC3 unstable)
+result_hc1 <- suppressWarnings(lwdid(
+  data = smoking, y = "lcigsale", ivar = "state", tvar = "year",
+  d = "d", post = "post", vce = "hc1"
+))
+summary(result_hc1)
+```
+
+## Sensitivity Analysis
+
+```{r sensitivity, eval=FALSE}
+sens <- lwdid_sensitivity(
+  data = smoking, y = "lcigsale", ivar = "state", tvar = "year",
+  d = "d", post = "post", type = "all", verbose = FALSE
+)
+print(sens)
+```
+
+### Pre-Period Sensitivity
+
+```{r pre-period-sens, eval=FALSE}
+pre_sens <- lwdid_sensitivity_pre_period(
+  data = smoking, y = "lcigsale", ivar = "state", tvar = "year",
+  d = "d", post = "post"
+)
+```
+
+## Diagnostics
+
+### Parallel Trends Testing
+
+```{r pt-test, eval=FALSE}
+pt <- lwdid_test_parallel_trends(
+  data = castle, y = "lhomicide", ivar = "sid",
+  tvar = "year", gvar = "effyear"
+)
+print(pt)
+```
+
+### Transformation Recommendation
+
+```{r recommend, eval=FALSE}
+rec <- lwdid_recommend_transformation(
+  data = castle, y = "lhomicide", ivar = "sid",
+  tvar = "year", gvar = "effyear"
+)
+print(rec)
+```
+
+### Full Diagnostic Suite
+
+```{r diagnose, eval=FALSE}
+diag <- lwdid_diagnose(
+  data = castle, y = "lhomicide", ivar = "sid",
+  tvar = "year", gvar = "effyear"
+)
+summary(diag)
+```
+
+## Data Preprocessing
+
+`aggregate_to_panel()` collapses micro-level data to panel format:
+
+```{r aggregate, eval=FALSE}
+agg_result <- aggregate_to_panel(
+  data = survey_data,
+  unit_var = "state",
+  time_var = "year",
+  outcome_var = "income",
+  weight_var = "survey_weight",
+  treatment_var = "treated",
+  min_cell_size = 30
+)
+panel <- as.data.frame(agg_result)
+```
+
+## Wild Cluster Bootstrap
+
+For inference with few clusters:
+
+```{r wcb, eval=FALSE}
+wcb <- wild_cluster_bootstrap(
+  data = castle, y = "lhomicide", ivar = "sid",
+  tvar = "year", gvar = "effyear",
+  cluster = "sid", B = 999
+)
+print(wcb)
+```
+
+## Randomization Inference
+
+Exact p-values without distributional assumptions:
+
+```{r ri, eval=FALSE}
+result_ri <- lwdid(
+  data = smoking, y = "lcigsale", ivar = "state", tvar = "year",
+  d = "d", post = "post", ri = TRUE, rireps = 500
+)
+cat("RI p-value:", result_ri$ri_pvalue, "\n")
+```
+
+## Parallel Computation
+
+Enable parallel processing for staggered designs:
+
+```{r parallel, eval=FALSE}
+result_par <- lwdid(
+  data = castle, y = "lhomicide", ivar = "sid", tvar = "year",
+  gvar = "effyear", rolling = "demean", aggregate = "cohort",
+  parallel = TRUE, n_cores = 4
+)
+```
+
+Or configure the parallel backend explicitly:
+
+```{r parallel-setup, eval=FALSE}
+setup_parallel(n_workers = 4, strategy = "multisession")
+# All subsequent lwdid() calls use parallel backend
+result <- lwdid(...)
+# Reset when done
+setup_parallel(strategy = "sequential")
+```
+
+## Exporting Results
+
+```{r export, eval=FALSE}
+to_latex(result, file = "results_table.tex")
+to_csv(result, file = "results.csv")
+```
+
+## References
+
+Lee, S. and Wooldridge, J.M. (2025). "A Simple Transformation Approach to
+Difference-in-Differences Estimation for Panel Data."
+
+Lee, S. and Wooldridge, J.M. (2026). "Simple Approaches to Inference with
+Difference-in-Differences Estimators with Small Cross-Sectional Sample
+Sizes."

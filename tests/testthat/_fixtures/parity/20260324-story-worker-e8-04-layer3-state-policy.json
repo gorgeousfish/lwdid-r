@@ -1,0 +1,80 @@
+{
+  "cases": {
+    "state_policy": {
+      "consistency_cluster_var": "state",
+      "diagnosis_cluster_structure": {
+        "county": {
+          "level_relative_to_unit": "same",
+          "n_clusters": 1000,
+          "reliability_score": 1.0,
+          "treatment_varies_within": false
+        },
+        "state": {
+          "level_relative_to_unit": "higher",
+          "n_clusters": 50,
+          "reliability_score": 1.0,
+          "treatment_varies_within": false
+        }
+      },
+      "fixture_csv": "e8_04_clustering_layer3_state_policy_fixture.csv",
+      "gvar": "first_treat",
+      "ivar": "county",
+      "min_clusters": 20,
+      "potential_cluster_vars": [
+        "state",
+        "county"
+      ],
+      "python_consistency": {
+        "cluster_level": "higher",
+        "details": "Analyzed 50 clusters.\nTreatment varies within 0 clusters (0.0%).\nTreatment variation level: state\nCluster level: higher",
+        "is_consistent": true,
+        "n_clusters": 50,
+        "n_treatment_changes_within_cluster": 0,
+        "pct_clusters_with_variation": 0.0,
+        "recommendation": "Clustering choice is appropriate.",
+        "treatment_variation_level": "state"
+      },
+      "python_diagnose_clustering": {
+        "recommendation_reason": "Clustering at treatment variation level (state) with 50 clusters.",
+        "recommended_cluster_var": "state",
+        "treatment_variation_level": "state",
+        "warnings": []
+      },
+      "python_recommend_clustering": {
+        "alternatives": [
+          {
+            "n_clusters": 1000,
+            "reason": "reliability score: 1.00",
+            "reliability_score": 1.0,
+            "var": "county"
+          }
+        ],
+        "confidence": 1.0,
+        "n_clusters": 50,
+        "n_control_clusters": 25,
+        "n_treated_clusters": 25,
+        "reasons": [
+          "Treatment varies at state level - clustering at this level is appropriate",
+          "Sufficient clusters (50) for reliable inference",
+          "Good balance between treated (25) and control (25) clusters",
+          "Clustering at higher level than unit of observation"
+        ],
+        "recommended_var": "state",
+        "use_wild_bootstrap": false,
+        "warnings": [],
+        "wild_bootstrap_reason": null
+      },
+      "tvar": "year"
+    }
+  },
+  "generated_at": "2026-03-24T00:55:32.760207+00:00",
+  "role": "story-worker",
+  "source_tests": [
+    "lwdid-py_v0.2.3/tests/_archived_dev_tests/test_clustering_simulated.py::TestStateLevelPolicy::test_diagnose_recommends_state",
+    "lwdid-py_v0.2.3/tests/_archived_dev_tests/test_clustering_simulated.py::TestStateLevelPolicy::test_recommend_no_wild_bootstrap",
+    "lwdid-py_v0.2.3/tests/_archived_dev_tests/test_clustering_simulated.py::TestStateLevelPolicy::test_consistency_check_passes",
+    "lwdid-py_v0.2.3/tests/_archived_dev_tests/test_clustering_simulated.py::TestStateLevelPolicy::test_state_is_higher_level"
+  ],
+  "status": "layer-3-state-policy-contract-established",
+  "story": "story-E8-04"
+}

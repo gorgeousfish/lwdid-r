@@ -1,0 +1,79 @@
+{
+  "story": "story-E8-04",
+  "layer": "layer_5",
+  "role": "qa-parity",
+  "generated_at": "2026-03-24 21:04:05 CST",
+  "fixed_stale_blockers": [
+    {
+      "file": "lwdid-r/tests/testthat/test-transform-detrend.R",
+      "issue": "stale helper call to muffle_detrend()",
+      "verification": "devtools::test(filter=\"transform-detrend\") passed"
+    },
+    {
+      "file": "lwdid-r/tests/testthat/test-utils.R",
+      "issue": "aggregate-level constant omitted event_time",
+      "verification": "devtools::test(filter=\"utils\") passed"
+    },
+    {
+      "file": "lwdid-r/tests/testthat/test-validate.R",
+      "issue": "deferred auto-switch warning expected old generic class",
+      "verification": "devtools::test(filter=\"validate\") passed"
+    }
+  ],
+  "targeted_reruns": [
+    {
+      "filter": "transform-detrend",
+      "status": "passed"
+    },
+    {
+      "filter": "utils",
+      "status": "passed"
+    },
+    {
+      "filter": "validate",
+      "status": "passed"
+    },
+    {
+      "filter": "staggered-integration",
+      "status": "passed"
+    },
+    {
+      "filter": "staggered-numerical",
+      "status": "passed"
+    }
+  ],
+  "targeted_release_probe": {
+    "script": "_automation/test-artifacts/parity/e8_04_layer5_release_regression.R",
+    "status": "passed"
+  },
+  "fresh_full_check": {
+    "status": "failed",
+    "errors": 1,
+    "warnings": 5,
+    "notes": 3,
+    "check_log": "/private/var/folders/80/yx4y3m9s2x19mghrsz2f8hkc0000gn/T/RtmpYT0Ulo/file2f9b35eb8ced/lwdid.Rcheck/00check.log"
+  },
+  "new_live_test_blockers": [
+    "test-staggered-integration.R:383: check-time still expects aggregate non-none outputs to keep ci/se/t_stat/pvalue as NA",
+    "test-staggered-integration.R:531: check-time still expects aggregate non-none path to emit a stub message",
+    "test-staggered-numerical.R:181: check-time still expects event_time aggregate to error"
+  ],
+  "boundary_diagnosis": {
+    "interactive_reruns_pass": true,
+    "interpretation": "current canonical blocker has shifted from direct stale test contracts to R CMD check-only staggered aggregation contract drift"
+  },
+  "warning_buckets": [
+    "Rd files",
+    "Rd cross-references",
+    "missing documentation entries",
+    "code/documentation mismatches",
+    "Rd usage sections"
+  ],
+  "note_buckets": [
+    "package dependencies",
+    "future file timestamps",
+    "R code for possible problems"
+  ],
+  "blocker_boundary": "transform-utils-validate-cleared-check-time-failures-now-staggered-aggregation-contracts",
+  "remaining_gap": "full check is still blocked by check-time-only tests plus persistent globals/Rd hygiene buckets"
+}

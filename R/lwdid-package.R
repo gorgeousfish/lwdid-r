@@ -1,0 +1,67 @@
+#' lwdid: Lee-Wooldridge Difference-in-Differences Estimation
+#'
+#' @description
+#' Implements the Lee and Wooldridge (2025, 2026) simple transformation
+#' approach for difference-in-differences (DiD) estimation with panel data.
+#' Through unit-specific time-series transformations (demeaning or
+#' detrending), the package converts panel DiD estimation into standard
+#' cross-sectional treatment effect problems, enabling application of
+#' multiple estimators and exact small-sample inference.
+#'
+#' @details
+#' \strong{Core Transformations}:
+#' \itemize{
+#'   \item \strong{Demean} (Procedure 2.1): Subtracts the pre-treatment
+#'     mean \eqn{\bar{Y}_{i,pre}} to eliminate unit fixed effects.
+#'     Identifies ATT under the parallel trends assumption.
+#'   \item \strong{Detrend} (Procedure 3.1): Removes unit-specific linear
+#'     trends. Identifies ATT under heterogeneous trends.
+#'   \item \strong{Seasonal variants}: \code{demeanq} and \code{detrendq}
+#'     for quarterly/seasonal data.
+#' }
+#'
+#' \strong{Estimation Methods}:
+#' \itemize{
+#'   \item \strong{RA}: Regression Adjustment (default).
+#'   \item \strong{IPW}: Inverse Probability Weighting.
+#'   \item \strong{IPWRA}: Doubly Robust (IPW + RA).
+#'   \item \strong{PSM}: Propensity Score Matching.
+#' }
+#'
+#' \strong{Inference}:
+#' \itemize{
+#'   \item Exact t-distribution inference for small samples
+#'   \item Heteroskedasticity-robust standard errors (HC0--HC4)
+#'   \item Cluster-robust standard errors
+#'   \item Wild Cluster Bootstrap
+#'   \item Fisher Randomization Inference
+#' }
+#'
+#' \strong{Design Support}:
+#' \itemize{
+#'   \item Common timing (all units treated simultaneously)
+#'   \item Staggered adoption (cohort-specific treatment timing)
+#'   \item Aggregation: cohort, overall, event-time
+#' }
+#'
+#' The main entry point is \code{\link{lwdid}}.
+#'
+#' @references
+#' Lee, S. and Wooldridge, J.M. (2025). "A Simple Transformation Approach
+#' to Difference-in-Differences Estimation for Panel Data."
+#'
+#' Lee, S. and Wooldridge, J.M. (2026). "Simple Approaches to Inference
+#' with Difference-in-Differences Estimators with Small Cross-Sectional
+#' Sample Sizes."
+#'
+#' @seealso
+#' \code{\link{lwdid}} for the main estimation function,
+#' \code{\link{setup_parallel}} for parallel computation,
+#' \code{\link{aggregate_to_panel}} for data preprocessing,
+#' \code{\link{lwdid_sensitivity}} for sensitivity analysis,
+#' \code{\link{lwdid_test_parallel_trends}} for parallel trends testing.
+#'
+#' @name lwdid-package
+#' @aliases lwdid-package
+#' @keywords package
+"_PACKAGE"

@@ -1,0 +1,228 @@
+{
+  "story": "story-E8-03",
+  "generated_at_utc": "2026-03-23T10:12:57.360504+00:00",
+  "dataset": {
+    "rows": 400,
+    "units": 40,
+    "treated_units": 20,
+    "years": [
+      2001,
+      2010
+    ],
+    "treatment_start": 2006,
+    "seed": 812
+  },
+  "python_reference": {
+    "warnings": [],
+    "result": {
+      "overall_assessment": "Results appear robust across multiple sensitivity checks.",
+      "recommendations": [
+        "No major robustness concerns identified."
+      ],
+      "pre_period": {
+        "sensitivity_ratio": 0.02648200276660318,
+        "is_robust": true,
+        "robustness_level": "highly_robust"
+      },
+      "anticipation": {
+        "anticipation_detected": false,
+        "recommended_exclusion": 0
+      },
+      "transformation": {
+        "demean_att": 1.501107228213113,
+        "demean_se": 0.03348333745373685,
+        "detrend_att": 1.4722962209328159,
+        "detrend_se": 0.07146792470241897,
+        "difference": 0.028811007280297174
+      },
+      "estimator": {
+        "ra": 1.501107228213113,
+        "ipw": 1.490863479090902,
+        "ipwra": 1.5010215864041574,
+        "range": 0.010243749122210932
+      }
+    }
+  },
+  "r_result": {
+    "formals": [
+      "data",
+      "y",
+      "ivar",
+      "tvar",
+      "gvar",
+      "d",
+      "post",
+      "rolling",
+      "estimator",
+      "controls",
+      "vce",
+      "cluster_var",
+      "type",
+      "max_anticipation",
+      "detection_threshold",
+      "alpha",
+      "verbose",
+      "..."
+    ],
+    "explicit_max_anticipation": true,
+    "explicit_detection_threshold": true,
+    "warnings": [],
+    "result": {
+      "overall_assessment": "估计在多项稳健性检验中表现稳健",
+      "recommendations": "未发现重大稳健性问题",
+      "pre_period": {
+        "sensitivity_ratio": 0.026482002766603202,
+        "is_robust": true,
+        "robustness_level": "highly_robust"
+      },
+      "anticipation": {
+        "anticipation_detected": false,
+        "recommended_exclusion": 0
+      },
+      "transformation": {
+        "demean_att": 1.5011072282131117,
+        "demean_se": 0.033483337453736814,
+        "detrend_att": 1.472296220932815,
+        "detrend_se": 0.07146792470241892,
+        "difference": 0.02881100728029673,
+        "rel_diff": 0.019193170706794067
+      },
+      "estimator": {
+        "ra": 1.5011072282131117,
+        "ipw": 1.4908634790524196,
+        "ipwra": 1.5010215864053855,
+        "range": 0.01024374916069215,
+        "rel_range": 0.006824128861790977,
+        "baseline_att": 1.5011072282131117
+      }
+    },
+    "error": null,
+    "stderr": ""
+  },
+  "comparison": {
+    "status": "passed",
+    "exact_status": "passed",
+    "numeric_status": "passed",
+    "exact_findings": [
+      {
+        "name": "wrapper.formals.max_anticipation",
+        "status": "pass",
+        "expected": true,
+        "actual": true
+      },
+      {
+        "name": "wrapper.formals.detection_threshold",
+        "status": "pass",
+        "expected": true,
+        "actual": true
+      },
+      {
+        "name": "pre_period.is_robust",
+        "status": "pass",
+        "expected": true,
+        "actual": true
+      },
+      {
+        "name": "pre_period.robustness_level",
+        "status": "pass",
+        "expected": "highly_robust",
+        "actual": "highly_robust"
+      },
+      {
+        "name": "anticipation.anticipation_detected",
+        "status": "pass",
+        "expected": false,
+        "actual": false
+      },
+      {
+        "name": "anticipation.recommended_exclusion",
+        "status": "pass",
+        "expected": 0,
+        "actual": 0
+      }
+    ],
+    "numeric_findings": [
+      {
+        "name": "pre_period.sensitivity_ratio",
+        "status": "pass",
+        "expected": 0.02648200276660318,
+        "actual": 0.026482002766603202,
+        "abs_diff": 2.0816681711721685e-17,
+        "tolerance": 1e-06
+      },
+      {
+        "name": "transformation.demean_att",
+        "status": "pass",
+        "expected": 1.501107228213113,
+        "actual": 1.5011072282131117,
+        "abs_diff": 1.3322676295501878e-15,
+        "tolerance": 1e-06
+      },
+      {
+        "name": "transformation.detrend_att",
+        "status": "pass",
+        "expected": 1.4722962209328159,
+        "actual": 1.472296220932815,
+        "abs_diff": 8.881784197001252e-16,
+        "tolerance": 1e-06
+      },
+      {
+        "name": "transformation.difference",
+        "status": "pass",
+        "expected": 0.028811007280297174,
+        "actual": 0.02881100728029673,
+        "abs_diff": 4.440892098500626e-16,
+        "tolerance": 1e-06
+      },
+      {
+        "name": "transformation.demean_se",
+        "status": "pass",
+        "expected": 0.03348333745373685,
+        "actual": 0.033483337453736814,
+        "abs_diff": 3.469446951953614e-17,
+        "tolerance": 0.0001
+      },
+      {
+        "name": "transformation.detrend_se",
+        "status": "pass",
+        "expected": 0.07146792470241897,
+        "actual": 0.07146792470241892,
+        "abs_diff": 5.551115123125783e-17,
+        "tolerance": 0.0001
+      },
+      {
+        "name": "estimator.ra",
+        "status": "pass",
+        "expected": 1.501107228213113,
+        "actual": 1.5011072282131117,
+        "abs_diff": 1.3322676295501878e-15,
+        "tolerance": 1e-06
+      },
+      {
+        "name": "estimator.ipw",
+        "status": "pass",
+        "expected": 1.490863479090902,
+        "actual": 1.4908634790524196,
+        "abs_diff": 3.8482550479557176e-11,
+        "tolerance": 1e-06
+      },
+      {
+        "name": "estimator.ipwra",
+        "status": "pass",
+        "expected": 1.5010215864041574,
+        "actual": 1.5010215864053855,
+        "abs_diff": 1.2281287098403482e-12,
+        "tolerance": 1e-06
+      },
+      {
+        "name": "estimator.range",
+        "status": "pass",
+        "expected": 0.010243749122210932,
+        "actual": 0.01024374916069215,
+        "abs_diff": 3.8481218211927626e-11,
+        "tolerance": 1e-06
+      }
+    ],
+    "blockers": []
+  }
+}

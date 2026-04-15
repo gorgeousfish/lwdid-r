@@ -1,0 +1,70 @@
+{
+  "cases": {
+    "few_cluster": {
+      "consistency_cluster_var": "region",
+      "diagnosis_cluster_structure": {
+        "region": {
+          "level_relative_to_unit": "higher",
+          "n_clusters": 5,
+          "reliability_score": 0.49,
+          "treatment_varies_within": false
+        }
+      },
+      "fixture_csv": "e8_04_clustering_layer3_few_cluster_fixture.csv",
+      "gvar": "first_treat",
+      "ivar": "unit",
+      "min_clusters": 20,
+      "potential_cluster_vars": [
+        "region"
+      ],
+      "python_consistency": {
+        "cluster_level": "higher",
+        "details": "Analyzed 5 clusters.\nTreatment varies within 0 clusters (0.0%).\nTreatment variation level: region\nCluster level: higher",
+        "is_consistent": true,
+        "n_clusters": 5,
+        "n_treatment_changes_within_cluster": 0,
+        "pct_clusters_with_variation": 0.0,
+        "recommendation": "Clustering choice is appropriate.",
+        "treatment_variation_level": "region"
+      },
+      "python_diagnose_clustering": {
+        "recommendation_reason": "Best available option with 5 clusters (reliability score: 0.49).",
+        "recommended_cluster_var": "region",
+        "treatment_variation_level": "region",
+        "warnings": [
+          "Treatment varies at region level but only 5 clusters available.",
+          "Recommended clustering has only 5 clusters. Consider wild cluster bootstrap for reliable inference."
+        ]
+      },
+      "python_recommend_clustering": {
+        "alternatives": [],
+        "confidence": 0.49,
+        "n_clusters": 5,
+        "n_control_clusters": 3,
+        "n_treated_clusters": 2,
+        "reasons": [
+          "Treatment varies at region level - clustering at this level is appropriate",
+          "Limited clusters (5) - consider wild bootstrap",
+          "Good balance between treated (2) and control (3) clusters",
+          "Clustering at higher level than unit of observation"
+        ],
+        "recommended_var": "region",
+        "use_wild_bootstrap": true,
+        "warnings": [
+          "Only 5 clusters - cluster-robust inference may be unreliable"
+        ],
+        "wild_bootstrap_reason": "Only 5 clusters available (< 20). Wild cluster bootstrap recommended for reliable inference."
+      },
+      "tvar": "year"
+    }
+  },
+  "generated_at": "2026-03-24T01:57:54.886448+00:00",
+  "role": "qa-parity",
+  "source_tests": [
+    "lwdid-py_v0.2.3/tests/_archived_dev_tests/test_clustering_simulated.py::TestFewClusters::test_recommends_wild_bootstrap",
+    "lwdid-py_v0.2.3/tests/_archived_dev_tests/test_clustering_empirical.py::TestRecommendClusteringLevelEmpirical::test_wild_bootstrap_recommendation",
+    "lwdid-py_v0.2.3/tests/_archived_dev_tests/test_clustering_empirical.py::TestWorkflowIntegrationEmpirical::test_workflow_with_small_clusters"
+  ],
+  "status": "layer-3-few-cluster-contract-established",
+  "story": "story-E8-04"
+}
