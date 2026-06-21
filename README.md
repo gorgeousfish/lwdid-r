@@ -31,6 +31,7 @@ The package supports common timing and staggered adoption treatment settings in 
 - [Variance-Covariance Estimation](#variance-covariance-estimation)
 - [Diagnostics](#diagnostics)
 - [Inference](#inference)
+- [Post-Estimation Tools](#post-estimation-tools)
 - [Built-in Datasets](#built-in-datasets)
 - [Citation](#citation)
 - [Authors](#authors)
@@ -329,6 +330,49 @@ summary(result_wcb)
 WCB output reports both requested and actual bootstrap draws. With
 Rademacher weights and at most 12 clusters, `lwdid` uses full sign-pattern
 enumeration, so the actual draw count can differ from `wcb_reps`.
+
+## Post-Estimation Tools
+
+### Multi-Specification Comparison
+
+Compare results across different estimators, transformations, or control group strategies:
+
+```r
+# Estimate with different specifications
+res_ra    <- lwdid(data, y, ivar, tvar, gvar, estimator = "ra")
+res_ipwra <- lwdid(data, y, ivar, tvar, gvar, estimator = "ipwra")
+res_ipw   <- lwdid(data, y, ivar, tvar, gvar, estimator = "ipw")
+
+# Side-by-side comparison
+compare(RA = res_ra, IPWRA = res_ipwra, IPW = res_ipw)
+```
+
+### Integration with modelsummary and broom
+
+lwdid results work seamlessly with the tidyverse ecosystem:
+
+```r
+library(modelsummary)
+
+# Publication-ready tables
+modelsummary(list(RA = res_ra, IPWRA = res_ipwra))
+
+# Tidy output for custom processing
+tidy(result)                    # Coefficient estimates
+tidy(result, type = "effects")  # Period-by-period effects
+glance(result)                  # Model-level statistics
+```
+
+### fixest-Style Accessors
+
+For users familiar with fixest workflows:
+
+```r
+se(result)        # Standard errors
+tstat(result)     # t-statistics
+pvalue(result)    # p-values
+coeftable(result) # Full coefficient table
+```
 
 ## Built-in Datasets
 
