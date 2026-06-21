@@ -5,6 +5,18 @@ if (!exists(".lwdid_env") || is.null(.lwdid_env$warning_registry)) {
   .lwdid_env$warning_registry <- new_warning_registry()
 }
 
+capture_warnings <- function(expr) {
+  warnings_caught <- list()
+  result <- withCallingHandlers(
+    expr,
+    warning = function(w) {
+      warnings_caught[[length(warnings_caught) + 1L]] <<- w
+      invokeRestart("muffleWarning")
+    }
+  )
+  list(result = result, warnings = warnings_caught)
+}
+
 # --------------------------------------------------------------------------
 # TC-6.6.7: IPW weights = ps/(1-ps)
 # --------------------------------------------------------------------------
@@ -44,13 +56,20 @@ test_that("TC-6.6.8: trim_method='drop' excludes trimmed observations", {
   Y <- 1 + X1 + D + rnorm(n)
   df <- data.frame(Y = Y, D = D, X1 = X1)
 
-  result <- estimate_ipw(df, "Y", "D", "X1",
-                         trim_threshold = 0.1, trim_method = "drop")
+  captured <- capture_warnings(
+    estimate_ipw(df, "Y", "D", "X1",
+                 trim_threshold = 0.1, trim_method = "drop")
+  )
+  result <- captured$result
   ps_result <- estimate_propensity_score(df, "D", "X1", 0.1, "drop")
 
   # Some observations should be trimmed
   expect_true(any(ps_result$trimmed_mask))
   expect_gt(result$n_trimmed, 0)
+  trimming_warning <- Filter(function(w) {
+    inherits(w, "lwdid_data") && isTRUE(w$detail == "ipw_high_trimming")
+  }, captured$warnings)
+  expect_length(trimming_warning, 1L)
 
   # Trimmed observations should have weight = 0
   trimmed_idx <- which(ps_result$trimmed_mask)

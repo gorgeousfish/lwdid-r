@@ -31,6 +31,22 @@ make_cluster_data <- function(n = 100, G = 20, seed = 42) {
   data.frame(y = y, D = d, x = x, cl = cluster)
 }
 
+capture_warnings <- function(expr) {
+  warnings_caught <- list()
+  result <- withCallingHandlers(
+    expr,
+    warning = function(w) {
+      warnings_caught[[length(warnings_caught) + 1L]] <<- w
+      invokeRestart("muffleWarning")
+    }
+  )
+  list(result = result, warnings = warnings_caught)
+}
+
+has_warning_class <- function(warnings, class) {
+  any(vapply(warnings, inherits, logical(1), what = class))
+}
+
 # ============================================================================
 # Group 1: VCE type dispatch correctness
 # ============================================================================
@@ -427,11 +443,8 @@ test_that("perfect fit triggers lwdid_numerical warning", {
   y <- 1 + 2 * d + 0.5 * x  # no noise -> perfect fit -> SE ~ 0
   df <- data.frame(y = y, D = d, x = x)
   fit <- lm(y ~ D + x, data = df)
-  # Expect lwdid_numerical warning (may also get R's "essentially perfect fit" warning)
-  expect_warning(
-    compute_vce(fit, vce = NULL),
-    class = "lwdid_numerical"
-  )
+  captured <- capture_warnings(compute_vce(fit, vce = NULL))
+  expect_true(has_warning_class(captured$warnings, "lwdid_numerical"))
 })
 
 test_that("normal data with G >= 20 balanced clusters produces no warnings", {
@@ -588,14 +601,10 @@ test_that("HC1/HC3 with extreme small sample (N_treated=1) triggers lwdid_small_
   y <- 1 + 2 * d + 0.5 * x + rnorm(n)
   df <- data.frame(y = y, D = d, x = x)
   fit <- lm(y ~ D + x, data = df)
-  expect_warning(
-    compute_hc_vce(fit, type = "hc1"),
-    class = "lwdid_small_sample"
-  )
-  expect_warning(
-    compute_hc_vce(fit, type = "hc3"),
-    class = "lwdid_small_sample"
-  )
+  hc1 <- capture_warnings(compute_hc_vce(fit, type = "hc1"))
+  hc3 <- capture_warnings(compute_hc_vce(fit, type = "hc3"))
+  expect_true(has_warning_class(hc1$warnings, "lwdid_small_sample"))
+  expect_true(has_warning_class(hc3$warnings, "lwdid_small_sample"))
 })
 
 test_that("HC2-HC4 with extreme high leverage triggers lwdid_numerical warning", {
@@ -609,18 +618,12 @@ test_that("HC2-HC4 with extreme high leverage triggers lwdid_numerical warning",
   # Verify the extreme leverage condition holds
   expect_true(max(hatvalues(fit)) > 0.99)
   # HC2, HC3, HC4 should all trigger the high leverage warning
-  expect_warning(
-    compute_hc_vce(fit, type = "hc2"),
-    class = "lwdid_numerical"
-  )
-  expect_warning(
-    compute_hc_vce(fit, type = "hc3"),
-    class = "lwdid_numerical"
-  )
-  expect_warning(
-    compute_hc_vce(fit, type = "hc4"),
-    class = "lwdid_numerical"
-  )
+  hc2 <- capture_warnings(compute_hc_vce(fit, type = "hc2"))
+  hc3 <- capture_warnings(compute_hc_vce(fit, type = "hc3"))
+  hc4 <- capture_warnings(compute_hc_vce(fit, type = "hc4"))
+  expect_true(has_warning_class(hc2$warnings, "lwdid_numerical"))
+  expect_true(has_warning_class(hc3$warnings, "lwdid_numerical"))
+  expect_true(has_warning_class(hc4$warnings, "lwdid_numerical"))
 })
 
 # ============================================================================

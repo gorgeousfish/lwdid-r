@@ -14,6 +14,7 @@ lwdid_diagnose(
   controls = NULL,
   cluster_vars = NULL,
   never_treated_values = c(0, Inf),
+  run_all_trend_diagnostics = TRUE,
   verbose = TRUE
 )
 }
@@ -36,6 +37,10 @@ lwdid_diagnose(
 When \code{NULL}, clustering diagnostics are skipped.}
 
 \item{never_treated_values}{Numeric markers for never-treated cohorts.}
+
+\item{run_all_trend_diagnostics}{Logical scalar. Whether the trend
+recommendation should run its parallel-trends and heterogeneous-trends
+subdiagnostics. Default \code{TRUE}.}
 
 \item{verbose}{Logical scalar forwarded to the underlying diagnostics.}
 }

@@ -34,6 +34,7 @@ library(testthat)
     vce_type = "cluster", cluster_var = "state", n_clusters = 51L,
     alpha = 0.05, is_staggered = TRUE, estimator = "ra",
     aggregate = "cohort", cohorts = c(2005L, 2007L),
+    cohort_sizes = c("2005" = 40L, "2007" = 30L),
     n_never_treated = 300L,
     cohort_effects = cohort_eff,
     att_by_cohort = data.frame(
@@ -55,6 +56,32 @@ library(testthat)
   do.call(new_lwdid_result, modifyList(defaults, list(...)))
 }
 
+.mk_event_time <- function(...) {
+  event_time_effects <- list(
+    list(
+      event_time = 0L, att = 0.20, se = 0.10, ci_lower = 0.00,
+      ci_upper = 0.40, t_stat = 2.0, pvalue = 0.051,
+      df_resid = 96L, df_inference = 4L, n_cohorts = 2L,
+      weight_sum = 1,
+      se_aggregation = "diagonal_weighted_cohort_se",
+      covariance_assumption = "zero_cross_cohort_covariance"
+    ),
+    list(
+      event_time = 1L, att = 0.45, se = 0.15, ci_lower = 0.15,
+      ci_upper = 0.75, t_stat = 3.0, pvalue = 0.010,
+      df_resid = 94L, df_inference = 30L, n_cohorts = 2L,
+      weight_sum = 1,
+      se_aggregation = "diagonal_weighted_cohort_se",
+      covariance_assumption = "zero_cross_cohort_covariance"
+    )
+  )
+  .mk_stag(
+    aggregate = "event_time",
+    event_time_effects = event_time_effects,
+    ...
+  )
+}
+
 # ============================================================================
 # print tests (TC-10.4.1 through TC-10.4.41)
 # ============================================================================
@@ -65,9 +92,9 @@ test_that("TC-10.4.1: print CT shows ATT/SE/t-stat/p-value/CI/N", {
   out <- capture.output(print(obj))
   txt <- paste(out, collapse = "\n")
   expect_match(txt, "ATT")
-  expect_match(txt, "SE")
-  expect_match(txt, "t-stat")
-  expect_match(txt, "p-value")
+  expect_match(txt, "Std\\. Err\\.")
+  expect_match(txt, "t value")
+  expect_match(txt, "Pr\\(>\\|t\\|\\)")
   expect_match(txt, "CI")
   expect_match(txt, "N = 200")
 })
@@ -75,7 +102,7 @@ test_that("TC-10.4.1: print CT shows ATT/SE/t-stat/p-value/CI/N", {
 # TC-10.4.2: print returns invisible(x)
 test_that("TC-10.4.2: print returns invisible(x)", {
   obj <- .mk_ct()
-  ret <- print(obj)
+  capture.output(ret <- print(obj))
   expect_identical(ret, obj)
 })
 
@@ -93,7 +120,7 @@ test_that("TC-10.4.4: print shows warning count", {
   obj <- .mk_ct(warnings_log = list("w1", "w2", "w3"))
   out <- capture.output(print(obj))
   txt <- paste(out, collapse = "\n")
-  expect_match(txt, "3 warning")
+  expect_match(txt, "Warnings:\\s+3")
 })
 
 # TC-10.4.5: print on non-lwdid_result errors
@@ -143,7 +170,8 @@ test_that("TC-10.4.34: print Staggered shows cohort count", {
   obj <- .mk_stag()
   out <- capture.output(print(obj))
   txt <- paste(out, collapse = "\n")
-  expect_match(txt, "Cohorts: 2")
+  expect_match(txt, "Cohorts:")
+  expect_match(txt, "2005, 2007")
 })
 
 # TC-10.4.35: print Staggered shows control group strategy
@@ -151,7 +179,8 @@ test_that("TC-10.4.35: print Staggered shows control group", {
   obj <- .mk_stag()
   out <- capture.output(print(obj))
   txt <- paste(out, collapse = "\n")
-  expect_match(txt, "Control group: never_treated")
+  expect_match(txt, "Control:")
+  expect_match(txt, "never_treated")
 })
 
 # TC-10.4.36: print Staggered shows auto-switch notification
@@ -162,13 +191,12 @@ test_that("TC-10.4.36: print Staggered shows auto-switch", {
   expect_match(txt, "auto-switched from not_yet_treated")
 })
 
-# TC-10.4.37: print Staggered shows tau_omega label
-test_that("TC-10.4.37: print Staggered shows tau_omega label", {
+# TC-10.4.37: print Staggered shows overall ATT label
+test_that("TC-10.4.37: print Staggered shows overall ATT label", {
   obj <- .mk_stag()
   out <- capture.output(print(obj))
   txt <- paste(out, collapse = "\n")
-  expect_true(grepl("tau_omega", txt, fixed = TRUE),
-              info = "print output must contain ASCII tau_omega label")
+  expect_match(txt, "Overall ATT")
 })
 
 # TC-10.4.38: print Staggered shows Pre-treatment flag
@@ -176,7 +204,7 @@ test_that("TC-10.4.38: print Staggered shows Pre-treatment flag", {
   obj <- .mk_stag()
   out <- capture.output(print(obj))
   txt <- paste(out, collapse = "\n")
-  expect_match(txt, "Pre-treatment: FALSE")
+  expect_false(grepl("Pre-treatment Dynamics:", txt, fixed = TRUE))
 })
 
 # TC-10.4.39: print outputs df
@@ -184,7 +212,7 @@ test_that("TC-10.4.39: print outputs df", {
   obj <- .mk_ct()
   out <- capture.output(print(obj))
   txt <- paste(out, collapse = "\n")
-  expect_match(txt, "df\\s+=\\s+50")
+  expect_match(txt, "df:\\s+50")
 })
 
 # TC-10.4.40: print outputs K and tpost1
@@ -201,7 +229,7 @@ test_that("TC-10.4.40a: print Staggered att=NULL shows aggregate type", {
   obj <- .mk_stag(att = NA_real_, se_att = NA_real_)
   out <- capture.output(print(obj))
   txt <- paste(out, collapse = "\n")
-  expect_match(txt, "Aggregate: cohort")
+  expect_match(txt, "Aggregate:\\s+cohort")
 })
 
 # TC-10.4.40b: print Staggered att=NULL aggregate=NULL shows "none"
@@ -209,7 +237,7 @@ test_that("TC-10.4.40b: print Staggered att=NULL aggregate=NULL shows none", {
   obj <- .mk_stag(att = NA_real_, se_att = NA_real_, aggregate = "none")
   out <- capture.output(print(obj))
   txt <- paste(out, collapse = "\n")
-  expect_match(txt, "Aggregate: none")
+  expect_match(txt, "Aggregate:\\s+none")
 })
 
 # TC-10.4.41: print outputs RI details (method/seed/valid/reps)
@@ -232,7 +260,7 @@ test_that("TC-10.4.77: print cluster VCE shows n_clusters", {
   obj <- .mk_stag()
   out <- capture.output(print(obj))
   txt <- paste(out, collapse = "\n")
-  expect_match(txt, "Number of clusters: 51")
+  expect_match(txt, "Clusters:\\s+51")
 })
 
 # TC-10.4.78: print non-cluster VCE does NOT show n_clusters
@@ -269,6 +297,13 @@ test_that("TC-10.4.8: summary Staggered includes cohort info", {
   expect_true(s$is_staggered)
   expect_true(!is.null(s$cohort_list))
   expect_true(!is.null(s$cohort_weights))
+})
+
+test_that("TC-10.4.8a: summary Staggered includes effective weights", {
+  obj <- .mk_stag()
+  obj$effective_weights <- c("2005" = 0.50, "2007" = 0.50)
+  s <- summary(obj)
+  expect_equal(s$effective_weights, obj$effective_weights)
 })
 
 # TC-10.4.9: summary includes diagnostics summary
@@ -350,17 +385,19 @@ test_that("TC-10.4.46: summary parallel trends reject", {
 test_that("TC-10.4.47: summary RI details", {
   obj <- .mk_ct(ri_pvalue = 0.05, ri_method = "fisher",
                  ri_seed = 42L, ri_valid = 900L,
+                 ri_observed_stat = 0.5, ri_estimator = "ra",
                  ri_distribution = rnorm(1000))
   s <- summary(obj)
   expect_equal(s$ri_pvalue, 0.05)
   expect_equal(s$ri_method, "fisher")
+  expect_equal(s$ri_observed_stat, 0.5)
+  expect_equal(s$ri_estimator, "ra")
   expect_equal(s$ri_n_permutations, 1000L)
 })
 
 # TC-10.4.48: summary Staggered includes cohort sample sizes
 test_that("TC-10.4.48: summary cohort sample sizes", {
   obj <- .mk_stag()
-  obj$cohort_sample_sizes <- c("2005" = 40L, "2007" = 30L)
   s <- summary(obj)
   expect_true(!is.null(s$cohort_sample_sizes))
   expect_equal(s$cohort_sample_sizes[["2005"]], 40L)
@@ -405,6 +442,104 @@ test_that("TC-10.4.88a: summary cohort_effects_detail columns", {
   expect_true("n_periods" %in% names(s$cohort_effects_detail))
 })
 
+test_that("TC-10.4.88b: summary/print period effects use supplied VCE uncertainty", {
+  periods <- data.frame(
+    period = c(4L, 5L),
+    att = c(0.3, 0.5),
+    se = c(0.10, 0.15),
+    t_stat = c(3.0, 3.33),
+    pvalue = c(0.004, 0.002),
+    ci_lower = c(-9, -8),
+    ci_upper = c(9, 8),
+    stringsAsFactors = FALSE
+  )
+  obj <- .mk_ct(att_by_period = periods)
+  obj$vcov_att_periods <- matrix(
+    c(0.0400, 0.0100, 0.0100, 0.0900),
+    nrow = 2L
+  )
+
+  s <- summary(obj)
+  ci <- confint(obj, type = "by_period")
+  expect_equal(s$period_effects$se, c(0.20, 0.30), tolerance = 1e-12)
+  expect_equal(s$period_effects$ci_lower, unname(ci[, 1]), tolerance = 1e-12)
+  expect_equal(s$period_effects$ci_upper, unname(ci[, 2]), tolerance = 1e-12)
+
+  out <- capture.output(print(s))
+  period_lines <- grep("^\\s+[45]\\s+", out, value = TRUE)
+  expect_length(period_lines, 2L)
+  expect_match(period_lines[1L], "0\\.2000")
+  expect_match(period_lines[2L], "0\\.3000")
+  expect_false(any(grepl("-9\\.0000|-8\\.0000|9\\.0000|8\\.0000", period_lines)))
+})
+
+test_that("TC-10.4.88c: summary/print cohort effects use supplied VCE uncertainty", {
+  obj <- .mk_stag()
+  obj$att_by_cohort <- data.frame(
+    cohort = c(2005L, 2007L),
+    att = c(0.3, 0.7),
+    se = c(0.10, 0.15),
+    t_stat = c(3.0, 4.67),
+    pvalue = c(0.003, 0.001),
+    ci_lower = c(-9, -8),
+    ci_upper = c(9, 8),
+    stringsAsFactors = FALSE
+  )
+  obj$vcov_att_cohorts <- matrix(
+    c(0.0400, 0.0120, 0.0120, 0.0900),
+    nrow = 2L
+  )
+
+  s <- summary(obj)
+  ci <- confint(obj, type = "by_cohort")
+  expect_equal(s$cohort_effects$se, c(0.20, 0.30), tolerance = 1e-12)
+  expect_equal(s$cohort_effects$ci_lower, unname(ci[, 1]), tolerance = 1e-12)
+  expect_equal(s$cohort_effects$ci_upper, unname(ci[, 2]), tolerance = 1e-12)
+  expect_equal(
+    s$cohort_effects_detail[, c("n_units", "n_periods")],
+    data.frame(n_units = c(40L, 30L), n_periods = c(5L, 3L))
+  )
+  expect_equal(s$cohort_effects_detail$se, c(0.20, 0.30), tolerance = 1e-12)
+  expect_equal(
+    s$cohort_effects_detail$ci_lower,
+    unname(ci[, 1]),
+    tolerance = 1e-12
+  )
+  expect_equal(
+    s$cohort_effects_detail$ci_upper,
+    unname(ci[, 2]),
+    tolerance = 1e-12
+  )
+
+  out <- capture.output(print(s))
+  cohort_lines <- grep("^\\s+200[57]\\s+\\d+\\s+\\d+\\s+", out, value = TRUE)
+  expect_length(cohort_lines, 2L)
+  expect_match(cohort_lines[1L], "0\\.2000")
+  expect_match(cohort_lines[2L], "0\\.3000")
+  expect_false(any(grepl("-9\\.0000|-8\\.0000|9\\.0000|8\\.0000", cohort_lines)))
+})
+
+test_that("TC-10.4.88d: summary/print event-time effects use supplied VCE uncertainty", {
+  obj <- .mk_event_time()
+  obj$vcov_att_event_time <- matrix(
+    c(0.0400, 0.0100, 0.0100, 0.0900),
+    nrow = 2L
+  )
+
+  s <- summary(obj)
+  ci <- confint(obj, type = "event_time")
+  expect_s3_class(s$event_time_effects, "data.frame")
+  expect_equal(s$event_time_effects$se, c(0.20, 0.30), tolerance = 1e-12)
+  expect_equal(s$event_time_effects$ci_lower, unname(ci[, 1]), tolerance = 1e-12)
+  expect_equal(s$event_time_effects$ci_upper, unname(ci[, 2]), tolerance = 1e-12)
+
+  out <- capture.output(print(s))
+  event_lines <- grep("^\\s+[01]\\s+", out, value = TRUE)
+  expect_length(event_lines, 2L)
+  expect_match(event_lines[1L], "0\\.2000")
+  expect_match(event_lines[2L], "0\\.3000")
+})
+
 # TC-10.4.93: summary all fields non-NULL for CT basic
 test_that("TC-10.4.93: summary CT all basic fields non-NULL", {
   obj <- .mk_ct()
@@ -419,6 +554,52 @@ test_that("TC-10.4.93: summary CT all basic fields non-NULL", {
   expect_true(!is.null(s$vce_description))
 })
 
+# TC-10.4.95: to_dict returns selected metadata and omits bulky internals
+test_that("TC-10.4.95: to_dict returns selected metadata", {
+  obj <- .mk_stag(ri_observed_stat = 0.5, ri_estimator = "ra")
+  d <- to_dict(obj)
+  expect_type(d, "list")
+  expect_equal(d$method, "staggered")
+  expect_equal(d$aggregate, "cohort")
+  expect_identical(d$cohort_sizes, c("2005" = 40L, "2007" = 30L))
+  expect_identical(d$cohort_sample_sizes, c("2005" = 40L, "2007" = 30L))
+  expect_equal(d$warnings_count, 0L)
+  expect_equal(d$ri_observed_stat, 0.5)
+  expect_equal(d$ri_estimator, "ra")
+  expect_null(d$data)
+  expect_null(d$vcov_matrix)
+  expect_null(d$resid)
+})
+
+# TC-10.4.96: to_dict counts warning rows from data.frame logs
+test_that("TC-10.4.96: to_dict warning count uses rows for data.frame logs", {
+  obj <- .mk_stag()
+  obj$warnings_log <- data.frame(
+    category = c("a", "b", "c"),
+    message = c("w1", "w2", "w3"),
+    stringsAsFactors = FALSE
+  )
+  d <- to_dict(obj)
+  expect_equal(d$warnings_count, 3L)
+})
+
+# TC-10.4.97: to_dict keeps cohort sample-size alias when only cohort_sizes remains
+test_that("TC-10.4.97: to_dict derives cohort sample sizes from cohort_sizes", {
+  obj <- .mk_stag()
+  obj$cohort_sample_sizes <- NULL
+  d <- to_dict(obj)
+  expect_identical(d$cohort_sample_sizes, obj$cohort_sizes)
+})
+
+# TC-10.4.98: to_dict falls back to legacy metadata call
+test_that("TC-10.4.98: to_dict call falls back to metadata", {
+  obj <- .mk_ct()
+  obj$call <- NULL
+  obj$metadata <- list(call = quote(old_fit(y ~ x)))
+  d <- to_dict(obj)
+  expect_identical(d$call, quote(old_fit(y ~ x)))
+})
+
 # ============================================================================
 # print.summary tests (TC-10.4.10, TC-10.4.49-60, TC-10.4.94)
 # ============================================================================
@@ -429,9 +610,9 @@ test_that("TC-10.4.10: print.summary complete output", {
   s <- summary(obj)
   out <- capture.output(print(s))
   txt <- paste(out, collapse = "\n")
-  expect_match(txt, "Summary")
-  expect_match(txt, "ATT")
-  expect_match(txt, "Cohort")
+  expect_match(txt, "Lee-Wooldridge DiD Estimation")
+  expect_match(txt, "Overall ATT")
+  expect_match(txt, "Cohort Effects")
 })
 
 # TC-10.4.49: print.summary outputs VCE description
@@ -443,14 +624,13 @@ test_that("TC-10.4.49: print.summary VCE description", {
   expect_match(txt, "Cluster-robust")
 })
 
-# TC-10.4.50: print.summary Staggered outputs tau_omega label
-test_that("TC-10.4.50: print.summary tau_omega label", {
+# TC-10.4.50: print.summary Staggered outputs overall ATT label
+test_that("TC-10.4.50: print.summary overall ATT label", {
   obj <- .mk_stag()
   s <- summary(obj)
   out <- capture.output(print(s))
   txt <- paste(out, collapse = "\n")
-  expect_true(grepl("tau_omega", txt, fixed = TRUE),
-              info = "summary output must contain ASCII tau_omega label")
+  expect_match(txt, "Overall ATT")
 })
 
 # TC-10.4.51: print.summary Staggered outputs cohort list
@@ -469,7 +649,7 @@ test_that("TC-10.4.52: print.summary control group auto-switch", {
   s <- summary(obj)
   out <- capture.output(print(s))
   txt <- paste(out, collapse = "\n")
-  expect_match(txt, "Control group: never_treated")
+  expect_match(txt, "Control:\\s+never_treated")
   expect_match(txt, "auto-switched from not_yet_treated")
 })
 
@@ -481,9 +661,9 @@ test_that("TC-10.4.53: print.summary period effects truncated >5", {
   )
   obj <- .mk_ct(att_by_period = periods)
   s <- summary(obj)
-  out <- capture.output(print(s))
+  out <- capture.output(print(s, compact = TRUE))
   txt <- paste(out, collapse = "\n")
-  expect_match(txt, "more rows")
+  expect_match(txt, "3 more periods")
 })
 
 # TC-10.4.54: print.summary att_by_period <=5 rows complete
@@ -548,19 +728,28 @@ test_that("TC-10.4.59: print.summary K and tpost1", {
   s <- summary(obj)
   out <- capture.output(print(s))
   txt <- paste(out, collapse = "\n")
-  expect_match(txt, "K: 3")
-  expect_match(txt, "tpost1: 4")
+  expect_match(txt, "K = 3")
+  expect_match(txt, "tpost1 = 4")
 })
 
 # TC-10.4.60: print.summary cohort weights with N
 test_that("TC-10.4.60: print.summary cohort weights with N", {
   obj <- .mk_stag()
-  obj$cohort_sample_sizes <- c("2005" = 40L, "2007" = 30L)
   s <- summary(obj)
   out <- capture.output(print(s))
   txt <- paste(out, collapse = "\n")
   expect_match(txt, "Cohort Weights")
   expect_match(txt, "N=40")
+})
+
+test_that("TC-10.4.60a: print.summary flags effective weight deviations", {
+  obj <- .mk_stag()
+  obj$effective_weights <- c("2005" = 0.50, "2007" = 0.50)
+  s <- summary(obj)
+  out <- capture.output(print(s))
+  txt <- paste(out, collapse = "\n")
+  expect_match(txt, "effective=")
+  expect_match(txt, "post-dropna regression sample")
 })
 
 # TC-10.4.81: print.summary Staggered aggregate level
@@ -569,7 +758,7 @@ test_that("TC-10.4.81: print.summary aggregate level", {
   s <- summary(obj)
   out <- capture.output(print(s))
   txt <- paste(out, collapse = "\n")
-  expect_match(txt, "Aggregation: cohort")
+  expect_match(txt, "Aggregation:\\s+cohort")
 })
 
 # TC-10.4.82: print.summary Staggered usage hints
@@ -597,7 +786,7 @@ test_that("TC-10.4.88: print.summary n_never_treated", {
   s <- summary(obj)
   out <- capture.output(print(s))
   txt <- paste(out, collapse = "\n")
-  expect_match(txt, "Never Treated.*300")
+  expect_match(txt, "N Never-treated:\\s+300")
 })
 
 # TC-10.4.94: print.summary signif.stars=FALSE no stars
@@ -653,6 +842,13 @@ test_that("TC-10.4.15: coef all returns (g,r) level", {
   co <- coef(obj, type = "all")
   expect_equal(length(co), 3L)
   expect_true(all(grepl("^g\\d+\\.r\\d+$", names(co))))
+})
+
+test_that("TC-10.4.15a: coef event_time returns WATT(e) estimates", {
+  obj <- .mk_event_time()
+  co <- coef(obj, type = "event_time")
+  expect_equal(unname(co), c(0.20, 0.45))
+  expect_equal(names(co), c("e0", "e1"))
 })
 
 # TC-10.4.74: coef on non-lwdid_result errors
@@ -830,6 +1026,47 @@ test_that("TC-10.4.92: confint all fallback to att_by_period", {
   expect_equal(rownames(ci), names(co))
 })
 
+test_that("TC-10.4.92b: confint all fallback uses supplied period vcov", {
+  periods <- data.frame(period = c(4L, 5L), att = c(0.3, 0.5),
+                        se = c(0.10, 0.15), stringsAsFactors = FALSE)
+  joint_V <- matrix(c(0.0400, 0.0100, 0.0100, 0.0900), nrow = 2L)
+  obj <- .mk_ct(att_by_period = periods)
+  obj$vcov_att_periods <- joint_V
+
+  ci <- confint(obj, type = "all")
+  crit <- qt(0.975, 50)
+  expect_equal(
+    unname(ci[, 1]),
+    c(0.3, 0.5) - crit * c(0.20, 0.30),
+    tolerance = 1e-12
+  )
+  expect_equal(
+    unname(ci[, 2]),
+    c(0.3, 0.5) + crit * c(0.20, 0.30),
+    tolerance = 1e-12
+  )
+})
+
+test_that("TC-10.4.92a: confint event_time uses row-level df", {
+  obj <- .mk_event_time()
+  ci <- confint(obj, type = "event_time")
+  expect_equal(rownames(ci), names(coef(obj, type = "event_time")))
+
+  expected <- rbind(
+    c(
+      0.20 - qt(0.975, df = 4) * 0.10,
+      0.20 + qt(0.975, df = 4) * 0.10
+    ),
+    c(
+      0.45 - qt(0.975, df = 30) * 0.15,
+      0.45 + qt(0.975, df = 30) * 0.15
+    )
+  )
+  colnames(expected) <- colnames(ci)
+  rownames(expected) <- c("e0", "e1")
+  expect_equal(ci, expected, tolerance = 1e-10)
+})
+
 
 # ============================================================================
 # vcov tests (TC-10.4.22-25, TC-10.4.64-66, TC-10.4.73, TC-10.4.76, TC-10.4.89)
@@ -871,13 +1108,47 @@ test_that("TC-10.4.23: vcov by_period diagonal", {
 test_that("TC-10.4.24: vcov by_period joint vcov", {
   periods <- data.frame(period = c(4L, 5L), att = c(0.3, 0.5),
                         se = c(0.10, 0.15), stringsAsFactors = FALSE)
-  joint_V <- matrix(c(0.01, 0.003, 0.003, 0.0225), nrow = 2)
+  joint_V <- matrix(c(0.0400, 0.0100, 0.0100, 0.0900), nrow = 2)
   obj <- .mk_ct(att_by_period = periods)
   obj$vcov_att_periods <- joint_V
   V <- vcov(obj, type = "by_period")
-  expect_equal(V[1, 2], 0.003, tolerance = 1e-12)
-  expect_equal(V[2, 1], 0.003, tolerance = 1e-12)
+  expect_equal(V[1, 2], 0.0100, tolerance = 1e-12)
+  expect_equal(V[2, 1], 0.0100, tolerance = 1e-12)
   expect_equal(rownames(V), c("4", "5"))
+
+  ci <- confint(obj, type = "by_period")
+  crit <- qt(0.975, 50)
+  expect_equal(
+    unname(ci[, 1]),
+    c(0.3, 0.5) - crit * c(0.20, 0.30),
+    tolerance = 1e-12
+  )
+  expect_equal(
+    unname(ci[, 2]),
+    c(0.3, 0.5) + crit * c(0.20, 0.30),
+    tolerance = 1e-12
+  )
+})
+
+test_that("TC-10.4.24a: vcov by_period rejects invalid supplied joint vcov", {
+  periods <- data.frame(period = c(4L, 5L), att = c(0.3, 0.5),
+                        se = c(0.10, 0.15), stringsAsFactors = FALSE)
+  obj <- .mk_ct(att_by_period = periods)
+
+  obj$vcov_att_periods <- matrix(0.01, nrow = 1L, ncol = 1L)
+  expect_error(vcov(obj, type = "by_period"), "must be a 2x2 matrix")
+
+  obj$vcov_att_periods <- matrix(c(0.01, 0.004, 0.001, 0.0225), nrow = 2L)
+  expect_error(vcov(obj, type = "by_period"), "must be symmetric")
+
+  obj$vcov_att_periods <- data.frame(v = c(0.01, 0.02))
+  expect_error(vcov(obj, type = "by_period"), "numeric matrix")
+
+  obj$vcov_att_periods <- matrix(c(0.01, Inf, Inf, 0.0225), nrow = 2L)
+  expect_error(vcov(obj, type = "by_period"), "covariance entries")
+
+  obj$vcov_att_periods <- matrix(c(-0.01, 0, 0, 0.0225), nrow = 2L)
+  expect_error(vcov(obj, type = "by_period"), "diagonal variances")
 })
 
 # TC-10.4.25: vcov by_cohort Staggered correct
@@ -916,13 +1187,45 @@ test_that("TC-10.4.66: vcov full error hint store_vcov_full", {
 
 # TC-10.4.73: vcov by_cohort uses joint vcov when available
 test_that("TC-10.4.73: vcov by_cohort joint vcov", {
-  joint_V <- matrix(c(0.01, 0.004, 0.004, 0.0225), nrow = 2)
+  joint_V <- matrix(c(0.0400, 0.0120, 0.0120, 0.0900), nrow = 2)
   obj <- .mk_stag()
   obj$vcov_att_cohorts <- joint_V
   V <- vcov(obj, type = "by_cohort")
-  expect_equal(V[1, 2], 0.004, tolerance = 1e-12)
-  expect_equal(V[2, 1], 0.004, tolerance = 1e-12)
+  expect_equal(V[1, 2], 0.0120, tolerance = 1e-12)
+  expect_equal(V[2, 1], 0.0120, tolerance = 1e-12)
   expect_equal(rownames(V), c("2005", "2007"))
+
+  ci <- confint(obj, type = "by_cohort")
+  crit <- qt(0.975, 50)
+  expect_equal(
+    unname(ci[, 1]),
+    c(0.3, 0.7) - crit * c(0.20, 0.30),
+    tolerance = 1e-12
+  )
+  expect_equal(
+    unname(ci[, 2]),
+    c(0.3, 0.7) + crit * c(0.20, 0.30),
+    tolerance = 1e-12
+  )
+})
+
+test_that("TC-10.4.73a: vcov by_cohort rejects invalid supplied joint vcov", {
+  obj <- .mk_stag()
+
+  obj$vcov_att_cohorts <- matrix(0.01, nrow = 1L, ncol = 1L)
+  expect_error(vcov(obj, type = "by_cohort"), "must be a 2x2 matrix")
+
+  obj$vcov_att_cohorts <- matrix(c(0.01, 0.004, 0.001, 0.0225), nrow = 2L)
+  expect_error(vcov(obj, type = "by_cohort"), "must be symmetric")
+
+  obj$vcov_att_cohorts <- data.frame(v = c(0.01, 0.02))
+  expect_error(vcov(obj, type = "by_cohort"), "numeric matrix")
+
+  obj$vcov_att_cohorts <- matrix(c(0.01, Inf, Inf, 0.0225), nrow = 2L)
+  expect_error(vcov(obj, type = "by_cohort"), "covariance entries")
+
+  obj$vcov_att_cohorts <- matrix(c(-0.01, 0, 0, 0.0225), nrow = 2L)
+  expect_error(vcov(obj, type = "by_cohort"), "diagonal variances")
 })
 
 # TC-10.4.76: vcov non-lwdid_result errors
@@ -936,6 +1239,92 @@ test_that("TC-10.4.89: vcov numerical se=0.12 -> 0.0144", {
   V <- vcov(obj, type = "overall")
   # vibe-math verified: 0.12^2 = 0.0144
   expect_equal(V[1, 1], 0.0144, tolerance = 1e-12)
+})
+
+test_that("TC-10.4.89a: vcov event_time is diagonal marginal WATT(e) VCE", {
+  obj <- .mk_event_time()
+  V <- vcov(obj, type = "event_time")
+  expect_true(is.matrix(V))
+  expect_equal(rownames(V), c("e0", "e1"))
+  expect_equal(colnames(V), c("e0", "e1"))
+  expect_equal(unname(diag(V)), c(0.10^2, 0.15^2), tolerance = 1e-12)
+  expect_equal(V[1, 2], 0)
+  expect_equal(attr(V, "se_aggregation"), "diagonal_weighted_cohort_se")
+  expect_equal(attr(V, "covariance_assumption"), "zero_cross_cohort_covariance")
+})
+
+test_that("TC-10.4.89b: vcov event_time preserves supplied joint VCE boundary", {
+  obj <- .mk_event_time()
+  joint_v <- matrix(c(0.0400, 0.0100, 0.0100, 0.0900), nrow = 2L)
+  attr(joint_v, "covariance_assumption") <- "provided_by_influence_function"
+  obj$vcov_att_event_time <- joint_v
+
+  V <- vcov(obj, type = "event_time")
+  expect_equal(V[1, 2], 0.0100, tolerance = 1e-12)
+  expect_equal(rownames(V), c("e0", "e1"))
+  expect_equal(colnames(V), c("e0", "e1"))
+  expect_equal(attr(V, "se_aggregation"), "provided_event_time_vcov_diagonal")
+  expect_equal(attr(V, "covariance_assumption"), "provided_by_influence_function")
+
+  ci <- confint(obj, type = "event_time")
+  crit <- stats::qt(0.975, df = c(4L, 30L))
+  expect_equal(
+    unname(ci[, 1]),
+    c(0.20, 0.45) - crit * c(0.20, 0.30),
+    tolerance = 1e-12
+  )
+  expect_equal(
+    unname(ci[, 2]),
+    c(0.20, 0.45) + crit * c(0.20, 0.30),
+    tolerance = 1e-12
+  )
+})
+
+test_that("TC-10.4.89d: extract_effects event_time uses supplied joint VCE uncertainty", {
+  obj <- .mk_event_time()
+  joint_v <- matrix(
+    c(0.0400, 0.0100, 0.0100, 0.0900),
+    nrow = 2L
+  )
+  attr(joint_v, "covariance_assumption") <- "provided_by_joint_bootstrap"
+  obj$vcov_att_event_time <- joint_v
+
+  et <- extract_effects(obj, type = "event_time")
+  ci <- confint(obj, type = "event_time")
+
+  expect_equal(et$se, c(0.20, 0.30), tolerance = 1e-12)
+  expect_equal(et$ci_lower, unname(ci[, 1]), tolerance = 1e-12)
+  expect_equal(et$ci_upper, unname(ci[, 2]), tolerance = 1e-12)
+  expect_equal(et$t_stat, et$att / et$se, tolerance = 1e-12)
+  expect_equal(unique(et$se_aggregation), "provided_event_time_vcov_diagonal")
+  expect_equal(unique(et$covariance_assumption), "provided_by_joint_bootstrap")
+})
+
+test_that("TC-10.4.89c: vcov event_time rejects invalid supplied joint VCE", {
+  obj <- .mk_event_time()
+  obj$vcov_att_event_time <- matrix(0.01, nrow = 1L, ncol = 1L)
+  expect_error(
+    vcov(obj, type = "event_time"),
+    "must be a 2x2 matrix"
+  )
+
+  obj$vcov_att_event_time <- matrix(c(0.01, 0.004, 0.001, 0.0225), nrow = 2L)
+  expect_error(
+    vcov(obj, type = "event_time"),
+    "must be symmetric"
+  )
+
+  obj$vcov_att_event_time <- data.frame(v = c(0.01, 0.02))
+  expect_error(
+    vcov(obj, type = "event_time"),
+    "numeric matrix"
+  )
+
+  obj$vcov_att_event_time <- matrix(c(-0.01, 0, 0, 0.0225), nrow = 2L)
+  expect_error(
+    vcov(obj, type = "event_time"),
+    "diagonal variances"
+  )
 })
 
 # ============================================================================

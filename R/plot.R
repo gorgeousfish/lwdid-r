@@ -18,7 +18,7 @@
 #' @export
 plot.lwdid_result <- function(x, type = "event_study", ...) {
   if (!requireNamespace("ggplot2", quietly = TRUE)) {
-    stop("\u9700\u8981\u5b89\u88c5ggplot2\u5305\u3002\u8fd0\u884c: install.packages('ggplot2')",
+    stop("The ggplot2 package is required for plotting. Run install.packages('ggplot2').",
          call. = FALSE)
   }
   stopifnot(inherits(x, "lwdid_result"))
@@ -30,7 +30,7 @@ plot.lwdid_result <- function(x, type = "event_study", ...) {
     "trajectories" = .plot_trajectories(x, ...),
     "sensitivity"  = {
       if (is.null(x$sensitivity))
-        stop("\u65e0\u654f\u611f\u6027\u5206\u6790\u7ed3\u679c\u3002\u8bf7\u5148\u8fd0\u884csensitivity_analysis()",
+        stop("No sensitivity-analysis results are available. Run sensitivity_analysis() first.",
              call. = FALSE)
       plot(x$sensitivity, ...)
     },
@@ -46,7 +46,7 @@ plot.lwdid_result <- function(x, type = "event_study", ...) {
                                 highlight_id = NULL, title = NULL,
                                 theme = ggplot2::theme_minimal, ...) {
   if (is.null(x$metadata$plot_data))
-    stop("\u65e0\u7ed8\u56fe\u6570\u636e\u3002\u8bf7\u5728lwdid()\u4e2d\u8bbe\u7f6egraph=TRUE",
+    stop("No plotting data are available. Set graph = TRUE when calling lwdid().",
          call. = FALSE)
 
   plot_data <- x$metadata$plot_data
@@ -54,7 +54,7 @@ plot.lwdid_result <- function(x, type = "event_study", ...) {
   # --- Staggered mode: gid dispatch ---
   if (isTRUE(x$is_staggered)) {
     if (is.null(plot_data$cohorts))
-      stop("Staggered\u6a21\u5f0f\u4e0bplot_data\u7f3a\u5c11cohorts\u5b57\u6bb5",
+      stop("Staggered plotting data must include a cohorts field.",
            call. = FALSE)
 
     if (!is.null(gid)) {
@@ -62,7 +62,7 @@ plot.lwdid_result <- function(x, type = "event_study", ...) {
       gid_str <- as.character(gid)
       if (!(gid_str %in% names(plot_data$cohorts)))
         stop(sprintf(
-          "gid=%s \u4e0d\u5728\u53ef\u7528cohort\u4e2d\u3002\u53ef\u7528: %s",
+          "gid=%s is not an available cohort. Available cohorts: %s",
           gid_str,
           paste(names(plot_data$cohorts), collapse = ", ")),
           call. = FALSE)
@@ -117,7 +117,7 @@ plot.lwdid_result <- function(x, type = "event_study", ...) {
   } else {
     # Non-staggered: ignore gid
     if (!is.null(gid))
-      warning("gid\u53c2\u6570\u4ec5\u5728Staggered\u6a21\u5f0f\u4e0b\u751f\u6548\uff0c\u5df2\u5ffd\u7565",
+      warning("The gid argument only applies in staggered mode and has been ignored.",
               call. = FALSE)
     pd <- plot_data
     effective_title <- NULL
@@ -196,23 +196,25 @@ plot.lwdid_result <- function(x, type = "event_study", ...) {
 #' @keywords internal
 .plot_diagnostics_panel <- function(x, which = NULL, ...) {
   if (is.null(x$diagnostics))
-    stop("\u65e0\u8bca\u65ad\u4fe1\u606f\u3002\u8bf7\u5728lwdid()\u4e2d\u8bbe\u7f6ereturn_diagnostics=TRUE",
+    stop("No diagnostics are available. Set return_diagnostics = TRUE when calling lwdid().",
          call. = FALSE)
 
   # Validate which parameter
-  valid_which <- c("parallel_trends", "clustering", "selection")
+  valid_which <- c("parallel_trends", "trends", "clustering", "selection")
   if (!is.null(which)) {
     which <- match.arg(which, valid_which, several.ok = TRUE)
+    which[which == "trends"] <- "parallel_trends"
   }
 
   should_include <- function(name) is.null(which) || name %in% which
 
   panels <- list()
 
+  trend_diagnostic <- x$diagnostics$parallel_trends %||% x$diagnostics$trends
+
   if (should_include("parallel_trends") &&
-      !is.null(x$diagnostics$parallel_trends)) {
-    panels$trends <- .plot_trends_diagnostic(
-      x$diagnostics$parallel_trends)
+      !is.null(trend_diagnostic)) {
+    panels$trends <- .plot_integrated_trend_diagnostic(trend_diagnostic)
   }
   if (should_include("clustering") &&
       !is.null(x$diagnostics$clustering)) {
@@ -227,19 +229,22 @@ plot.lwdid_result <- function(x, type = "event_study", ...) {
 
   if (length(panels) == 0L) {
     if (!is.null(which)) {
-      available <- intersect(
-        names(x$diagnostics),
-        valid_which[vapply(valid_which, function(w)
-          !is.null(x$diagnostics[[w]]), logical(1))]
+      available_sources <- list(
+        parallel_trends = trend_diagnostic,
+        trends = trend_diagnostic,
+        clustering = x$diagnostics$clustering,
+        selection = x$diagnostics$selection
       )
+      available <- names(available_sources)[vapply(
+        available_sources, Negate(is.null), logical(1))]
       stop(sprintf(
-        "\u6307\u5b9a\u7684\u8bca\u65ad\u7c7b\u578b [%s] \u65e0\u53ef\u7528\u6570\u636e\u3002\u53ef\u7528\u8bca\u65ad: %s",
+        "The requested diagnostics [%s] have no available data. Available diagnostics: %s",
         paste(which, collapse = ", "),
         if (length(available) > 0)
-          paste(available, collapse = ", ") else "\u65e0"
+          paste(available, collapse = ", ") else "none"
       ), call. = FALSE)
     } else {
-      stop("\u8bca\u65ad\u5bf9\u8c61\u4e2d\u65e0\u53ef\u7ed8\u5236\u5185\u5bb9\uff08\u6240\u6709\u8bca\u65ad\u5b50\u9879\u5747\u4e3aNULL\uff09",
+      stop("The diagnostics object has no plottable content; all diagnostic entries are NULL.",
            call. = FALSE)
     }
   }
@@ -247,13 +252,26 @@ plot.lwdid_result <- function(x, type = "event_study", ...) {
   if (length(panels) == 1L) return(panels[[1L]])
 
   if (!requireNamespace("patchwork", quietly = TRUE))
-    stop("\u9700\u8981\u5b89\u88c5patchwork\u5305\u7528\u4e8e\u9762\u677f\u56fe\u3002\u8fd0\u884c: install.packages('patchwork')",
+    stop("The patchwork package is required for diagnostics panel plots. Run install.packages('patchwork').",
          call. = FALSE)
 
   combined <- Reduce(`+`, panels) +
     patchwork::plot_layout(ncol = min(2L, length(panels))) +
     patchwork::plot_annotation(title = "Diagnostics Panel")
   combined
+}
+
+#' @keywords internal
+.plot_integrated_trend_diagnostic <- function(x) {
+  if (inherits(x, "lwdid_transformation_recommendation")) {
+    return(plot.lwdid_transformation_recommendation(x))
+  }
+
+  if (inherits(x, "lwdid_parallel_trends")) {
+    return(plot.lwdid_parallel_trends(x))
+  }
+
+  .plot_trends_diagnostic(x)
 }
 
 
@@ -272,7 +290,7 @@ plot.lwdid_result <- function(x, type = "event_study", ...) {
 plot.lwdid_trends <- function(x, type = "coefficients",
                                smooth_method = "lm", ...) {
   if (!requireNamespace("ggplot2", quietly = TRUE))
-    stop("\u9700\u8981\u5b89\u88c5ggplot2\u5305", call. = FALSE)
+    stop("The ggplot2 package is required for plotting.", call. = FALSE)
   stopifnot(inherits(x, "lwdid_trends"))
   type <- match.arg(type, c("coefficients", "trajectories"))
 
@@ -280,7 +298,7 @@ plot.lwdid_trends <- function(x, type = "coefficients",
     "coefficients" = .plot_trends_diagnostic(x),
     "trajectories" = {
       if (is.null(x$group_trends))
-        stop("\u65e0\u5206\u7ec4\u8d8b\u52bf\u6570\u636e", call. = FALSE)
+        stop("No group-trend data are available.", call. = FALSE)
 
       df <- x$group_trends  # period, group, mean_y
       p <- ggplot2::ggplot(df, ggplot2::aes(
@@ -303,7 +321,7 @@ plot.lwdid_trends <- function(x, type = "coefficients",
         ggplot2::labs(
           title = "Group Trend Trajectories",
           subtitle = sprintf(
-            "F(%d,%d)=%.2f, p=%s | smooth=%s",
+            "Joint F-test: F(%d, %d) = %.2f, p = %s; smoother: %s",
             x$f_test$df1, x$f_test$df2,
             x$f_test$f_stat,
             .format_pvalue(x$f_test$f_pvalue),
@@ -329,7 +347,7 @@ plot.lwdid_trends <- function(x, type = "coefficients",
 #' @export
 plot.lwdid_clustering_diagnosis <- function(x, ...) {
   if (!requireNamespace("ggplot2", quietly = TRUE))
-    stop("\u9700\u8981\u5b89\u88c5ggplot2\u5305", call. = FALSE)
+    stop("The ggplot2 package is required for plotting.", call. = FALSE)
   stopifnot(inherits(x, "lwdid_clustering_diagnosis"))
   .plot_clustering_diagnostic(x)
 }
@@ -346,7 +364,7 @@ plot.lwdid_clustering_diagnosis <- function(x, ...) {
 #' @export
 plot.lwdid_selection_diagnosis <- function(x, ...) {
   if (!requireNamespace("ggplot2", quietly = TRUE))
-    stop("\u9700\u8981\u5b89\u88c5ggplot2\u5305", call. = FALSE)
+    stop("The ggplot2 package is required for plotting.", call. = FALSE)
   stopifnot(inherits(x, "lwdid_selection_diagnosis"))
   .plot_selection_diagnostic(x)
 }

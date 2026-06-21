@@ -1,0 +1,44 @@
+{
+  "story": "story-E8-04",
+  "layer": "layer_4",
+  "generated_at_cst": "2026-03-24 14:51 CST",
+  "source_contract": "/Users/cxy/Desktop/lwdid_r/_automation/test-artifacts/parity/e8_04_clustering_layer4_monte_carlo_contract.yaml",
+  "validation_commands": [
+    "Rscript -e 'devtools::test(pkg=\"/Users/cxy/Desktop/lwdid_r/lwdid-r\", filter=\"clustering-diagnostics-parity\", reporter=\"summary\")'",
+    "Rscript -e 'devtools::test(pkg=\"/Users/cxy/Desktop/lwdid_r/lwdid-r\", filter=\"clustering-diagnostics\", reporter=\"summary\")'"
+  ],
+  "scenarios": [
+    {
+      "scenario_id": "wild_bootstrap_coverage_small_g",
+      "n_simulations": 100,
+      "n_attempts": 100,
+      "metric_name": "coverage_rate",
+      "metric_value": 0.96,
+      "requested_n_bootstrap": 199,
+      "actual_n_bootstrap": 1024,
+      "weight_type": "rademacher",
+      "impose_null": true,
+      "full_enumeration": true,
+      "ci_method": "percentile_t"
+    },
+    {
+      "scenario_id": "wild_bootstrap_relative_gap",
+      "n_simulations": 100,
+      "n_attempts": 100,
+      "metric_name": "coverage_rate_gap",
+      "metric_value": 0.05,
+      "metrics": {
+        "coverage_std_rate": 0.91,
+        "coverage_wild_rate": 0.96,
+        "coverage_rate_gap": 0.05
+      },
+      "requested_n_bootstrap": 199,
+      "actual_n_bootstrap": 1024,
+      "weight_type": "rademacher",
+      "impose_null": true,
+      "full_enumeration": true,
+      "ci_method": "percentile_t"
+    }
+  ],
+  "assessment": "passed"
+}

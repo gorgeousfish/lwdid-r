@@ -387,8 +387,8 @@ score.</p>
 <p>Under CLM assumptions (<span class="math inline">\(U_i | D_i \sim
 N(0, \sigma^2)\)</span>): <span class="math display">\[\frac{\hat{\tau}
 - \tau}{\text{se}(\hat{\tau})} \sim t_{N-K-2}\]</span></p>
-<p>Valid even with <span class="math inline">\(N_1 = 1\)</span>
-(studentized residual interpretation).</p>
+<p>Designed for small transformed cross-sectional samples under the
+maintained Lee–Wooldridge transformed-regression assumptions.</p>
 </div>
 <div id="hc-robust-standard-errors" class="section level3">
 <h3>HC Robust Standard Errors</h3>
@@ -451,6 +451,76 @@ for all <span class="math inline">\(i\)</span>: <span class="math display">\[p_{
 </table>
 <p>Under the error-components structure, the lwdid estimator is BLUE and
 asymptotically efficient (Wooldridge, 2025a, Theorem 6.2).</p>
+</div>
+<div id="robustness-and-specification-comparison" class="section level2">
+<h2>7. Robustness and Specification Comparison</h2>
+<div id="motivation" class="section level3">
+<h3>Motivation</h3>
+<p>In applied DiD research, reporting results from a single
+specification is insufficient for credible inference. The Lee &amp;
+Wooldridge (2025) framework naturally supports multi-specification
+comparison because the same transformed cross-section can be analyzed
+with different estimators and transformations. If results are stable
+across specifications, conclusions are robust to model
+misspecification.</p>
+</div>
+<div id="transformation-properties" class="section level3">
+<h3>Transformation Properties</h3>
+<p>The two transformations impose different identifying assumptions:</p>
+<p><strong>Demeaning</strong> removes unit fixed effects: <span class="math display">\[\dot{Y}_{it} = Y_{it} -
+\bar{Y}_{i,\text{pre}}\]</span></p>
+<p>Under homogeneous parallel trends (PT), RA on demeaned data yields
+the Best Linear Unbiased Estimator (BLUE) of <span class="math inline">\(\tau_t\)</span>.</p>
+<p><strong>Detrending</strong> removes unit-specific linear trends:
+<span class="math display">\[\ddot{Y}_{it} = Y_{it} - \hat{A}_i -
+\hat{B}_i t\]</span></p>
+<p>This relaxes the standard PT assumption by allowing heterogeneous
+linear trends across units. If unit-specific trends exist, detrending
+provides consistent estimation where demeaning would be biased.</p>
+</div>
+<div id="estimator-efficiency-hierarchy" class="section level3">
+<h3>Estimator Efficiency Hierarchy</h3>
+<p>Under the standard error-components structure with homoskedastic
+errors, the four estimators form an efficiency ordering:</p>
+<p><span class="math display">\[\text{Var}(\hat{\tau}^{RA}) \leq
+\text{Var}(\hat{\tau}^{IPWRA}) \leq \text{Var}(\hat{\tau}^{IPW}) \leq
+\text{Var}(\hat{\tau}^{PSM})\]</span></p>
+<p>where:</p>
+<ul>
+<li><span class="math inline">\(\hat{\tau}^{RA}\)</span>: BLUE under
+correct outcome model specification</li>
+<li><span class="math inline">\(\hat{\tau}^{IPWRA}\)</span>: doubly
+robust; consistent if either the outcome model or propensity score model
+is correctly specified</li>
+<li><span class="math inline">\(\hat{\tau}^{IPW}\)</span>: consistent
+when the propensity score is correct; less efficient than RA due to
+weighting</li>
+<li><span class="math inline">\(\hat{\tau}^{PSM}\)</span>:
+nonparametric; most robust to functional form but least efficient</li>
+</ul>
+<p>The ATT for all estimators targets the same causal parameter: <span class="math display">\[\tau_{ATT} = E[Y_{1t} - Y_{0t} \mid D =
+1]\]</span></p>
+</div>
+<div id="logic-of-multi-specification-robustness" class="section level3">
+<h3>Logic of Multi-Specification Robustness</h3>
+<p>The robustness check exploits the following logic:</p>
+<ol style="list-style-type: decimal">
+<li>If the outcome model is correct, RA and IPWRA converge to the same
+estimate (with RA being more efficient)</li>
+<li>If the propensity score model is correct, IPW and IPWRA converge to
+the same estimate</li>
+<li>If both models are correct, all three parametric estimators
+converge</li>
+<li>Agreement between demean and detrend results suggests the standard
+PT assumption holds (no heterogeneous trends)</li>
+</ol>
+<p>Substantive disagreement across specifications signals potential
+model misspecification and warrants further investigation.</p>
+<p>The <code>compare()</code> function in <strong>lwdid</strong>
+automates this comparison by aligning the ATT estimates, standard
+errors, confidence intervals, and significance levels across named
+specifications into a single table.</p>
+</div>
 </div>
 <div id="references" class="section level2">
 <h2>References</h2>

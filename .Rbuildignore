@@ -3,6 +3,7 @@
 ^\.Rprofile$
 ^\.github$
 ^\.gitignore$
+^\.git($|/)
 ^Docs$
 ^data-raw$
 ^lwdid-py_v0\.2\.3$
@@ -25,7 +26,7 @@
 ^\.Rhistory$
 ^\.Renviron$
 ^\.editorconfig$
-^\.DS_Store$
+(^|/)\.DS_Store$
 ^\.vscode$
 ^codecov\.yml$
 ^\.codecov\.yml$
@@ -34,9 +35,13 @@
 ^_manual_check\.R$
 ^tests/testthat/_fixtures($|/)
 ^tests/testthat/_problems($|/)
+^tests/testthat/_.*$
+^tests/testthat/Rplots\\.pdf$
 ^tests/p($|/)
 ^lwdid\.Rcheck($|/)
 ^lwdid_.*\.tar\.gz$
+ 2\.R$
+ 2\.Rd$
 ^image$
 ^doc$
 ^Meta$

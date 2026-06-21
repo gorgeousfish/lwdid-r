@@ -274,7 +274,7 @@
     }, error = function(e) NA_real_)
   }
 
-  att_valid    <- att_boots[!is.na(att_boots)]
+  att_valid    <- att_boots[is.finite(att_boots)]
   n_valid_boot <- length(att_valid)
   success_rate <- n_valid_boot / n_bootstrap
 
@@ -297,7 +297,15 @@
   ci_lower <- as.numeric(stats::quantile(att_valid, alpha / 2))
   ci_upper <- as.numeric(stats::quantile(att_valid, 1 - alpha / 2))
 
-  list(se = se, ci_lower = ci_lower, ci_upper = ci_upper)
+  list(
+    se = se,
+    ci_lower = ci_lower,
+    ci_upper = ci_upper,
+    bootstrap_reps_requested = as.integer(n_bootstrap),
+    bootstrap_reps_valid = as.integer(n_valid_boot),
+    bootstrap_reps_failed = as.integer(n_bootstrap - n_valid_boot),
+    bootstrap_success_rate = as.numeric(success_rate)
+  )
 }
 
 # ============================================================================
@@ -322,7 +330,9 @@
 #' @param alpha numeric, significance level (default 0.05)
 #' @param match_order character, matching order
 #'
-#' @return list with 16 fields
+#' @return list with ATT, uncertainty, matching diagnostics, propensity scores,
+#'   and estimator metadata. Bootstrap fits also include requested, valid, and
+#'   failed replicate counts plus the bootstrap success rate.
 #' @export
 estimate_psm <- function(data, y, d, propensity_controls,
                          n_neighbors = 1L, with_replacement = TRUE,
@@ -348,6 +358,7 @@ estimate_psm <- function(data, y, d, propensity_controls,
   all_vars <- unique(c(y, d, propensity_controls))
   complete_mask <- stats::complete.cases(data[, all_vars, drop = FALSE])
   data_clean <- data[complete_mask, , drop = FALSE]
+  .validate_no_infinite_numeric_values(data_clean, all_vars, "PSM")
 
   # ---- Step 3: Sample size checks ----
   D <- as.integer(data_clean[[d]])
@@ -501,8 +512,8 @@ estimate_psm <- function(data, y, d, propensity_controls,
     pvalue <- NaN
   }
 
-  # ---- Step 14: Return 16-field list ----
-  list(
+  # ---- Step 14: Return result list ----
+  result <- list(
     att                = att,
     se                 = se,
     ci_lower           = ci_lower,
@@ -520,4 +531,11 @@ estimate_psm <- function(data, y, d, propensity_controls,
     match_success_rate = match_success_rate,
     estimator          = "psm"
   )
+  if (identical(se_method, "bootstrap")) {
+    result$bootstrap_reps_requested <- se_result$bootstrap_reps_requested
+    result$bootstrap_reps_valid <- se_result$bootstrap_reps_valid
+    result$bootstrap_reps_failed <- se_result$bootstrap_reps_failed
+    result$bootstrap_success_rate <- se_result$bootstrap_success_rate
+  }
+  result
 }

@@ -27,6 +27,13 @@
 #'   `"with_controls"` and `"intercept_only"`.
 #' @param use_fwildclusterboot When `TRUE`, emits a fallback warning and uses
 #'   the native helper path until `fwildclusterboot` integration lands.
+#' @param parallel Logical scalar. When `TRUE`, bootstrap replications are
+#'   executed in parallel via the \pkg{future} backend. Each replication is
+#'   statistically independent (Cameron, Gelbach & Miller 2008), so
+#'   parallelization does not affect validity. Uses L'Ecuyer-CMRG RNG streams
+#'   for reproducible parallel seeds.
+#' @param n_cores Integer or NULL. Number of parallel workers. When `NULL`,
+#'   auto-detected as `future::availableCores() - 1`.
 #'
 #' @return An object of class `lwdid_wcb_result`.
 #' @export
@@ -34,10 +41,15 @@ wild_cluster_bootstrap <- function(
     data, y_transformed, d, cluster_var, controls = NULL,
     n_bootstrap = 999L, weight_type = "rademacher", alpha = 0.05,
     seed = NULL, impose_null = TRUE, full_enumeration = NULL,
-    restricted_model = "with_controls", use_fwildclusterboot = TRUE
+    restricted_model = "with_controls", use_fwildclusterboot = TRUE,
+    parallel = FALSE, n_cores = NULL
 ) {
   fwildclusterboot_requested <- !missing(use_fwildclusterboot) &&
     isTRUE(use_fwildclusterboot)
+
+  # Set up parallel backend if requested; cleanup restores original plan
+  cleanup <- .setup_parallel_internal(parallel = parallel, n_cores = n_cores)
+  if (!is.null(cleanup)) on.exit(cleanup(), add = TRUE)
 
   if (!is.data.frame(data)) {
     stop("`data` must be a data.frame.", call. = FALSE)
@@ -124,140 +136,33 @@ wild_cluster_bootstrap <- function(
         return(fwildclusterboot_result)
       }
 
-      runtime_failure_blocker_boundary <- runtime_diagnostics$blocker_boundary
-      runtime_failure_github_direct_install_tested <-
-        runtime_diagnostics$github_direct_install_tested
-      runtime_failure_source_closure_cleared_for_github <- FALSE
-      runtime_failure_hint <- runtime_diagnostics$runtime_hint
-      if (isTRUE(runtime_diagnostics$makevars_override_clears_stale_flibs)) {
-        runtime_failure_blocker_boundary <- "fwildclusterboot-github-runtime-failure"
-        runtime_failure_github_direct_install_tested <- TRUE
-        runtime_failure_source_closure_cleared_for_github <- TRUE
-        runtime_failure_hint <- paste(
-          "The GitHub install path has already cleared the earlier",
-          "source-closure branch, so the remaining fwildclusterboot",
-          "blocker should be tracked as an adapter runtime failure in",
-          "the current R/backend combination."
-        )
-      }
+      # Runtime failure: resolve override fields
+      overrides <- .wcb_runtime_failure_overrides(runtime_diagnostics)
 
-      warn_lwdid(
-        "fwildclusterboot adapter failed at runtime; falling back to the native bootstrap path.",
-        class = "lwdid_data",
+      .wcb_emit_fallback_warning(
+        message = "fwildclusterboot adapter failed at runtime; falling back to the native bootstrap path.",
         detail = "fwildclusterboot_runtime_failure",
-        action_taken = "falling back to native bootstrap path",
-        source_error = conditionMessage(fwildclusterboot_result),
-        requested_n_bootstrap = fwildclusterboot_config$requested_n_bootstrap,
-        actual_n_bootstrap = fwildclusterboot_config$actual_n_bootstrap,
-        full_enumeration = fwildclusterboot_config$full_enumeration,
-        weight_type = weight_type,
         adapter_available = TRUE,
-        blocker_boundary = runtime_failure_blocker_boundary,
-        toolchain_mismatch_detected = runtime_diagnostics$toolchain_mismatch_detected,
-        flibs_missing_paths = runtime_diagnostics$flibs_missing_paths,
-        homebrew_gfortran_candidates =
-          runtime_diagnostics$homebrew_gfortran_candidates,
-        makeconf_path = runtime_diagnostics$makeconf_path,
-        makeconf_exists = runtime_diagnostics$makeconf_exists,
-        makeconf_flibs = runtime_diagnostics$makeconf_flibs,
-        makeconf_fc = runtime_diagnostics$makeconf_fc,
-        makeconf_f77 = runtime_diagnostics$makeconf_f77,
-        makeconf_uses_stale_opt_gfortran =
-          runtime_diagnostics$makeconf_uses_stale_opt_gfortran,
-        makevars_user_path = runtime_diagnostics$makevars_user_path,
-        makevars_user_exists = runtime_diagnostics$makevars_user_exists,
-        makevars_user_source = runtime_diagnostics$makevars_user_source,
-        makevars_user_file_empty = runtime_diagnostics$makevars_user_file_empty,
-        makevars_user_explicit_missing =
-          runtime_diagnostics$makevars_user_explicit_missing,
-        makevars_user_has_toolchain_override =
-          runtime_diagnostics$makevars_user_has_toolchain_override,
-        makevars_user_flibs = runtime_diagnostics$makevars_user_flibs,
-        makevars_user_fc = runtime_diagnostics$makevars_user_fc,
-        makevars_user_f77 = runtime_diagnostics$makevars_user_f77,
-        makevars_override_clears_stale_flibs =
-          runtime_diagnostics$makevars_override_clears_stale_flibs,
-        direct_install_failure_node =
-          runtime_diagnostics$direct_install_failure_node,
-        direct_install_probe_provider =
-          runtime_diagnostics$direct_install_probe_provider,
-        direct_install_provider_index_visible =
-          runtime_diagnostics$direct_install_provider_index_visible,
-        direct_install_source_archive_forbidden_detected =
-          runtime_diagnostics$direct_install_source_archive_forbidden_detected,
-        direct_install_source_archive_status_code =
-          runtime_diagnostics$direct_install_source_archive_status_code,
-        github_direct_install_tested =
-          runtime_failure_github_direct_install_tested,
-        source_closure_cleared_for_github =
-          runtime_failure_source_closure_cleared_for_github,
-        fwildclusterboot_available =
-          runtime_diagnostics$fwildclusterboot_available,
-        dependency_status = runtime_diagnostics$dependency_status,
-        missing_dependency_names =
-          runtime_diagnostics$missing_dependency_names,
-        missing_dependency_count =
-          runtime_diagnostics$missing_dependency_count,
-        runtime_hint = runtime_failure_hint,
-        call = NULL
+        config = fwildclusterboot_config,
+        weight_type = weight_type,
+        diagnostics = runtime_diagnostics,
+        extra = list(
+          source_error = conditionMessage(fwildclusterboot_result),
+          blocker_boundary = overrides$blocker_boundary,
+          github_direct_install_tested = overrides$github_direct_install_tested,
+          source_closure_cleared_for_github = overrides$source_closure_cleared_for_github,
+          runtime_hint = overrides$runtime_hint
+        )
       )
     } else {
-      warn_lwdid(
-        "fwildclusterboot integration is not available in the current WCB implementation slice.",
-        class = "lwdid_data",
+      .wcb_emit_fallback_warning(
+        message = "fwildclusterboot integration is not available in the current WCB implementation slice.",
         detail = "fwildclusterboot_unavailable",
-        action_taken = "falling back to native bootstrap path",
-        requested_n_bootstrap = fwildclusterboot_config$requested_n_bootstrap,
-        actual_n_bootstrap = fwildclusterboot_config$actual_n_bootstrap,
-        full_enumeration = fwildclusterboot_config$full_enumeration,
-        weight_type = weight_type,
         adapter_available = FALSE,
-        blocker_boundary = runtime_diagnostics$blocker_boundary,
-        toolchain_mismatch_detected = runtime_diagnostics$toolchain_mismatch_detected,
-        flibs_missing_paths = runtime_diagnostics$flibs_missing_paths,
-        homebrew_gfortran_candidates =
-          runtime_diagnostics$homebrew_gfortran_candidates,
-        makeconf_path = runtime_diagnostics$makeconf_path,
-        makeconf_exists = runtime_diagnostics$makeconf_exists,
-        makeconf_flibs = runtime_diagnostics$makeconf_flibs,
-        makeconf_fc = runtime_diagnostics$makeconf_fc,
-        makeconf_f77 = runtime_diagnostics$makeconf_f77,
-        makeconf_uses_stale_opt_gfortran =
-          runtime_diagnostics$makeconf_uses_stale_opt_gfortran,
-        makevars_user_path = runtime_diagnostics$makevars_user_path,
-        makevars_user_exists = runtime_diagnostics$makevars_user_exists,
-        makevars_user_source = runtime_diagnostics$makevars_user_source,
-        makevars_user_file_empty = runtime_diagnostics$makevars_user_file_empty,
-        makevars_user_explicit_missing =
-          runtime_diagnostics$makevars_user_explicit_missing,
-        makevars_user_has_toolchain_override =
-          runtime_diagnostics$makevars_user_has_toolchain_override,
-        makevars_user_flibs = runtime_diagnostics$makevars_user_flibs,
-        makevars_user_fc = runtime_diagnostics$makevars_user_fc,
-        makevars_user_f77 = runtime_diagnostics$makevars_user_f77,
-        makevars_override_clears_stale_flibs =
-          runtime_diagnostics$makevars_override_clears_stale_flibs,
-        direct_install_failure_node =
-          runtime_diagnostics$direct_install_failure_node,
-        direct_install_probe_provider =
-          runtime_diagnostics$direct_install_probe_provider,
-        direct_install_provider_index_visible =
-          runtime_diagnostics$direct_install_provider_index_visible,
-        direct_install_source_archive_forbidden_detected =
-          runtime_diagnostics$direct_install_source_archive_forbidden_detected,
-        direct_install_source_archive_status_code =
-          runtime_diagnostics$direct_install_source_archive_status_code,
-        github_direct_install_tested =
-          runtime_diagnostics$github_direct_install_tested,
-        fwildclusterboot_available =
-          runtime_diagnostics$fwildclusterboot_available,
-        dependency_status = runtime_diagnostics$dependency_status,
-        missing_dependency_names =
-          runtime_diagnostics$missing_dependency_names,
-        missing_dependency_count =
-          runtime_diagnostics$missing_dependency_count,
-        runtime_hint = runtime_diagnostics$runtime_hint,
-        call = NULL
+        config = fwildclusterboot_config,
+        weight_type = weight_type,
+        diagnostics = runtime_diagnostics,
+        extra = list()
       )
     }
   }
@@ -282,8 +187,98 @@ wild_cluster_bootstrap <- function(
 }
 
 
+# Helper: resolve runtime failure override fields when makevars clears stale flibs
+.wcb_runtime_failure_overrides <- function(diagnostics) {
+
+  blocker_boundary <- diagnostics$blocker_boundary
+  github_direct_install_tested <- diagnostics$github_direct_install_tested
+  source_closure_cleared_for_github <- FALSE
+  runtime_hint <- diagnostics$runtime_hint
+
+  if (isTRUE(diagnostics$makevars_override_clears_stale_flibs)) {
+    blocker_boundary <- "fwildclusterboot-github-runtime-failure"
+    github_direct_install_tested <- TRUE
+    source_closure_cleared_for_github <- TRUE
+    runtime_hint <- paste(
+      "The GitHub install path has already cleared the earlier",
+      "source-closure branch, so the remaining fwildclusterboot",
+      "blocker should be tracked as an adapter runtime failure in",
+      "the current R/backend combination."
+    )
+  }
+
+  list(
+    blocker_boundary = blocker_boundary,
+    github_direct_install_tested = github_direct_install_tested,
+    source_closure_cleared_for_github = source_closure_cleared_for_github,
+    runtime_hint = runtime_hint
+  )
+}
+
+
+# Helper: emit the fwildclusterboot fallback warning with full diagnostics
+.wcb_emit_fallback_warning <- function(
+    message, detail, adapter_available, config, weight_type,
+    diagnostics, extra = list()
+) {
+  # Build the base diagnostics argument list
+  base_args <- list(
+    message = message,
+    class = "lwdid_data",
+    detail = detail,
+    action_taken = "falling back to native bootstrap path",
+    requested_n_bootstrap = config$requested_n_bootstrap,
+    actual_n_bootstrap = config$actual_n_bootstrap,
+    full_enumeration = config$full_enumeration,
+    weight_type = weight_type,
+    adapter_available = adapter_available,
+    blocker_boundary = diagnostics$blocker_boundary,
+    toolchain_mismatch_detected = diagnostics$toolchain_mismatch_detected,
+    flibs_missing_paths = diagnostics$flibs_missing_paths,
+    homebrew_gfortran_candidates = diagnostics$homebrew_gfortran_candidates,
+    makeconf_path = diagnostics$makeconf_path,
+    makeconf_exists = diagnostics$makeconf_exists,
+    makeconf_flibs = diagnostics$makeconf_flibs,
+    makeconf_fc = diagnostics$makeconf_fc,
+    makeconf_f77 = diagnostics$makeconf_f77,
+    makeconf_uses_stale_opt_gfortran = diagnostics$makeconf_uses_stale_opt_gfortran,
+    makevars_user_path = diagnostics$makevars_user_path,
+    makevars_user_exists = diagnostics$makevars_user_exists,
+    makevars_user_source = diagnostics$makevars_user_source,
+    makevars_user_file_empty = diagnostics$makevars_user_file_empty,
+    makevars_user_explicit_missing = diagnostics$makevars_user_explicit_missing,
+    makevars_user_has_toolchain_override = diagnostics$makevars_user_has_toolchain_override,
+    makevars_user_flibs = diagnostics$makevars_user_flibs,
+    makevars_user_fc = diagnostics$makevars_user_fc,
+    makevars_user_f77 = diagnostics$makevars_user_f77,
+    makevars_override_clears_stale_flibs = diagnostics$makevars_override_clears_stale_flibs,
+    direct_install_failure_node = diagnostics$direct_install_failure_node,
+    direct_install_probe_provider = diagnostics$direct_install_probe_provider,
+    direct_install_provider_index_visible = diagnostics$direct_install_provider_index_visible,
+    direct_install_source_archive_forbidden_detected = diagnostics$direct_install_source_archive_forbidden_detected,
+    direct_install_source_archive_status_code = diagnostics$direct_install_source_archive_status_code,
+    github_direct_install_tested = diagnostics$github_direct_install_tested,
+    fwildclusterboot_available = diagnostics$fwildclusterboot_available,
+    dependency_status = diagnostics$dependency_status,
+    missing_dependency_names = diagnostics$missing_dependency_names,
+    missing_dependency_count = diagnostics$missing_dependency_count,
+    runtime_hint = diagnostics$runtime_hint,
+    call = NULL
+  )
+
+  # Override with any extra fields (runtime failure specifics)
+  if (length(extra) > 0L) {
+    for (nm in names(extra)) {
+      base_args[[nm]] <- extra[[nm]]
+    }
+  }
+
+  do.call(warn_lwdid, base_args)
+}
+
+
 .fwildclusterboot_available <- function() {
-  requireNamespace("fwildclusterboot", quietly = TRUE)
+  FALSE
 }
 
 
@@ -376,7 +371,7 @@ wild_cluster_bootstrap <- function(
 
 .wcb_collect_fwildclusterboot_dependency_status <- function() {
   list(
-    fwildclusterboot = isTRUE(.wcb_dependency_available("fwildclusterboot")),
+    fwildclusterboot = FALSE,
     summclust = isTRUE(.wcb_dependency_available("summclust")),
     JuliaConnectoR = isTRUE(.wcb_dependency_available("JuliaConnectoR")),
     sitmo = isTRUE(.wcb_dependency_available("sitmo")),
@@ -699,23 +694,6 @@ wild_cluster_bootstrap <- function(
     return(FALSE)
   }
 
-  if (
-    is.function(boottest_fn) &&
-      identical(
-        tryCatch(environmentName(environment(boottest_fn)), error = function(...) ""),
-        "namespace:fwildclusterboot"
-      ) &&
-      inherits(model, "lm")
-  ) {
-    method_formals <- tryCatch(
-      names(formals(utils::getS3method("boottest", "lm", envir = asNamespace("fwildclusterboot")))),
-      error = function(...) NULL
-    )
-    if (!is.null(method_formals)) {
-      return("seed" %in% method_formals)
-    }
-  }
-
   TRUE
 }
 
@@ -764,7 +742,10 @@ wild_cluster_bootstrap <- function(
     boottest_fn = NULL
 ) {
   if (is.null(boottest_fn)) {
-    boottest_fn <- utils::getFromNamespace("boottest", "fwildclusterboot")
+    stop(
+      "fwildclusterboot adapter is not available in the current release path.",
+      call. = FALSE
+    )
   }
 
   config <- .wcb_resolve_fwildclusterboot_config(
@@ -1655,8 +1636,13 @@ wild_cluster_bootstrap <- function(
 wild_cluster_bootstrap_test_inversion <- function(
     data, y_transformed, d, cluster_var, controls = NULL,
     n_bootstrap = 999L, weight_type = "rademacher", alpha = 0.05,
-    seed = NULL, grid_points = 25L, ci_tol = 0.01
+    seed = NULL, grid_points = 25L, ci_tol = 0.01,
+    parallel = FALSE, n_cores = NULL
 ) {
+  # Set up parallel backend; cleanup restores original plan on exit
+  cleanup <- .setup_parallel_internal(parallel = parallel, n_cores = n_cores)
+  if (!is.null(cleanup)) on.exit(cleanup(), add = TRUE)
+
   original_result <- wild_cluster_bootstrap(
     data = data,
     y_transformed = y_transformed,
@@ -1670,7 +1656,9 @@ wild_cluster_bootstrap_test_inversion <- function(
     impose_null = TRUE,
     full_enumeration = FALSE,
     restricted_model = "intercept_only",
-    use_fwildclusterboot = FALSE
+    use_fwildclusterboot = FALSE,
+    parallel = parallel,
+    n_cores = n_cores
   )
 
   att_original <- original_result$att
@@ -1718,7 +1706,12 @@ wild_cluster_bootstrap_test_inversion <- function(
     att_original + search_range,
     length.out = as.integer(grid_points)
   )
-  pvalues_grid <- vapply(theta_grid, pvalue_at_theta, numeric(1))
+  # Grid search: each theta is independent, safe for parallel evaluation
+  if (.can_use_parallel()) {
+    pvalues_grid <- unlist(.parallel_lapply(theta_grid, pvalue_at_theta))
+  } else {
+    pvalues_grid <- vapply(theta_grid, pvalue_at_theta, numeric(1))
+  }
   ci_mask <- pvalues_grid >= alpha
 
   if (!any(ci_mask)) {
@@ -1796,29 +1789,17 @@ wild_cluster_bootstrap_test_inversion <- function(
 print.lwdid_wcb_result <- function(x, digits = 4L, ...) {
   cat("Wild Cluster Bootstrap Result\n")
   cat(sprintf("ATT: %s\n", formatC(x$att, format = "f", digits = digits)))
-  cat(
-    sprintf(
-      "P-value: %s | CI: [%s, %s]\n",
-      formatC(x$pvalue, format = "f", digits = digits),
-      formatC(x$ci_lower, format = "f", digits = digits),
-      formatC(x$ci_upper, format = "f", digits = digits)
-    )
-  )
-  cat(
-    sprintf(
-      "Clusters: %d | Requested bootstrap: %d | Actual bootstrap: %d\n",
-      x$n_clusters,
-      x$requested_n_bootstrap,
-      x$actual_n_bootstrap
-    )
-  )
-  cat(
-    sprintf(
-      "Weight type: %s | Full enumeration: %s\n",
-      x$weight_type,
-      if (isTRUE(x$full_enumeration)) "TRUE" else "FALSE"
-    )
-  )
+  cat(sprintf("P-value: %s\n",
+              formatC(x$pvalue, format = "f", digits = digits)))
+  cat(sprintf("Confidence interval: [%s, %s]\n",
+              formatC(x$ci_lower, format = "f", digits = digits),
+              formatC(x$ci_upper, format = "f", digits = digits)))
+  cat(sprintf("Clusters: %d\n", x$n_clusters))
+  cat(sprintf("Requested bootstrap draws: %d\n", x$requested_n_bootstrap))
+  cat(sprintf("Actual bootstrap draws: %d\n", x$actual_n_bootstrap))
+  cat(sprintf("Weight type: %s\n", x$weight_type))
+  cat(sprintf("Full enumeration: %s\n",
+              if (isTRUE(x$full_enumeration)) "TRUE" else "FALSE"))
 
   invisible(x)
 }

@@ -51,7 +51,9 @@ estimate_psm(
 \item{match_order}{character, matching order}
 }
 \value{
-list with 16 fields
+list with ATT, uncertainty, matching diagnostics, propensity scores,
+and estimator metadata. Bootstrap fits also include requested, valid, and
+failed replicate counts plus the bootstrap success rate.
 }
 \description{
 Estimate PSM-ATT (Propensity Score Matching)

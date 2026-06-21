@@ -90,7 +90,9 @@ validate_inputs(
 
 \item{return_diagnostics}{logical(1). Return PS diagnostics.}
 
-\item{vce}{character(1) or NULL. Variance estimator type.}
+\item{vce}{character(1) or NULL. Variance estimator type. Supported
+for \code{estimator = "ra"} only; IPW, IPWRA, and PSM require
+\code{vce = NULL} and use \code{se_method}.}
 
 \item{cluster_var}{character(1) or NULL. Cluster variable.}
 

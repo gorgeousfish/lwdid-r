@@ -271,11 +271,12 @@
     return(out)
   }
 
+  # Merge post-treatment average into main table via join (in-place modification)
   out[post_summary, on = ivar_col, ydot_postavg := i.ydot_postavg]
   tpost1_values <- post_summary$tpost1[match(out[[ivar_col]], post_summary[[ivar_col]])]
   out[["firstpost"]] <- !is.na(out[["ydot_postavg"]]) &
     !is.na(tpost1_values) &
-    out[[tindex_col]] == tpost1_values
+    as.integer(out[[tindex_col]]) == as.integer(tpost1_values)
 
   out
 }
@@ -337,6 +338,7 @@
     )
   }
 
+  # Remove temporary seasonal computation column (in-place modification)
   out[, ".seasonal_post" := NULL]
   .attach_common_timing_post_summaries(
     data = out,
@@ -528,6 +530,7 @@ transform_detrendq <- function(dt, y, ivar, tvar, g,
     data.table::set(out, i = unit_idx, j = "t_bar_pre", value = rep.int(as.numeric(t_bar_pre), length(unit_idx)))
   }
 
+  # Remove temporary seasonal computation column (in-place modification)
   out[, ".seasonal_post" := NULL]
   .attach_common_timing_post_summaries(
     data = out,
@@ -865,6 +868,7 @@ transform_detrend <- function(dt, y, ivar, tvar, g,
     c("degraded", "exact_fit"), names(out)
   )
   if (length(cols_to_remove) > 0L) {
+    # Drop internal diagnostic columns no longer needed (in-place modification)
     out[, (cols_to_remove) := NULL]
   }
 

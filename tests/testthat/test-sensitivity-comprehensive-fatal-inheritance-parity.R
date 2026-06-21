@@ -55,7 +55,12 @@ test_that("Task 8.5 parity: common-timing transformation wrapper uses c/N RI p-v
     expect_false(is.null(fit$ri_distribution))
     expect_gt(length(fit$ri_distribution), 0L)
 
-    expected_pvalue <- sum(abs(fit$ri_distribution) >= abs(fit$att)) /
+    ri_observed <- if (!is.null(fit$ri_observed_stat)) {
+      fit$ri_observed_stat
+    } else {
+      fit$att
+    }
+    expected_pvalue <- sum(abs(fit$ri_distribution) >= abs(ri_observed)) /
       length(fit$ri_distribution)
 
     expect_equal(fit$ri_pvalue, expected_pvalue, tolerance = 0)
@@ -109,7 +114,12 @@ test_that("Task 8.5 parity: staggered transformation wrapper uses c/N RI p-value
     expect_false(is.null(fit$ri_distribution))
     expect_gt(length(fit$ri_distribution), 0L)
 
-    expected_pvalue <- sum(abs(fit$ri_distribution) >= abs(fit$att)) /
+    ri_observed <- if (!is.null(fit$ri_observed_stat)) {
+      fit$ri_observed_stat
+    } else {
+      fit$att
+    }
+    expected_pvalue <- sum(abs(fit$ri_distribution) >= abs(ri_observed)) /
       length(fit$ri_distribution)
 
     expect_equal(fit$ri_pvalue, expected_pvalue, tolerance = 0)

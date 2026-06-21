@@ -121,6 +121,59 @@ test_that("TC-7.7.5: same seed produces identical results", {
   expect_identical(res1$n_failed, res2$n_failed)
 })
 
+test_that("common-timing RI preserves non-RA propensity-control estimator", {
+  data("smoking", package = "lwdid")
+  smoking$unused_all_na <- NA_real_
+  ps_vars <- c("lnincome", "lretprice")
+
+  result <- suppressWarnings(lwdid(
+    data = smoking,
+    y = "lcigsale",
+    ivar = "state",
+    tvar = "year",
+    d = "d",
+    post = "post",
+    rolling = "demean",
+    estimator = "ipw",
+    controls = "unused_all_na",
+    ps_controls = ps_vars,
+    ri = TRUE,
+    ri_method = "permutation",
+    rireps = 10L,
+    seed = 123L
+  ))
+
+  expected <- suppressWarnings(lwdid:::.common_timing_randomization_inference(
+    data = result$.wcb_data,
+    y = result$.wcb_y_transformed,
+    d = result$.wcb_d,
+    controls = "unused_all_na",
+    ps_controls = ps_vars,
+    estimator = "ipw",
+    reps = 10L,
+    seed = 123L,
+    method = "permutation"
+  ))
+
+  expect_s3_class(result, "lwdid_result")
+  expect_equal(expected$obs_att, result$att, tolerance = 1e-12)
+  expect_equal(result$ri_valid, 10L)
+  expect_equal(result$ri_failed, 0L)
+  expect_null(result$ri_error)
+  expect_equal(result$ri_observed_stat, expected$obs_att, tolerance = 1e-12)
+  expect_equal(result$ri_estimator, "ipw")
+  expect_equal(result$ri_pvalue, expected$ri_pvalue, tolerance = 1e-15)
+  expect_equal(result$ri_distribution, expected$ri_distribution, tolerance = 1e-15)
+
+  s <- summary(result)
+  expect_equal(s$ri_observed_stat, expected$obs_att, tolerance = 1e-12)
+  expect_equal(s$ri_estimator, "ipw")
+
+  d <- to_dict(result)
+  expect_equal(d$ri_observed_stat, expected$obs_att, tolerance = 1e-12)
+  expect_equal(d$ri_estimator, "ipw")
+})
+
 
 # ===========================================================================
 # Task E7-07.4: L2 Numerical tests (RI portion)

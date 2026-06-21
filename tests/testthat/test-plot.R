@@ -185,7 +185,7 @@ test_that("TC-10.5.3: type=trajectories without plot_data errors", {
   skip_if_not_installed("ggplot2")
   res <- create_mock_result_with_plotdata()
   res$metadata$plot_data <- NULL
-  expect_error(plot(res, type = "trajectories"), "graph=TRUE")
+  expect_error(plot(res, type = "trajectories"), "graph\\s*=\\s*TRUE")
 })
 
 test_that("TC-10.5.4: type=sensitivity without sensitivity errors", {
@@ -289,13 +289,7 @@ test_that("TC-10.5.13: trends trajectories without group_trends errors", {
     error = function(e) e
   )
   expect_s3_class(err, "error")
-  expect_true(
-    .matches_utf8_or_escaped(
-      conditionMessage(err),
-      utf8_literal = "趋势",
-      escaped_regex = "<U\\+8D8B><U\\+52BF>"
-    )
-  )
+  expect_match(conditionMessage(err), "No group-trend data")
 })
 
 # ============================================================================
@@ -450,17 +444,7 @@ test_that("TC-10.5.26: which with unavailable diagnostic type errors", {
     error = function(e) e
   )
   expect_s3_class(err, "error")
-  expect_true(
-    .matches_utf8_or_escaped(
-      conditionMessage(err),
-      utf8_literal = "无可用数据",
-      escaped_regex = "<U\\+65E0><U\\+53EF><U\\+7528><U\\+6570><U\\+636E>"
-    ) || .matches_utf8_or_escaped(
-      conditionMessage(err),
-      utf8_literal = "无",
-      escaped_regex = "<U\\+65E0>$"
-    )
-  )
+  expect_match(conditionMessage(err), "have no available data")
 })
 
 test_that("TC-10.5.27: all diagnostics NULL errors", {

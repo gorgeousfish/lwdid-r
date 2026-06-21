@@ -9,6 +9,16 @@ test_that("TC-10.2.1: specification curve generates ggplot with GeomPoint", {
   x <- create_mock_sensitivity_pre_period()
   p <- plot.lwdid_sensitivity(x)
   expect_s3_class(p, "ggplot")
+  expect_identical(p$labels$title, "Pre-Period Robustness Specification Curve")
+  expect_identical(p$labels$x, "Number of pre-treatment periods")
+  expect_identical(p$labels$y, "ATT estimate")
+  color_scale_names <- unlist(lapply(
+    p$scales$scales,
+    function(scale) {
+      if ("colour" %in% scale$aesthetics) scale$name else NULL
+    }
+  ))
+  expect_true("Statistical significance" %in% color_scale_names)
   layer_classes <- vapply(
     p$layers, function(l) class(l$geom)[1], character(1)
   )
@@ -21,6 +31,9 @@ test_that("TC-10.2.2: anticipation sensitivity plot generates ggplot", {
   x <- create_mock_sensitivity_no_anticipation()
   p <- plot.lwdid_sensitivity(x)
   expect_s3_class(p, "ggplot")
+  expect_identical(p$labels$title, "No-Anticipation Sensitivity Analysis")
+  expect_identical(p$labels$x, "Number of excluded pre-treatment periods")
+  expect_identical(p$labels$y, "ATT estimate")
   layer_classes <- vapply(
     p$layers, function(l) class(l$geom)[1], character(1)
   )
@@ -43,6 +56,10 @@ test_that("TC-10.2.4: heterogeneous trends plot generates ggplot", {
   x <- create_mock_heterogeneous_trends()
   p <- plot.lwdid_heterogeneous_trends(x)
   expect_s3_class(p, "ggplot")
+  expect_identical(p$labels$title, "Cohort Heterogeneous Trend Diagnostics")
+  expect_identical(p$labels$x, "Time period")
+  expect_identical(p$labels$y, "Fitted outcome")
+  expect_identical(p$labels$colour, "Cohort")
   layer_classes <- vapply(
     p$layers, function(l) class(l$geom)[1], character(1)
   )
@@ -75,6 +92,8 @@ test_that("TC-10.2.7: transformation recommendation has GeomCol", {
   x <- create_mock_transformation_recommendation()
   p <- plot.lwdid_transformation_recommendation(x)
   expect_s3_class(p, "ggplot")
+  expect_identical(p$labels$title, "Transformation Method Recommendation Scores")
+  expect_identical(p$labels$y, "Composite score")
   layer_classes <- vapply(
     p$layers, function(l) class(l$geom)[1], character(1)
   )
@@ -736,4 +755,20 @@ test_that("TC-10.2.43: vapply type safety in spec curve", {
       break
     }
   }
+})
+
+# TC-10.2.44: 并行趋势图在联合检验不可用时不显示技术性占位数值
+test_that("TC-10.2.44: unavailable joint test uses reader-facing subtitle", {
+  skip_if_not_installed("ggplot2")
+  x <- create_mock_parallel_trends(
+    joint_df = c(0L, 0L),
+    joint_f_stat = NaN,
+    joint_pvalue = 1
+  )
+
+  p <- plot.lwdid_parallel_trends(x)
+
+  expect_s3_class(p, "ggplot")
+  expect_equal(p$labels$subtitle, "Joint pre-trend test not available")
+  expect_false(grepl("F\\(0, 0\\)|NaN", p$labels$subtitle))
 })

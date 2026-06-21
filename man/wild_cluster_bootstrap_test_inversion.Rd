@@ -15,7 +15,9 @@ wild_cluster_bootstrap_test_inversion(
   alpha = 0.05,
   seed = NULL,
   grid_points = 25L,
-  ci_tol = 0.01
+  ci_tol = 0.01,
+  parallel = FALSE,
+  n_cores = NULL
 )
 }
 \arguments{
@@ -45,6 +47,15 @@ for controls-aware WCB.}
 \item{grid_points}{Integer scalar giving the coarse search grid size.}
 
 \item{ci_tol}{Numeric scalar giving the root-finding tolerance.}
+
+\item{parallel}{Logical scalar. When \code{TRUE}, bootstrap replications are
+executed in parallel via the \pkg{future} backend. Each replication is
+statistically independent (Cameron, Gelbach & Miller 2008), so
+parallelization does not affect validity. Uses L'Ecuyer-CMRG RNG streams
+for reproducible parallel seeds.}
+
+\item{n_cores}{Integer or NULL. Number of parallel workers. When \code{NULL},
+auto-detected as \code{future::availableCores() - 1}.}
 }
 \value{
 An object of class \code{lwdid_wcb_result}.

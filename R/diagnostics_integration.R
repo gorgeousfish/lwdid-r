@@ -12,12 +12,14 @@
 #' @param x A \code{lwdid_result} object.
 #' @param type Character scalar indicating which diagnostics to return.
 #'   One of \code{"all"}, \code{"clustering"}, \code{"selection"},
-#'   \code{"trends"}, or \code{"sensitivity"}.
+#'   \code{"trends"}, \code{"propensity"}, or \code{"sensitivity"}.
 #' @return A normalized diagnostics list, a single diagnostics object, or
 #'   \code{NULL} when diagnostics have not been run.
 #' @export
 get_diagnostics <- function(x, type = "all") {
-  valid_types <- c("all", "clustering", "selection", "trends", "sensitivity")
+  valid_types <- c(
+    "all", "clustering", "selection", "trends", "propensity", "sensitivity"
+  )
 
   if (!(inherits(x, "lwdid_result") || inherits(x, "lwdid"))) {
     stop("x must inherit from 'lwdid_result' or 'lwdid'.", call. = FALSE)
@@ -129,7 +131,30 @@ get_diagnostics <- function(x, type = "all") {
     clustering = raw_diagnostics$clustering %||% NULL,
     selection = raw_diagnostics$selection %||% NULL,
     trends = trend_diag %||% NULL,
+    propensity = raw_diagnostics$propensity %||% NULL,
     sensitivity = sensitivity_diag %||% NULL
+  )
+}
+
+#' @keywords internal
+.summarize_non_ra_propensity_diagnostics <- function(estimator, result,
+                                                     scope) {
+  ps <- result$propensity_scores
+  ps_finite <- ps[is.finite(ps)]
+  list(
+    estimator = estimator,
+    scope = scope,
+    n = as.integer((result$n_treated %||% 0L) + (result$n_control %||% 0L)),
+    n_treated = as.integer(result$n_treated %||% NA_integer_),
+    n_control = as.integer(result$n_control %||% NA_integer_),
+    n_trimmed = as.integer(result$n_trimmed %||% NA_integer_),
+    ps_min = if (length(ps_finite) > 0L) min(ps_finite) else NA_real_,
+    ps_max = if (length(ps_finite) > 0L) max(ps_finite) else NA_real_,
+    ps_mean = if (length(ps_finite) > 0L) mean(ps_finite) else NA_real_,
+    weights_cv = as.numeric(result$weights_cv %||% NA_real_),
+    n_matched = as.integer(result$n_matched %||% NA_integer_),
+    match_rate = as.numeric(result$match_success_rate %||% NA_real_),
+    n_dropped = as.integer(result$n_dropped %||% NA_integer_)
   )
 }
 
@@ -146,6 +171,9 @@ get_diagnostics <- function(x, type = "all") {
 #' @param cluster_vars Optional character vector of candidate cluster variables.
 #'   When \code{NULL}, clustering diagnostics are skipped.
 #' @param never_treated_values Numeric markers for never-treated cohorts.
+#' @param run_all_trend_diagnostics Logical scalar. Whether the trend
+#'   recommendation should run its parallel-trends and heterogeneous-trends
+#'   subdiagnostics. Default \code{TRUE}.
 #' @param verbose Logical scalar forwarded to the underlying diagnostics.
 #' @return A \code{lwdid_diagnostics_suite} object.
 #' @export
@@ -159,8 +187,15 @@ lwdid_diagnose <- function(
     controls = NULL,
     cluster_vars = NULL,
     never_treated_values = c(0, Inf),
+    run_all_trend_diagnostics = TRUE,
     verbose = TRUE
 ) {
+  if (!is.logical(run_all_trend_diagnostics) ||
+      length(run_all_trend_diagnostics) != 1L ||
+      is.na(run_all_trend_diagnostics)) {
+    stop("run_all_trend_diagnostics must be TRUE or FALSE.", call. = FALSE)
+  }
+
   # Always suppress sub-component printing during suite execution;
 
   results <- list(
@@ -186,7 +221,7 @@ lwdid_diagnose <- function(
         gvar = gvar,
         controls = controls,
         never_treated_values = never_treated_values,
-        run_all_diagnostics = TRUE,
+        run_all_diagnostics = run_all_trend_diagnostics,
         verbose = FALSE
       )
     })

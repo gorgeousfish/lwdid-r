@@ -65,13 +65,22 @@
 #'                     to sample sizes. Required when \code{method = "weighted"}.
 #' @param df_strategy Character: strategy for aggregating degrees of freedom.
 #'                    One of \code{"conservative"}, \code{"weighted"}, or \code{"fallback"}.
-#' @return A \code{data.frame} with columns: event_time, att, se, df_inference, n_cohorts,
-#'         sorted by event_time ascending.
+#' @return A \code{data.frame} with columns: event_time, att, se,
+#'   df_inference, n_cohorts, se_aggregation, covariance_assumption, sorted by
+#'   event_time ascending.
 #' @keywords internal
 .aggregate_by_event_time <- function(cohort_df,
                                      method,
                                      cohort_sizes = NULL,
                                      df_strategy = "conservative") {
+  if (method == "weighted") {
+    if (is.list(cohort_sizes) && !is.null(names(cohort_sizes))) {
+      cohort_sizes <- vapply(cohort_sizes, as.numeric, numeric(1))
+    }
+    if (!is.numeric(cohort_sizes) || is.null(names(cohort_sizes))) {
+      stop("method='weighted' requires named numeric cohort_sizes")
+    }
+  }
 
   # --------------------------------------------------------------------------
   # 1. event_time auto-calculation (if column doesn't exist)
@@ -89,6 +98,12 @@
     }
     cohort_df$event_time <- cohort_df$period - cohort_df$cohort
   }
+  if (!"is_anchor" %in% names(cohort_df)) {
+    cohort_df$is_anchor <- FALSE
+  } else {
+    cohort_df$is_anchor <- !is.na(cohort_df$is_anchor) &
+      as.logical(cohort_df$is_anchor)
+  }
 
 
   # --------------------------------------------------------------------------
@@ -102,6 +117,7 @@
   res_se          <- numeric(0L)
   res_df          <- integer(0L)
   res_n_cohorts   <- integer(0L)
+  res_is_anchor   <- logical(0L)
 
   for (e in unique_event_times) {
     et_data <- cohort_df[cohort_df$event_time == e, , drop = FALSE]
@@ -115,6 +131,7 @@
 
     G_e <- unique(et_data$cohort)
     n_g <- length(G_e)
+    is_anchor_e <- all(et_data$is_anchor)
 
     if (method == "mean") {
       att_e <- mean(et_data$att)
@@ -164,6 +181,7 @@
     res_se         <- c(res_se, se_e)
     res_df         <- c(res_df, df_e)
     res_n_cohorts  <- c(res_n_cohorts, as.integer(n_g))
+    res_is_anchor  <- c(res_is_anchor, is_anchor_e)
   }
 
 
@@ -176,6 +194,13 @@
     se           = res_se,
     df_inference = res_df,
     n_cohorts    = res_n_cohorts,
+    is_anchor    = res_is_anchor,
+    se_aggregation = if (method == "weighted") {
+      "diagonal_weighted_cohort_se"
+    } else {
+      "diagonal_equal_cohort_se"
+    },
+    covariance_assumption = "zero_cross_cohort_covariance",
     stringsAsFactors = FALSE
   )
 
@@ -196,35 +221,88 @@
 #' @param df_strategy Character: "conservative", "weighted", or "fallback".
 #' @param df_values   Numeric vector of df_inference values from plot data.
 #' @param is_staggered Logical: whether the result is from staggered mode.
+#' @param facet_by_cohort Logical: whether the plot shows cohort-specific
+#'   estimates instead of an aggregated event-study path.
+#' @param inference_dist Character: \code{"t"} or \code{"normal"} inference
+#'   scale used for confidence intervals.
 #' @return Character string for use as plot subtitle.
 #' @keywords internal
-.format_subtitle <- function(aggregation, df_strategy, df_values, is_staggered) {
+.format_subtitle <- function(aggregation, df_strategy, df_values,
+                             is_staggered, facet_by_cohort = FALSE,
+                             inference_dist = "t") {
   # Filter valid df values (exclude NA and Inf from anchors)
   valid_dfs <- df_values[is.finite(df_values) & !is.na(df_values)]
 
   if (!is_staggered) {
+    if (identical(inference_dist, "normal")) {
+      return("Common timing; asymptotic normal inference")
+    }
     if (length(valid_dfs) > 0L) {
-      return(sprintf("Common Timing | df=%d", as.integer(valid_dfs[1L])))
+      return(sprintf("Common timing; inference df = %d",
+                     as.integer(valid_dfs[1L])))
     } else {
-      return("Common Timing")
+      return("Common timing")
     }
   }
 
   # Staggered mode
+  aggregation_label <- if (isTRUE(facet_by_cohort)) {
+    "Cohort-specific estimates"
+  } else {
+    switch(aggregation,
+      "mean" = "Simple cohort average",
+      "weighted" = "Cohort-size weighted average",
+      aggregation
+    )
+  }
+  df_strategy_label <- switch(df_strategy,
+    "conservative" = "conservative df",
+    "weighted" = "weighted df",
+    "fallback" = "cohort-count df",
+    df_strategy
+  )
+
+  if (identical(inference_dist, "normal")) {
+    return(sprintf("%s; asymptotic normal inference", aggregation_label))
+  }
+
   if (length(valid_dfs) == 0L) {
-    return(sprintf("aggregation=%s | df_strategy=%s", aggregation, df_strategy))
+    return(sprintf("%s; %s", aggregation_label, df_strategy_label))
   }
 
   df_min <- as.integer(min(valid_dfs))
   df_max <- as.integer(max(valid_dfs))
 
   if (df_min == df_max) {
-    df_text <- sprintf("df=%d", df_min)
+    df_text <- sprintf("inference df = %d", df_min)
   } else {
-    df_text <- sprintf("df range=[%d, %d]", df_min, df_max)
+    df_text <- sprintf("inference df range %d-%d", df_min, df_max)
   }
 
-  sprintf("aggregation=%s | df_strategy=%s | %s", aggregation, df_strategy, df_text)
+  sprintf("%s; %s; %s", aggregation_label, df_strategy_label, df_text)
+}
+
+
+# ----------------------------------------------------------------------------
+# .rbind_plot_rows
+# ----------------------------------------------------------------------------
+#' Row-bind plot-data frames with explicit column alignment
+#'
+#' @param x First data frame.
+#' @param y Second data frame.
+#' @return A data frame containing both inputs and the union of their columns.
+#' @keywords internal
+.rbind_plot_rows <- function(x, y) {
+  all_cols <- c(names(x), setdiff(names(y), names(x)))
+  missing_x <- setdiff(all_cols, names(x))
+  missing_y <- setdiff(all_cols, names(y))
+  for (col in missing_x) {
+    x[[col]] <- NA
+  }
+  for (col in missing_y) {
+    y[[col]] <- NA
+  }
+  rbind(x[, all_cols, drop = FALSE], y[, all_cols, drop = FALSE])
 }
 
 
@@ -236,19 +314,32 @@
 #' @param x An \code{lwdid_result} object.
 #' @param ci_level Numeric in (0,1): confidence interval level (default 0.95).
 #' @param reference_line Numeric: y-value for horizontal reference line (default 0).
-#' @param show_pre_treatment Logical: include pre-treatment periods (default TRUE).
+#' @param show_pre_treatment Logical: include pre-treatment periods (default
+#'   TRUE). When \code{FALSE}, the default \code{-1} visual anchor is not added.
+#'   When \code{TRUE}, that anchor is added only if event time \code{-1} is
+#'   absent from the plotted data. Explicit \code{is_anchor} rows supplied by
+#'   pre-treatment output are preserved.
 #' @param facet_by_cohort Logical: facet by cohort in staggered mode (default FALSE).
 #' @param color_significant Logical: color significant points differently (default TRUE).
-#' @param ref_period Integer or NULL: reference period to normalize ATT to zero.
-#' @param aggregation Character: "mean" or "weighted" aggregation method.
+#' @param ref_period Integer or NULL: observed event-time period to normalize
+#'   ATT to zero. The requested period must be present in the plotted data and
+#'   is not relabeled as a visual anchor.
+#' @param aggregation Character: "weighted" or "mean" aggregation method.
 #' @param df_strategy Character: "conservative", "weighted", or "fallback".
-#' @param return_data Logical: if TRUE, return plot data instead of ggplot object.
+#' @param return_data Logical: if TRUE, return a list containing the ggplot
+#'   object and the plot data.
 #' @param point_size Numeric: size of point markers (default 3).
 #' @param errorbar_width Numeric: width of error bar caps (default 0.2).
 #' @param title Character or NULL: custom plot title.
 #' @param theme Function: ggplot2 theme function (default \code{ggplot2::theme_minimal}).
 #' @param ... Additional arguments (currently unused).
-#' @return A ggplot object, or a data.frame if \code{return_data = TRUE}.
+#' @return A ggplot object, or a list with \code{plot} and \code{data} if
+#'   \code{return_data = TRUE}. For stored event-time results, returned plot
+#'   data preserves event-level metadata from \code{\link{extract_effects}},
+#'   including standard-error aggregation metadata and any available non-RA
+#'   overlap or support-count summaries. When \code{ref_period} is used,
+#'   returned p-values are \code{NA} and significance flags are \code{FALSE}
+#'   because shifted contrasts require event-time contrast covariance.
 #' @export
 plot_event_study.lwdid_result <- function(x,
                                           ci_level = 0.95,
@@ -257,7 +348,7 @@ plot_event_study.lwdid_result <- function(x,
                                           facet_by_cohort = FALSE,
                                           color_significant = TRUE,
                                           ref_period = NULL,
-                                          aggregation = c("mean", "weighted"),
+                                          aggregation = c("weighted", "mean"),
                                           df_strategy = c("conservative",
                                                           "weighted",
                                                           "fallback"),
@@ -335,6 +426,12 @@ plot_event_study.lwdid_result <- function(x,
       }
       cohort_df$event_time <- cohort_df$period - cohort_df$cohort
     }
+    if (!"is_anchor" %in% names(cohort_df)) {
+      cohort_df$is_anchor <- FALSE
+    } else {
+      cohort_df$is_anchor <- !is.na(cohort_df$is_anchor) &
+        as.logical(cohort_df$is_anchor)
+    }
     cohort_df$`_source` <- "post_treatment"
 
     # Merge pre-treatment data BEFORE aggregation
@@ -349,6 +446,12 @@ plot_event_study.lwdid_result <- function(x,
       if (!"event_time" %in% names(pre_df) &&
           all(c("cohort", "period") %in% names(pre_df))) {
         pre_df$event_time <- pre_df$period - pre_df$cohort
+      }
+      if (!"is_anchor" %in% names(pre_df)) {
+        pre_df$is_anchor <- FALSE
+      } else {
+        pre_df$is_anchor <- !is.na(pre_df$is_anchor) &
+          as.logical(pre_df$is_anchor)
       }
       pre_df$`_source` <- "pre_treatment"
       common_cols <- intersect(names(cohort_df), names(pre_df))
@@ -387,8 +490,64 @@ plot_event_study.lwdid_result <- function(x,
       }
     }
 
-    # Aggregate by event time
-    if (aggregation == "mean") {
+    stored_event_time_df <- NULL
+    stored_event_times <- NULL
+    if (identical(x$aggregate, "event_time") &&
+        !is.null(x$event_time_effects)) {
+      stored_event_time_df <- extract_effects(x, type = "event_time")
+      stored_event_times <- stored_event_time_df$event_time
+      post_source <- is.na(cohort_df$`_source`) |
+        cohort_df$`_source` == "post_treatment"
+      cohort_df <- cohort_df[
+        !post_source | cohort_df$event_time %in% stored_event_times,
+        , drop = FALSE
+      ]
+    }
+
+    # For cohort-faceted plots, preserve the cohort-time estimates instead of
+    # aggregating away the cohort identifier that faceting needs.
+    use_stored_event_time <- !facet_by_cohort &&
+      identical(aggregation, "weighted") &&
+      identical(x$aggregate, "event_time") &&
+      !is.null(stored_event_time_df) &&
+      nrow(stored_event_time_df) > 0L
+
+    if (nrow(cohort_df) == 0L) {
+      plot_data <- data.frame(
+        event_time = integer(0),
+        att = numeric(0),
+        se = numeric(0),
+        df_inference = numeric(0),
+        n_cohorts = integer(0),
+        is_anchor = logical(0)
+      )
+    } else if (facet_by_cohort) {
+      plot_data <- cohort_df
+      if (!"df_inference" %in% names(plot_data)) {
+        plot_data$df_inference <- x$df_inference
+      }
+      plot_data$n_cohorts <- 1L
+      std_cols <- c("cohort", "event_time", "att", "se",
+                    "df_inference", "n_cohorts", "is_anchor")
+      plot_data <- plot_data[, intersect(std_cols, names(plot_data)),
+                             drop = FALSE]
+    } else if (use_stored_event_time) {
+      plot_data <- stored_event_time_df
+      plot_data$is_anchor <- FALSE
+
+      pre_rows <- cohort_df[
+        !is.na(cohort_df$`_source`) & cohort_df$`_source` == "pre_treatment",
+        , drop = FALSE
+      ]
+      if (nrow(pre_rows) > 0L) {
+        pre_plot_data <- .aggregate_by_event_time(
+          pre_rows, method = "weighted",
+          cohort_sizes = x$cohort_sizes,
+          df_strategy = df_strategy
+        )
+        plot_data <- .rbind_plot_rows(pre_plot_data, plot_data)
+      }
+    } else if (aggregation == "mean") {
       plot_data <- .aggregate_by_event_time(
         cohort_df, method = "mean", df_strategy = df_strategy
       )
@@ -434,15 +593,28 @@ plot_event_study.lwdid_result <- function(x,
     if (!"df_inference" %in% names(plot_data)) {
       plot_data$df_inference <- x$df_inference
     }
+    if (!"is_anchor" %in% names(plot_data)) {
+      plot_data$is_anchor <- FALSE
+    } else {
+      plot_data$is_anchor <- !is.na(plot_data$is_anchor) &
+        as.logical(plot_data$is_anchor)
+    }
 
-    # event_time auto-calculation for Common Timing
+    # event_time auto-calculation for Common Timing. Internally, tpost1 is
+    # stored on the sequential tindex scale, while period may be a calendar
+    # year. Prefer tindex when present so real-world data plot relative event
+    # time rather than calendar year minus an internal index.
     if (!"event_time" %in% names(plot_data) &&
-        "period" %in% names(plot_data)) {
-      t_time <- x$treatment_time %||% x$tpost1
-      if (is.null(t_time)) {
-        stop("Cannot compute event_time: missing treatment_time and tpost1")
+        ("tindex" %in% names(plot_data) || "period" %in% names(plot_data))) {
+      if ("tindex" %in% names(plot_data) && !is.null(x$tpost1)) {
+        plot_data$event_time <- plot_data$tindex - x$tpost1
+      } else {
+        t_time <- x$treatment_time %||% x$tpost1
+        if (is.null(t_time)) {
+          stop("Cannot compute event_time: missing treatment_time and tpost1")
+        }
+        plot_data$event_time <- plot_data$period - t_time
       }
-      plot_data$event_time <- plot_data$period - t_time
     }
 
     # Pre-treatment merge
@@ -455,12 +627,22 @@ plot_event_study.lwdid_result <- function(x,
     if (has_pre_data_ct) {
       pre_ct <- x$att_pre_treatment
       if (!"event_time" %in% names(pre_ct) &&
-          "period" %in% names(pre_ct)) {
-        t_time_pre <- x$treatment_time %||% x$tpost1
-        pre_ct$event_time <- pre_ct$period - t_time_pre
+          ("tindex" %in% names(pre_ct) || "period" %in% names(pre_ct))) {
+        if ("tindex" %in% names(pre_ct) && !is.null(x$tpost1)) {
+          pre_ct$event_time <- pre_ct$tindex - x$tpost1
+        } else {
+          t_time_pre <- x$treatment_time %||% x$tpost1
+          pre_ct$event_time <- pre_ct$period - t_time_pre
+        }
       }
       if (!"df_inference" %in% names(pre_ct)) {
         pre_ct$df_inference <- x$df_inference
+      }
+      if (!"is_anchor" %in% names(pre_ct)) {
+        pre_ct$is_anchor <- FALSE
+      } else {
+        pre_ct$is_anchor <- !is.na(pre_ct$is_anchor) &
+          as.logical(pre_ct$is_anchor)
       }
       common_cols_ct <- intersect(names(plot_data), names(pre_ct))
       plot_data <- rbind(
@@ -482,7 +664,8 @@ plot_event_study.lwdid_result <- function(x,
     # Standardize columns to match staggered output format
     # (drop extra columns like period, t_stat, pvalue from att_by_period
     #  so that anchor row rbind in Step 4 works correctly)
-    std_cols <- c("event_time", "att", "se", "df_inference", "n_cohorts")
+    std_cols <- c("event_time", "att", "se", "df_inference", "n_cohorts",
+                  "is_anchor")
     std_cols <- intersect(std_cols, names(plot_data))
     plot_data <- plot_data[, std_cols, drop = FALSE]
 
@@ -495,14 +678,60 @@ plot_event_study.lwdid_result <- function(x,
   # Step 3: Confidence interval calculation (per-event-time df)
   # ==========================================================================
   alpha_val <- 1 - ci_level
-  t_crit <- stats::qt(1 - alpha_val / 2, df = plot_data$df_inference)
+  inference_dist <- x$inference_dist %||%
+    .resolve_top_level_inference_dist(x$estimator)
+  if (is.na(inference_dist)) {
+    inference_dist <- "t"
+  }
+  t_crit <- if (identical(inference_dist, "normal")) {
+    stats::qnorm(1 - alpha_val / 2)
+  } else {
+    stats::qt(1 - alpha_val / 2, df = plot_data$df_inference)
+  }
   plot_data$ci_lower <- plot_data$att - t_crit * plot_data$se
   plot_data$ci_upper <- plot_data$att + t_crit * plot_data$se
+
+  if (isTRUE(x$is_staggered)) {
+    if ("cohort" %in% names(plot_data)) {
+      plot_data$se_aggregation <- rep(
+        "cell_level_cohort_period_se",
+        nrow(plot_data)
+      )
+      plot_data$covariance_assumption <- rep(
+        "not_applicable_cohort_specific",
+        nrow(plot_data)
+      )
+    } else if (!"se_aggregation" %in% names(plot_data)) {
+      se_aggregation <- if (identical(aggregation, "weighted")) {
+        "diagonal_weighted_cohort_se"
+      } else {
+        "diagonal_equal_cohort_se"
+      }
+      plot_data$se_aggregation <- rep(se_aggregation, nrow(plot_data))
+      plot_data$covariance_assumption <- rep(
+        "zero_cross_cohort_covariance",
+        nrow(plot_data)
+      )
+    }
+  } else {
+    plot_data$se_aggregation <- rep("period_level_se", nrow(plot_data))
+    plot_data$covariance_assumption <- rep(
+      "not_applicable_common_timing",
+      nrow(plot_data)
+    )
+  }
 
   # ==========================================================================
   # Step 4: Add anchor point
   # ==========================================================================
   anchor_time <- if (!is.null(ref_period)) ref_period else -1L
+  add_default_anchor <- is.null(ref_period) && isTRUE(show_pre_treatment)
+  if (!"is_anchor" %in% names(plot_data)) {
+    plot_data$is_anchor <- FALSE
+  } else {
+    plot_data$is_anchor <- !is.na(plot_data$is_anchor) &
+      as.logical(plot_data$is_anchor)
+  }
 
   # Pre-check: if show_pre_treatment=FALSE and ref_period is negative,
   # the ref_period would be in the filtered-out range. Error early.
@@ -522,10 +751,50 @@ plot_event_study.lwdid_result <- function(x,
     ), call. = FALSE)
   }
 
-  if (!(anchor_time %in% plot_data$event_time)) {
+  if (add_default_anchor && "cohort" %in% names(plot_data)) {
+    cohorts_for_anchor <- sort(unique(plot_data$cohort))
+    anchor_rows <- lapply(cohorts_for_anchor, function(cohort_value) {
+      cohort_rows <- plot_data[plot_data$cohort == cohort_value, , drop = FALSE]
+      if (anchor_time %in% cohort_rows$event_time) {
+        return(NULL)
+      }
+      anchor_df <- if (nrow(cohort_rows) > 0L) {
+        valid_anchor_df <- cohort_rows$df_inference[
+          is.finite(cohort_rows$df_inference)
+        ]
+        if (length(valid_anchor_df) > 0L) min(valid_anchor_df) else Inf
+      } else {
+        Inf
+      }
+      data.frame(
+        cohort       = cohort_value,
+        event_time   = anchor_time,
+        att          = 0,
+        se           = 0,
+        df_inference = anchor_df,
+        n_cohorts    = 1L,
+        ci_lower     = 0,
+        ci_upper     = 0,
+        is_anchor    = TRUE,
+        se_aggregation = "visual_anchor_zero_se",
+        covariance_assumption = "not_applicable_anchor",
+        stringsAsFactors = FALSE
+      )
+    })
+    anchor_rows <- Filter(Negate(is.null), anchor_rows)
+    if (length(anchor_rows) > 0L) {
+      plot_data <- rbind(plot_data, do.call(rbind, anchor_rows))
+      plot_data <- plot_data[order(plot_data$cohort, plot_data$event_time),
+                             , drop = FALSE]
+      rownames(plot_data) <- NULL
+    }
+  } else if (add_default_anchor && !(anchor_time %in% plot_data$event_time)) {
     # Anchor df: use minimum df from existing data, or Inf if empty
     anchor_df <- if (nrow(plot_data) > 0L) {
-      min(plot_data$df_inference, na.rm = TRUE)
+      valid_anchor_df <- plot_data$df_inference[
+        is.finite(plot_data$df_inference)
+      ]
+      if (length(valid_anchor_df) > 0L) min(valid_anchor_df) else Inf
     } else {
       Inf
     }
@@ -537,14 +806,46 @@ plot_event_study.lwdid_result <- function(x,
       n_cohorts    = 0L,
       ci_lower     = 0,
       ci_upper     = 0,
+      is_anchor    = TRUE,
       stringsAsFactors = FALSE
     )
-    plot_data <- rbind(plot_data, anchor_row)
+    if (isTRUE(x$is_staggered)) {
+      anchor_row$se_aggregation <- "visual_anchor_zero_se"
+      anchor_row$covariance_assumption <- "not_applicable_anchor"
+    } else {
+      anchor_row$se_aggregation <- "visual_anchor_zero_se"
+      anchor_row$covariance_assumption <- "not_applicable_anchor"
+    }
+    plot_data <- .rbind_plot_rows(plot_data, anchor_row)
     plot_data <- plot_data[order(plot_data$event_time), , drop = FALSE]
     rownames(plot_data) <- NULL
   }
 
-  plot_data$is_anchor <- (plot_data$event_time == anchor_time)
+  if (isTRUE(x$is_staggered)) {
+    if ("cohort" %in% names(plot_data)) {
+      plot_data$se_aggregation <- rep(
+        "cell_level_cohort_period_se",
+        nrow(plot_data)
+      )
+      plot_data$covariance_assumption <- rep(
+        "not_applicable_cohort_specific",
+        nrow(plot_data)
+      )
+    } else if (!"se_aggregation" %in% names(plot_data)) {
+      se_aggregation <- if (identical(aggregation, "weighted")) {
+        "diagonal_weighted_cohort_se"
+      } else {
+        "diagonal_equal_cohort_se"
+      }
+      plot_data$se_aggregation <- rep(se_aggregation, nrow(plot_data))
+      plot_data$covariance_assumption <- rep(
+        "zero_cross_cohort_covariance",
+        nrow(plot_data)
+      )
+    }
+  }
+  plot_data$se_aggregation[plot_data$is_anchor] <- "visual_anchor_zero_se"
+  plot_data$covariance_assumption[plot_data$is_anchor] <- "not_applicable_anchor"
 
   # ==========================================================================
   # Step 4b: Reference period normalization
@@ -579,27 +880,52 @@ plot_event_study.lwdid_result <- function(x,
         ), call. = FALSE)
       }
     }
-    ref_att <- ref_row$att[1L]
+    if ("cohort" %in% names(plot_data)) {
+      cohorts_missing_ref <- setdiff(unique(plot_data$cohort), ref_row$cohort)
+      if (length(cohorts_missing_ref) > 0L) {
+        stop(sprintf(
+          paste0(
+            "ref_period=%d is not available for cohort(s): %s. ",
+            "Choose a reference period observed for every faceted cohort."
+          ),
+          ref_period, paste(cohorts_missing_ref, collapse = ", ")
+        ), call. = FALSE)
+      }
+      ref_att_by_cohort <- stats::setNames(ref_row$att, ref_row$cohort)
+      ref_att <- unname(ref_att_by_cohort[as.character(plot_data$cohort)])
+    } else {
+      ref_att <- ref_row$att[1L]
+    }
     plot_data$att <- plot_data$att - ref_att
     plot_data$ci_lower <- plot_data$ci_lower - ref_att
     plot_data$ci_upper <- plot_data$ci_upper - ref_att
   }
-
   # ==========================================================================
   # Step 5: p-value, significance marking, and period type classification
   # ==========================================================================
-  # Recompute p-value from t-distribution (R enhancement over Python)
-  plot_data$pvalue <- 2 * stats::pt(
-    -abs(plot_data$att / plot_data$se),
-    df = plot_data$df_inference
-  )
-  # SE=0 or non-finite SE -> pvalue=NA (avoid division by zero)
-  bad_se <- plot_data$se == 0 | !is.finite(plot_data$se)
-  plot_data$pvalue[bad_se] <- NA_real_
+  if (!is.null(ref_period)) {
+    # Reference-period normalization changes the plotted estimand to a
+    # difference from the reference effect. Without the covariance between
+    # event-time rows, pointwise p-values and significance colors would be
+    # numerically unsupported.
+    plot_data$pvalue <- NA_real_
+    plot_data$significant <- FALSE
+  } else {
+    # Recompute p-value on the fitted estimator's inference scale.
+    plot_stat <- plot_data$att / plot_data$se
+    plot_data$pvalue <- if (identical(inference_dist, "normal")) {
+      2 * stats::pnorm(abs(plot_stat), lower.tail = FALSE)
+    } else {
+      2 * stats::pt(-abs(plot_stat), df = plot_data$df_inference)
+    }
+    # SE=0 or non-finite SE -> pvalue=NA (avoid division by zero)
+    bad_se <- plot_data$se == 0 | !is.finite(plot_data$se)
+    plot_data$pvalue[bad_se] <- NA_real_
 
-  # Significance flag
-  plot_data$significant <- !is.na(plot_data$pvalue) &
-    plot_data$pvalue < (1 - ci_level)
+    # Significance flag
+    plot_data$significant <- !is.na(plot_data$pvalue) &
+      plot_data$pvalue < (1 - ci_level)
+  }
 
   # Period type classification
   plot_data$period_type <- ifelse(
@@ -649,6 +975,11 @@ plot_event_study.lwdid_result <- function(x,
           "post_treatment" = "#2166AC",
           "anchor"         = "#E66100"
         ),
+        labels = c(
+          "pre_treatment"  = "Pre-treatment",
+          "post_treatment" = "Post-treatment",
+          "anchor"         = "Anchor"
+        ),
         name = NULL
       ) +
       ggplot2::scale_shape_manual(values = c("FALSE" = 16, "TRUE" = 18), guide = "none")
@@ -661,24 +992,47 @@ plot_event_study.lwdid_result <- function(x,
   pre_data <- plot_data[plot_data$event_time < 0L & !plot_data$is_anchor, , drop = FALSE]
   post_data <- plot_data[plot_data$event_time >= 0L & !plot_data$is_anchor, , drop = FALSE]
   if (nrow(pre_data) > 0L && nrow(post_data) > 0L) {
-    last_pre <- pre_data[which.max(pre_data$event_time), , drop = FALSE]
-    first_post <- post_data[which.min(post_data$event_time), , drop = FALSE]
-    bridge_df <- data.frame(
-      event_time = c(last_pre$event_time, first_post$event_time),
-      att        = c(last_pre$att, first_post$att)
-    )
-    p <- p + ggplot2::geom_line(
-      data = bridge_df,
-      ggplot2::aes(x = .data$event_time, y = .data$att),
-      linetype = "dotted", color = "gray50", linewidth = 0.8,
-      inherit.aes = FALSE
-    )
+    if ("cohort" %in% names(plot_data)) {
+      bridge_parts <- lapply(sort(unique(plot_data$cohort)), function(cohort_value) {
+        cohort_pre <- pre_data[pre_data$cohort == cohort_value, , drop = FALSE]
+        cohort_post <- post_data[post_data$cohort == cohort_value, , drop = FALSE]
+        if (nrow(cohort_pre) == 0L || nrow(cohort_post) == 0L) {
+          return(NULL)
+        }
+        last_pre <- cohort_pre[which.max(cohort_pre$event_time), , drop = FALSE]
+        first_post <- cohort_post[which.min(cohort_post$event_time), , drop = FALSE]
+        data.frame(
+          cohort = cohort_value,
+          event_time = c(last_pre$event_time, first_post$event_time),
+          att = c(last_pre$att, first_post$att),
+          stringsAsFactors = FALSE
+        )
+      })
+      bridge_df <- do.call(rbind, Filter(Negate(is.null), bridge_parts))
+    } else {
+      last_pre <- pre_data[which.max(pre_data$event_time), , drop = FALSE]
+      first_post <- post_data[which.min(post_data$event_time), , drop = FALSE]
+      bridge_df <- data.frame(
+        event_time = c(last_pre$event_time, first_post$event_time),
+        att = c(last_pre$att, first_post$att)
+      )
+    }
+    if (!is.null(bridge_df) && nrow(bridge_df) > 0L) {
+      p <- p + ggplot2::geom_line(
+        data = bridge_df,
+        ggplot2::aes(x = .data$event_time, y = .data$att),
+        linetype = "dotted", color = "gray50", linewidth = 0.8,
+        inherit.aes = FALSE
+      )
+    }
   }
 
   # Labels and subtitle
   effective_title <- if (!is.null(title)) title else "Event Study"
   subtitle_text <- .format_subtitle(
-    aggregation, df_strategy, plot_data$df_inference, x$is_staggered
+    aggregation, df_strategy, plot_data$df_inference, x$is_staggered,
+    facet_by_cohort = facet_by_cohort && "cohort" %in% names(plot_data),
+    inference_dist = inference_dist
   )
   p <- p + ggplot2::labs(
     x        = "Event Time (Relative to Treatment)",

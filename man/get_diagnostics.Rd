@@ -11,7 +11,7 @@ get_diagnostics(x, type = "all")
 
 \item{type}{Character scalar indicating which diagnostics to return.
 One of \code{"all"}, \code{"clustering"}, \code{"selection"},
-\code{"trends"}, or \code{"sensitivity"}.}
+\code{"trends"}, \code{"propensity"}, or \code{"sensitivity"}.}
 }
 \value{
 A normalized diagnostics list, a single diagnostics object, or

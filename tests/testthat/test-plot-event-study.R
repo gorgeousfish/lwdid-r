@@ -16,13 +16,158 @@ test_that("TC-10.1.1: basic event study plot returns ggplot object", {
 # ── TC-10.1.2: Anchor correctly added with diamond shape ──
 test_that("TC-10.1.2: anchor point added at event_time=-1 with diamond marker", {
   skip_if_not_installed("ggplot2")
-  res <- fixture_staggered_result()
+  cohort_data <- data.frame(
+    cohort = c(2005L, 2005L, 2007L, 2007L),
+    period = c(2005L, 2006L, 2007L, 2008L),
+    att = c(0.5, 0.8, 0.6, 0.9),
+    se = c(0.3, 0.25, 0.35, 0.3),
+    df_inference = c(10L, 10L, 20L, 20L)
+  )
+  res <- create_mock_staggered_result(
+    cohort_data,
+    c("2005" = 100, "2007" = 300)
+  )
   result <- suppressWarnings(plot_event_study(res, return_data = TRUE))
   d <- result$data
   anchor_rows <- d[d$is_anchor, ]
   expect_equal(nrow(anchor_rows), 1L)
   expect_equal(anchor_rows$event_time, -1L)
   # Diamond shape (18) is set in scale_shape_manual, verified via ggplot build
+})
+
+test_that("actual event_time=-1 estimates are not reclassified as visual anchors", {
+  skip_if_not_installed("ggplot2")
+  cohort_data <- data.frame(
+    cohort = rep(2005L, 3L),
+    period = c(2004L, 2005L, 2006L),
+    att = c(0.35, 1.25, 1.75),
+    se = c(0.2, 0.3, 0.4),
+    df_inference = rep(15L, 3L)
+  )
+  res <- create_mock_staggered_result(
+    cohort_data,
+    c("2005" = 100)
+  )
+
+  d <- plot_event_study(res, return_data = TRUE)$data
+  actual_ref_row <- d[d$event_time == -1L, ]
+
+  expect_equal(nrow(actual_ref_row), 1L)
+  expect_false(actual_ref_row$is_anchor)
+  expect_equal(actual_ref_row$att, 0.35)
+  expect_equal(actual_ref_row$period_type, "pre_treatment")
+  expect_equal(
+    actual_ref_row$se_aggregation,
+    "diagonal_weighted_cohort_se"
+  )
+})
+
+test_that("Common Timing preserves explicit pre-treatment anchor rows", {
+  skip_if_not_installed("ggplot2")
+  period_data <- data.frame(
+    period = c(2000L, 2001L),
+    att = c(0.5, 0.8),
+    se = c(0.3, 0.25)
+  )
+  att_pre <- data.frame(
+    period = c(1998L, 1999L),
+    att = c(0.02, 0),
+    se = c(0.1, 0),
+    df_inference = c(25L, 25L),
+    is_anchor = c(FALSE, TRUE)
+  )
+  res <- create_mock_common_timing_result(
+    period_data,
+    df_inference = 25L,
+    treatment_time = 2000L,
+    att_pre_treatment = att_pre,
+    include_pretreatment = TRUE
+  )
+
+  d <- plot_event_study(res, show_pre_treatment = TRUE, return_data = TRUE)$data
+  anchor_row <- d[d$is_anchor, ]
+
+  expect_equal(nrow(anchor_row), 1L)
+  expect_equal(anchor_row$event_time, -1L)
+  expect_equal(anchor_row$att, 0)
+  expect_equal(anchor_row$period_type, "anchor")
+  expect_equal(anchor_row$se_aggregation, "visual_anchor_zero_se")
+  expect_equal(anchor_row$covariance_assumption, "not_applicable_anchor")
+
+  row_m2 <- d[d$event_time == -2L, ]
+  expect_false(row_m2$is_anchor)
+  expect_equal(row_m2$period_type, "pre_treatment")
+})
+
+test_that("Staggered plots preserve explicit pre-treatment anchors", {
+  skip_if_not_installed("ggplot2")
+  cohort_data <- data.frame(
+    cohort = c(2005L, 2007L),
+    period = c(2005L, 2007L),
+    att = c(0.5, 0.6),
+    se = c(0.3, 0.35),
+    df_inference = c(10L, 20L)
+  )
+  att_pre <- data.frame(
+    cohort = c(2005L, 2007L),
+    period = c(2004L, 2006L),
+    event_time = c(-1L, -1L),
+    att = c(0, 0),
+    se = c(0, 0),
+    df_inference = c(10L, 20L),
+    is_anchor = c(TRUE, TRUE)
+  )
+  res <- create_mock_staggered_result(
+    cohort_data,
+    c("2005" = 100, "2007" = 300),
+    att_pre_treatment = att_pre,
+    include_pretreatment = TRUE
+  )
+
+  aggregated <- plot_event_study(res, return_data = TRUE)$data
+  faceted <- plot_event_study(res, facet_by_cohort = TRUE, return_data = TRUE)$data
+  aggregated_anchor <- aggregated[aggregated$is_anchor, ]
+  faceted_anchor <- faceted[faceted$is_anchor, ]
+
+  expect_equal(nrow(aggregated_anchor), 1L)
+  expect_equal(aggregated_anchor$event_time, -1L)
+  expect_equal(aggregated_anchor$att, 0)
+  expect_equal(aggregated_anchor$se, 0)
+  expect_equal(aggregated_anchor$period_type, "anchor")
+  expect_equal(aggregated_anchor$se_aggregation, "visual_anchor_zero_se")
+
+  expect_equal(nrow(faceted_anchor), 2L)
+  expect_equal(sort(faceted_anchor$cohort), c(2005L, 2007L))
+  expect_true(all(faceted_anchor$event_time == -1L))
+  expect_true(all(faceted_anchor$period_type == "anchor"))
+  expect_true(all(faceted_anchor$se_aggregation == "visual_anchor_zero_se"))
+})
+
+test_that("ref_period normalization does not mark observed estimates as anchors", {
+  skip_if_not_installed("ggplot2")
+  cohort_data <- data.frame(
+    cohort = rep(2005L, 3L),
+    period = c(2004L, 2005L, 2006L),
+    att = c(0.35, 1.25, 1.75),
+    se = c(0.2, 0.3, 0.4),
+    df_inference = rep(15L, 3L)
+  )
+  res <- create_mock_staggered_result(
+    cohort_data,
+    c("2005" = 100)
+  )
+
+  d <- plot_event_study(res, ref_period = 0L, return_data = TRUE)$data
+  ref_row <- d[d$event_time == 0L, ]
+
+  expect_equal(nrow(ref_row), 1L)
+  expect_false(ref_row$is_anchor)
+  expect_equal(ref_row$att, 0)
+  expect_equal(ref_row$period_type, "post_treatment")
+  expect_equal(
+    ref_row$se_aggregation,
+    "diagonal_weighted_cohort_se"
+  )
 })
 
 # ── TC-10.1.3: facet_by_cohort correctly facets ──
@@ -83,16 +228,34 @@ test_that("TC-10.1.7: ref_period normalization correctly shifts all ATTs", {
   }
 })
 
+test_that("ref_period normalization does not report unsupported pointwise significance", {
+  skip_if_not_installed("ggplot2")
+  cohort_data <- data.frame(
+    cohort = rep(2005L, 3L),
+    period = c(2004L, 2005L, 2006L),
+    att = c(0.20, 1.00, 1.80),
+    se = c(0.05, 0.05, 0.05),
+    df_inference = rep(20L, 3L)
+  )
+  res <- create_mock_staggered_result(
+    cohort_data,
+    c("2005" = 100)
+  )
+
+  raw <- plot_event_study(res, ref_period = NULL, return_data = TRUE)$data
+  normalized <- plot_event_study(res, ref_period = 0L, return_data = TRUE)$data
+
+  expect_true(any(raw$significant[!raw$is_anchor]))
+  expect_true(all(is.na(normalized$pvalue)))
+  expect_false(any(normalized$significant))
+})
+
 # ── TC-10.1.8: ref_period not in data → error ──
 test_that("TC-10.1.8: ref_period not in data raises error with available event_times", {
   skip_if_not_installed("ggplot2")
-  # Use ref_period=NULL first to get data, then use a value not in the data
-  # Note: when ref_period is set, anchor is added at that event_time,
-  # so the ref_period will always exist. We need to test with show_pre_treatment=FALSE
-  # and a negative ref_period that gets filtered out.
   res <- fixture_staggered_result()
   expect_error(
-    suppressWarnings(plot_event_study(res, ref_period = -5L, show_pre_treatment = FALSE)),
+    suppressWarnings(plot_event_study(res, ref_period = 999L)),
     "event_time"
   )
 })
@@ -261,6 +424,28 @@ test_that("TC-10.1.18: return_data=TRUE returns list with plot and data", {
   expect_true(is.data.frame(result$data))
 })
 
+test_that("plot_event_study default aggregation matches WATT(e) weighting", {
+  skip_if_not_installed("ggplot2")
+  cohort_data <- data.frame(
+    cohort = c(2005L, 2007L),
+    period = c(2005L, 2007L),
+    att = c(1.0, 3.0),
+    se = c(0.4, 0.2),
+    df_inference = c(10L, 20L)
+  )
+  res <- create_mock_staggered_result(cohort_data, c("2005" = 100, "2007" = 300))
+
+  default_data <- suppressWarnings(plot_event_study(res, return_data = TRUE))$data
+  weighted_data <- plot_event_study(res, aggregation = "weighted", return_data = TRUE)$data
+
+  expect_equal(default_data$att, weighted_data$att, tolerance = 1e-12)
+  expect_equal(default_data$se, weighted_data$se, tolerance = 1e-12)
+  expect_equal(
+    unique(default_data$se_aggregation[!default_data$is_anchor]),
+    "diagonal_weighted_cohort_se"
+  )
+})
+
 # ── TC-10.1.19: return_data=FALSE returns ggplot (default) ──
 test_that("TC-10.1.19: return_data=FALSE returns ggplot object (default)", {
   skip_if_not_installed("ggplot2")
@@ -277,14 +462,25 @@ test_that("TC-10.1.20: return_data data contains all required columns", {
   d <- result$data
   required_cols <- c("event_time", "att", "se", "df_inference", "n_cohorts",
                      "ci_lower", "ci_upper", "pvalue", "is_anchor",
-                     "period_type", "significant")
+                     "period_type", "significant", "se_aggregation",
+                     "covariance_assumption")
   expect_true(all(required_cols %in% names(d)))
 })
 
 # ── TC-10.1.21: color_significant=FALSE uses period_type color mapping ──
 test_that("TC-10.1.21: color_significant=FALSE uses period_type color mapping", {
   skip_if_not_installed("ggplot2")
-  res <- fixture_staggered_result()
+  cohort_data <- data.frame(
+    cohort = as.integer(rep(c(2005L, 2007L), each = 3L)),
+    period = as.integer(c(2003L, 2005L, 2006L, 2005L, 2007L, 2008L)),
+    att = c(-0.1, 0.5, 0.8, -0.2, 0.6, 0.9),
+    se = c(0.2, 0.3, 0.25, 0.25, 0.35, 0.3),
+    df_inference = rep(c(10L, 20L), each = 3L)
+  )
+  res <- create_mock_staggered_result(
+    cohort_data,
+    c("2005" = 100, "2007" = 300)
+  )
   result <- suppressWarnings(
     plot_event_study(res, color_significant = FALSE, return_data = TRUE)
   )
@@ -300,12 +496,29 @@ test_that("TC-10.1.21: color_significant=FALSE uses period_type color mapping", 
   expect_true("pre_treatment" %in% d$period_type)
   expect_true("post_treatment" %in% d$period_type)
   expect_true("anchor" %in% d$period_type)
+
+  color_scale <- result$plot$scales$get_scales("colour")
+  expect_equal(
+    unname(color_scale$labels),
+    c("Pre-treatment", "Post-treatment", "Anchor")
+  )
+  expect_false(any(grepl("_", color_scale$labels, fixed = TRUE)))
 })
 
 # ── TC-10.1.22: period_type correctly classifies pre/post treatment ──
 test_that("TC-10.1.22: period_type correctly classifies pre/post treatment", {
   skip_if_not_installed("ggplot2")
-  res <- fixture_staggered_result()
+  cohort_data <- data.frame(
+    cohort = as.integer(rep(c(2005L, 2007L), each = 3L)),
+    period = as.integer(c(2003L, 2005L, 2006L, 2005L, 2007L, 2008L)),
+    att = c(-0.1, 0.5, 0.8, -0.2, 0.6, 0.9),
+    se = c(0.2, 0.3, 0.25, 0.25, 0.35, 0.3),
+    df_inference = rep(c(10L, 20L), each = 3L)
+  )
+  res <- create_mock_staggered_result(
+    cohort_data,
+    c("2005" = 100, "2007" = 300)
+  )
   result <- suppressWarnings(plot_event_study(res, return_data = TRUE))
   d <- result$data
   # Non-anchor rows with event_time < 0 must be "pre_treatment"
@@ -579,7 +792,7 @@ test_that("TC-10.1.34: single cohort staggered result creates plot without error
   skip_if_not_installed("ggplot2")
   res <- fixture_staggered_result_single_cohort()
   # Single cohort → no independence warning expected
-  result <- plot_event_study(res, return_data = TRUE)
+  result <- plot_event_study(res, aggregation = "mean", return_data = TRUE)
   d <- result$data
   expect_s3_class(result$plot, "ggplot")
   expect_true(is.data.frame(d))
@@ -681,11 +894,8 @@ test_that("TC-10.1.39: non-function theme parameter triggers error", {
 test_that("TC-10.1.40: ref_period error message contains event_time info", {
   skip_if_not_installed("ggplot2")
   res <- fixture_staggered_result()
-  # ref_period=999L with ref_period=NULL anchor logic means anchor is added at 999,
-  # so it won't error. Instead, use a negative ref_period with show_pre_treatment=FALSE
-  # which triggers the early check that the ref_period is in filtered-out range.
   err <- tryCatch(
-    suppressWarnings(plot_event_study(res, ref_period = -999L, show_pre_treatment = FALSE)),
+    suppressWarnings(plot_event_study(res, ref_period = 999L)),
     error = function(e) e
   )
   expect_true(inherits(err, "error"))
@@ -923,22 +1133,24 @@ test_that("TC-10.1.46: ref_period normalization shifts ATT and CI correctly", {
   cohort_sizes <- c("2005" = 200)
   res <- create_mock_staggered_result(cohort_data, cohort_sizes)
 
-  # Without normalization (ref_period=NULL → anchor at -1)
+  # Without normalization (ref_period=NULL). event_time=-1 is an observed
+  # estimate here, so no synthetic visual anchor is added.
   result_raw <- suppressWarnings(
     plot_event_study(res, ref_period = NULL, return_data = TRUE)
   )
   d_raw <- result_raw$data
 
-  # With ref_period=0 normalization (anchor at 0)
+  # With ref_period=0 normalization. The observed reference row is normalized
+  # to zero but remains a real estimate rather than a synthetic anchor.
   result_norm <- suppressWarnings(
     plot_event_study(res, ref_period = 0L, return_data = TRUE)
   )
   d_norm <- result_norm$data
 
-  # ref_period=0 → the anchor row at event_time=0 should have ATT=0
-  row_anchor_0 <- d_norm[d_norm$event_time == 0 & d_norm$is_anchor, ]
-  expect_equal(nrow(row_anchor_0), 1L)
-  expect_equal(row_anchor_0$att, 0.0, tolerance = 1e-10)
+  # ref_period=0 → the observed event_time=0 row should have ATT=0
+  row_ref_0 <- d_norm[d_norm$event_time == 0 & !d_norm$is_anchor, ]
+  expect_equal(nrow(row_ref_0), 1L)
+  expect_equal(row_ref_0$att, 0.0, tolerance = 1e-10)
 
   # The shift amount = original ATT at event_time=0 (before normalization)
   # In raw data, event_time=0 is a real data point (not anchor)
@@ -965,6 +1177,15 @@ test_that("TC-10.1.46: ref_period normalization shifts ATT and CI correctly", {
     raw_row_1$ci_upper - raw_row_1$ci_lower,
     tolerance = 1e-10,
     info = "CI width must be preserved after normalization shift"
+  )
+
+  expect_true(
+    all(is.na(d_norm$pvalue)),
+    info = "Reference-period-normalized contrasts do not have valid pointwise p-values without a contrast covariance."
+  )
+  expect_false(
+    any(d_norm$significant),
+    info = "Reference-period-normalized plots must not color shifted contrasts as significant without a contrast covariance."
   )
 })
 
@@ -1049,10 +1270,11 @@ test_that("TC-10.1.49: anchor at existing event_time does not create duplicate",
   expect_equal(nrow(rows_m1), 1L,
                info = "event_time=-1 must appear exactly once when it already exists in data")
 
-  # The existing data row should be used (not replaced by anchor zeros)
-  # Since event_time=-1 already exists, anchor is NOT added
-  # The is_anchor flag should be TRUE for this row
-  expect_true(rows_m1$is_anchor)
+  # The existing data row should be used (not replaced by anchor zeros).
+  # Since event_time=-1 already exists, anchor is NOT added and the real
+  # estimate remains a pre-treatment row.
+  expect_false(rows_m1$is_anchor)
+  expect_equal(rows_m1$period_type, "pre_treatment")
 })
 
 # ── TC-10.1.50: Very large df → CI width approaches z-distribution ──
@@ -1231,7 +1453,7 @@ test_that("TC-10.1.55: mean aggregation warning contains independence and cohort
 })
 
 # ── TC-10.1.56: Subtitle content verification ──
-test_that("TC-10.1.56: subtitle contains aggregation method, df strategy, and df range", {
+test_that("TC-10.1.56: subtitle uses reader-facing aggregation and df labels", {
   skip_if_not_installed("ggplot2")
   res <- fixture_staggered_result()
 
@@ -1242,29 +1464,16 @@ test_that("TC-10.1.56: subtitle contains aggregation method, df strategy, and df
   subtitle <- p$labels$subtitle
   expect_true(!is.null(subtitle) && nchar(subtitle) > 0L)
 
-  # Subtitle format: "聚合=METHOD | df策略=STRATEGY | df_text"
-  # Should contain aggregation method name
-  expect_true(
-    grepl("mean", subtitle),
-    info = "Subtitle must contain aggregation method name"
-  )
-  # Should contain df strategy name
-  expect_true(
-    grepl("conservative", subtitle),
-    info = "Subtitle must contain df strategy name"
-  )
-  # Should contain df information (either "df=X" or "df范围=[min, max]")
-  expect_true(
-    grepl("df", subtitle),
-    info = "Subtitle must contain df information"
-  )
-
-  # Test with different df values → should show range
-  # fixture_staggered_result has df=10 and df=20 for different cohorts
-  # After conservative aggregation, df values may vary by event_time
-  # Verify subtitle format includes "聚合=" and "df策略="
-  expect_true(grepl("aggregation=", subtitle), info = "Subtitle must contain 'aggregation='")
-  expect_true(grepl("df_strategy=", subtitle), info = "Subtitle must contain 'df_strategy='")
+  expect_true(grepl("Simple cohort average", subtitle),
+              info = "Subtitle should describe aggregation in reader-facing prose")
+  expect_true(grepl("conservative df", subtitle),
+              info = "Subtitle should describe the df strategy in reader-facing prose")
+  expect_true(grepl("inference df", subtitle),
+              info = "Subtitle must contain inference df information")
+  expect_false(grepl("aggregation=", subtitle),
+               info = "Subtitle should not expose internal argument names")
+  expect_false(grepl("df_strategy=", subtitle),
+               info = "Subtitle should not expose internal argument names")
 })
 
 # ── TC-10.1.57: Common Timing mode pre-treatment data correctly merged ──
@@ -1295,8 +1504,8 @@ test_that("TC-10.1.57: Common Timing pre-treatment data appears in return_data",
 
   # Pre-treatment event_times: 1997-2000=-3, 1998-2000=-2, 1999-2000=-1
   # Post-treatment event_times: 2000-2000=0, 2001-2000=1, 2002-2000=2
-  # Default anchor at event_time=-1 collides with pre-treatment period 1999.
-  # The existing row at event_time=-1 is used (no duplicate added), marked is_anchor=TRUE.
+  # Default anchor at event_time=-1 collides with a non-anchor pre-treatment
+  # row, so that existing row is used and no synthetic anchor is added.
 
   # Verify event_time=-3 and -2 appear as non-anchor pre-treatment data
   non_anchor <- d[!d$is_anchor, ]
@@ -1412,6 +1621,8 @@ test_that("TC-10.1.60: show_pre_treatment=FALSE works when no pre-treatment data
   # All event_times should be >= 0
   expect_true(all(non_anchor$event_time >= 0),
               info = "All event_times should be non-negative with show_pre_treatment=FALSE")
+  expect_false(any(d$is_anchor),
+               info = "Default -1 anchor should not be reintroduced when pre-treatment periods are hidden")
 
   # Verify data is present and correct
   expect_equal(nrow(non_anchor), 3L)
@@ -1421,9 +1632,19 @@ test_that("TC-10.1.60: show_pre_treatment=FALSE works when no pre-treatment data
 # ── TC-10.1.61: Transition dotted line excludes anchor point ──
 test_that("TC-10.1.61: bridge dotted line x-values do NOT include anchor event_time", {
   skip_if_not_installed("ggplot2")
-  # Default anchor at event_time=-1
-
-  res <- fixture_staggered_result()
+  # Include a real pre-treatment point at event_time=-2 but omit event_time=-1,
+  # so the default visual anchor is synthesized at -1.
+  cohort_data <- data.frame(
+    cohort = rep(2005L, 3L),
+    period = c(2003L, 2005L, 2006L),
+    att = c(-0.1, 0.5, 0.8),
+    se = c(0.2, 0.3, 0.25),
+    df_inference = rep(10L, 3L)
+  )
+  res <- create_mock_staggered_result(
+    cohort_data,
+    c("2005" = 100)
+  )
   result <- suppressWarnings(plot_event_study(res, return_data = TRUE))
   p <- result$plot
   d <- result$data
@@ -1577,6 +1798,28 @@ test_that("TC-10.1.65: Common Timing with pre-treatment data merges correctly", 
   expect_true(all(c(0L, 1L, 2L) %in% post_rows$event_time))
 })
 
+test_that("Common Timing default anchor binds after plot-data standardization", {
+  skip_if_not_installed("ggplot2")
+  period_data <- data.frame(
+    period = c(2000L, 2001L, 2002L),
+    att    = c(0.5, 0.8, 1.0),
+    se     = c(0.3, 0.25, 0.2)
+  )
+  res <- create_mock_common_timing_result(
+    period_data,
+    df_inference = 50L,
+    treatment_time = 2000L
+  )
+
+  result <- plot_event_study(res, show_pre_treatment = TRUE, return_data = TRUE)
+  d <- result$data
+
+  anchor <- d[d$is_anchor, , drop = FALSE]
+  expect_equal(nrow(anchor), 1L)
+  expect_equal(anchor$event_time, -1L)
+  expect_true(all(c("se_aggregation", "covariance_assumption") %in% names(d)))
+})
+
 # ── TC-10.1.66: mean aggregation path with df≤0 values correctly filtered ──
 test_that("TC-10.1.66: df<=0 values filtered before df selection", {
   skip_if_not_installed("ggplot2")
@@ -1665,7 +1908,7 @@ test_that("TC-10.1.68: all cohort sizes=0 triggers error in weighted aggregation
 })
 
 # ── TC-10.1.69: Subtitle shows single df value when all event_times have same df ──
-test_that("TC-10.1.69: subtitle shows 'df=X' when all event_times share same df", {
+test_that("TC-10.1.69: subtitle shows single df value when all event_times share df", {
   skip_if_not_installed("ggplot2")
   # All cohorts have df=15
   cohort_data <- data.frame(
@@ -1681,11 +1924,22 @@ test_that("TC-10.1.69: subtitle shows 'df=X' when all event_times share same df"
   p <- plot_event_study(res, df_strategy = "conservative")
   # Extract subtitle from ggplot labels
   subtitle <- p$labels$subtitle
-  expect_true(grepl("df=15", subtitle, fixed = TRUE),
-              info = sprintf("Subtitle should contain 'df=15', got: '%s'", subtitle))
-  # Should NOT contain "df范围" (range format)
+  expect_true(grepl("inference df = 15", subtitle, fixed = TRUE),
+              info = sprintf("Subtitle should contain 'inference df = 15', got: '%s'", subtitle))
+  # Should NOT contain range format
   expect_false(grepl("range", subtitle),
                info = "Subtitle should not contain range format when all df are equal")
+})
+
+test_that("TC-10.1.69a: Common Timing subtitle is reader-facing", {
+  skip_if_not_installed("ggplot2")
+  res <- fixture_common_timing_result()
+  p <- plot_event_study(res)
+  subtitle <- p$labels$subtitle
+  expect_true(grepl("Common timing", subtitle, fixed = TRUE))
+  expect_true(grepl("inference df =", subtitle, fixed = TRUE))
+  expect_false(grepl("aggregation=", subtitle, fixed = TRUE))
+  expect_false(grepl("df_strategy=", subtitle, fixed = TRUE))
 })
 
 # ── TC-10.1.70: ci_level=0.90 CI narrower than ci_level=0.95 ──
@@ -1727,8 +1981,8 @@ test_that("TC-10.1.70: ci_level=0.90 produces narrower CI than ci_level=0.95", {
   expect_equal(expected_ratio, 0.8134417301742082, tolerance = 1e-8)
 })
 
-# ── TC-10.1.71: ref_period=0L places anchor at event_time=0 ──
-test_that("TC-10.1.71: ref_period=0L places anchor at event_time=0", {
+# ── TC-10.1.71: ref_period=0L does not create a synthetic anchor ──
+test_that("TC-10.1.71: ref_period=0L normalizes the observed row without creating an anchor", {
   skip_if_not_installed("ggplot2")
   res <- fixture_staggered_result()
   result <- suppressWarnings(
@@ -1736,11 +1990,14 @@ test_that("TC-10.1.71: ref_period=0L places anchor at event_time=0", {
   )
   d <- result$data
 
-  # Anchor should be at event_time=0, not at default -1
+  # Reference normalization should not relabel observed estimates as anchors.
   anchor_rows <- d[d$is_anchor, ]
-  expect_equal(nrow(anchor_rows), 1L)
-  expect_equal(anchor_rows$event_time, 0L,
-               info = "Anchor must be at event_time=0 when ref_period=0L")
+  expect_equal(nrow(anchor_rows), 0L)
+
+  ref_rows <- d[d$event_time == 0L, ]
+  expect_true(nrow(ref_rows) > 0L)
+  expect_true(all(!ref_rows$is_anchor))
+  expect_equal(ref_rows$att, rep(0, nrow(ref_rows)), tolerance = 1e-10)
 
   # event_time=-1 should NOT be the anchor
   et_neg1 <- d[d$event_time == -1L, ]
@@ -1750,8 +2007,8 @@ test_that("TC-10.1.71: ref_period=0L places anchor at event_time=0", {
   }
 })
 
-# ── TC-10.1.72: ref_period=0L anchor ATT is 0 after normalization ──
-test_that("TC-10.1.72: ref_period=0L normalizes anchor ATT to exactly 0", {
+# ── TC-10.1.72: ref_period=0L reference ATT is 0 after normalization ──
+test_that("TC-10.1.72: ref_period=0L normalizes reference ATT to exactly 0", {
   skip_if_not_installed("ggplot2")
   res <- fixture_staggered_result()
 
@@ -1768,12 +2025,12 @@ test_that("TC-10.1.72: ref_period=0L normalizes anchor ATT to exactly 0", {
   )
   d <- result$data
 
-  # ATT at the anchor/reference point (event_time=0) must be exactly 0
+  # ATT at the reference point (event_time=0) must be exactly 0
   ref_row <- d[d$event_time == 0L, ]
   expect_equal(ref_row$att, 0, tolerance = 1e-10,
                info = "ATT at ref_period must be 0 after normalization")
 
-  # CI at anchor is shifted by ref_att, so ci_lower and ci_upper are symmetric around 0
+  # CI at the reference period is shifted by ref_att, so ci_lower and ci_upper are symmetric around 0
   # (original CI was symmetric around raw_att_et0, now shifted by -raw_att_et0)
   expect_equal(ref_row$ci_lower, -ref_row$ci_upper, tolerance = 1e-10,
                info = "CI at anchor should be symmetric around 0 after normalization")
@@ -1816,8 +2073,8 @@ test_that("TC-10.1.73: x-axis breaks match all unique event_time values", {
                info = "x-axis breaks must match sort(unique(event_time))")
 })
 
-# ── TC-10.1.74: return_data data contains exactly 11 columns ──
-test_that("TC-10.1.74: return_data data has exactly 11 columns with correct names", {
+# ── TC-10.1.74: return_data data contains exactly 13 columns ──
+test_that("TC-10.1.74: return_data data has exactly 13 columns with correct names", {
   skip_if_not_installed("ggplot2")
   res <- fixture_staggered_result()
   result <- suppressWarnings(plot_event_study(res, return_data = TRUE))
@@ -1825,11 +2082,148 @@ test_that("TC-10.1.74: return_data data has exactly 11 columns with correct name
 
   expected_cols <- c("event_time", "att", "se", "df_inference", "n_cohorts",
                      "ci_lower", "ci_upper", "pvalue", "is_anchor",
-                     "period_type", "significant")
-  expect_equal(ncol(d), 11L,
-               info = sprintf("Expected 11 columns, got %d", ncol(d)))
+                     "period_type", "significant", "se_aggregation",
+                     "covariance_assumption")
+  expect_equal(ncol(d), 13L,
+               info = sprintf("Expected 13 columns, got %d", ncol(d)))
   expect_equal(sort(names(d)), sort(expected_cols),
                info = "Column names must match expected set exactly")
+})
+
+test_that("plot_event_study return_data exposes event-time SE contract", {
+  skip_if_not_installed("ggplot2")
+  res <- fixture_staggered_result()
+  weighted <- suppressWarnings(
+    plot_event_study(res, aggregation = "weighted", return_data = TRUE)
+  )$data
+  mean_data <- suppressWarnings(
+    plot_event_study(res, aggregation = "mean", return_data = TRUE)
+  )$data
+
+  weighted_non_anchor <- weighted[!weighted$is_anchor, , drop = FALSE]
+  mean_non_anchor <- mean_data[!mean_data$is_anchor, , drop = FALSE]
+
+  expect_equal(
+    unique(weighted_non_anchor$se_aggregation),
+    "diagonal_weighted_cohort_se"
+  )
+  expect_equal(
+    unique(weighted_non_anchor$covariance_assumption),
+    "zero_cross_cohort_covariance"
+  )
+  expect_equal(
+    unique(mean_non_anchor$se_aggregation),
+    "diagonal_equal_cohort_se"
+  )
+  expect_equal(
+    unique(mean_non_anchor$covariance_assumption),
+    "zero_cross_cohort_covariance"
+  )
+  expect_true(all(weighted$se_aggregation[weighted$is_anchor] == "visual_anchor_zero_se"))
+})
+
+test_that("plot_event_study return_data preserves event-time support summaries", {
+  skip_if_not_installed("ggplot2")
+  cohort_data <- data.frame(
+    cohort = c(2005L, 2007L, 2005L, 2007L),
+    period = c(2005L, 2007L, 2006L, 2008L),
+    att = c(0.5, 0.7, 0.8, 1.0),
+    se = c(0.30, 0.35, 0.25, 0.32),
+    df_inference = c(18L, 20L, 18L, 20L)
+  )
+  res <- create_mock_staggered_result(
+    cohort_data,
+    c("2005" = 80, "2007" = 120)
+  )
+  res$aggregate <- "event_time"
+  res$event_time_effects <- list(
+    list(
+      event_time = 0L, att = 0.62, se = 0.21,
+      ci_lower = 0.18, ci_upper = 1.06, t_stat = 2.95, pvalue = 0.008,
+      df_inference = 18L, n_cohorts = 2L, weight_sum = 1,
+      se_aggregation = "diagonal_weighted_cohort_se",
+      covariance_assumption = "zero_cross_cohort_covariance",
+      min_n_treated = 8L, max_n_treated = 12L,
+      min_n_control = 20L, max_n_control = 32L,
+      max_weight_cv = 1.4, weighted_weight_cv = 1.1
+    ),
+    list(
+      event_time = 1L, att = 0.92, se = 0.24,
+      ci_lower = 0.42, ci_upper = 1.42, t_stat = 3.83, pvalue = 0.001,
+      df_inference = 18L, n_cohorts = 2L, weight_sum = 1,
+      se_aggregation = "diagonal_weighted_cohort_se",
+      covariance_assumption = "zero_cross_cohort_covariance",
+      min_n_treated = 8L, max_n_treated = 12L,
+      min_n_control = 18L, max_n_control = 30L,
+      max_weight_cv = 1.6, weighted_weight_cv = 1.3
+    )
+  )
+
+  plot_data <- suppressWarnings(
+    plot_event_study(res, return_data = TRUE)
+  )$data
+  extracted <- extract_effects(res, type = "event_time")
+  support_cols <- c(
+    "event_time", "min_n_treated", "max_n_treated",
+    "min_n_control", "max_n_control",
+    "max_weight_cv", "weighted_weight_cv"
+  )
+  plot_rows <- plot_data[!plot_data$is_anchor, support_cols, drop = FALSE]
+  rownames(plot_rows) <- NULL
+  expected_rows <- extracted[, support_cols, drop = FALSE]
+  rownames(expected_rows) <- NULL
+
+  expect_equal(plot_rows, expected_rows)
+})
+
+test_that("plot_event_study return_data preserves supplied event-time VCE metadata", {
+  skip_if_not_installed("ggplot2")
+  cohort_data <- data.frame(
+    cohort = c(2005L, 2007L, 2005L, 2007L),
+    period = c(2005L, 2007L, 2006L, 2008L),
+    att = c(0.5, 0.7, 0.8, 1.0),
+    se = c(0.30, 0.35, 0.25, 0.32),
+    df_inference = c(18L, 20L, 18L, 20L)
+  )
+  res <- create_mock_staggered_result(
+    cohort_data,
+    c("2005" = 80, "2007" = 120)
+  )
+  res$aggregate <- "event_time"
+  res$event_time_effects <- list(
+    list(
+      event_time = 0L, att = 0.62, se = 0.21,
+      ci_lower = 0.18, ci_upper = 1.06, t_stat = 2.95, pvalue = 0.008,
+      df_inference = 18L, n_cohorts = 2L, weight_sum = 1,
+      se_aggregation = "diagonal_weighted_cohort_se",
+      covariance_assumption = "zero_cross_cohort_covariance"
+    ),
+    list(
+      event_time = 1L, att = 0.92, se = 0.24,
+      ci_lower = 0.42, ci_upper = 1.42, t_stat = 3.83, pvalue = 0.001,
+      df_inference = 18L, n_cohorts = 2L, weight_sum = 1,
+      se_aggregation = "diagonal_weighted_cohort_se",
+      covariance_assumption = "zero_cross_cohort_covariance"
+    )
+  )
+  joint_v <- matrix(c(0.0400, 0.0100, 0.0100, 0.0900), nrow = 2L)
+  attr(joint_v, "covariance_assumption") <- "provided_by_joint_bootstrap"
+  res$vcov_att_event_time <- joint_v
+
+  plot_rows <- suppressWarnings(
+    plot_event_study(res, return_data = TRUE)
+  )$data
+  non_anchor <- plot_rows[!plot_rows$is_anchor, , drop = FALSE]
+
+  expect_equal(non_anchor$se, c(0.20, 0.30), tolerance = 1e-12)
+  expect_equal(
+    unique(non_anchor$se_aggregation),
+    "provided_event_time_vcov_diagonal"
+  )
+  expect_equal(
+    unique(non_anchor$covariance_assumption),
+    "provided_by_joint_bootstrap"
+  )
 })
 
 # ── TC-10.1.75: att_by_cohort_time missing att column → error ──
@@ -1958,7 +2352,7 @@ test_that("TC-10.1.80: n_cohorts reflects unique cohort count, not row count", {
   cohort_sizes <- c("2005" = 200)
   res <- create_mock_staggered_result(cohort_data, cohort_sizes)
 
-  result <- plot_event_study(res, return_data = TRUE)
+  result <- plot_event_study(res, aggregation = "mean", return_data = TRUE)
   d <- result$data
   et0 <- d[d$event_time == 0L & !d$is_anchor, ]
 
@@ -1975,4 +2369,36 @@ test_that("TC-10.1.80: n_cohorts reflects unique cohort count, not row count", {
   # se_e = sqrt(0.3^2 + 0.25^2) / 1
   expected_se <- sqrt(0.3^2 + 0.25^2) / 1
   expect_equal(et0$se, expected_se, tolerance = 1e-10)
+})
+
+test_that("TC-10.1.81: Castle show_pre_treatment=FALSE does not re-add default anchor", {
+  skip_if_not_installed("ggplot2")
+  data("castle", package = "lwdid")
+
+  fit <- lwdid(
+    data = castle,
+    y = "lhomicide",
+    ivar = "sid",
+    tvar = "year",
+    gvar = "gvar",
+    rolling = "demean",
+    estimator = "ra",
+    aggregate = "overall",
+    control_group = "never_treated"
+  )
+
+  aggregated <- suppressWarnings(
+    plot_event_study(fit, show_pre_treatment = FALSE, return_data = TRUE)
+  )$data
+  faceted <- plot_event_study(
+    fit,
+    show_pre_treatment = FALSE,
+    facet_by_cohort = TRUE,
+    return_data = TRUE
+  )$data
+
+  expect_true(all(aggregated$event_time >= 0L))
+  expect_true(all(faceted$event_time >= 0L))
+  expect_false(any(aggregated$is_anchor))
+  expect_false(any(faceted$is_anchor))
 })

@@ -4,7 +4,7 @@
 # Implements .onLoad() and .onAttach() hooks.
 # .onLoad(): Initializes package-level mutable state (global WarningRegistry,
 #            version cache, package options)
-# .onAttach(): Displays startup message
+# .onAttach(): Displays startup message unless lwdid.verbose = "quiet"
 # ===========================================================================
 
 #' @title Package Load Hooks
@@ -109,6 +109,10 @@ utils::globalVariables(c(
 # .onAttach: Called when package is attached to search path (via library())
 # ---------------------------------------------------------------------------
 .onAttach <- function(libname, pkgname) {
+  verbose <- getOption("lwdid.verbose", "default")
+  if (identical(verbose, "quiet")) {
+    return(invisible())
+  }
   ver <- .lwdid_env$version  # use cached version
   packageStartupMessage(
     sprintf("lwdid %s: Lee-Wooldridge DiD Estimation", ver)

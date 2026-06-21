@@ -3,6 +3,20 @@
 # ============================================================================
 # Paper: lw2025 Procedure 3.1 Step 2 / Procedure 4.1 Step 3
 # ============================================================================
+
+.resolve_estimator_vce_type <- function(estimator, vce = NULL,
+                                        se_method = NULL) {
+  if (identical(estimator, "ra")) {
+    if (is.null(vce)) "homoskedastic" else vce
+  } else if (estimator %in% c("ipw", "ipwra")) {
+    if (identical(se_method, "bootstrap")) "bootstrap" else "analytical"
+  } else if (identical(estimator, "psm")) {
+    if (identical(se_method, "bootstrap")) "bootstrap" else "abadie_imbens"
+  } else {
+    NA_character_
+  }
+}
+
 #' Dispatch to Estimator Function
 #'
 #' @description
@@ -29,7 +43,8 @@
 #' @param estimator character(1). One of \code{"ra"}, \code{"ipw"},
 #'   \code{"ipwra"}, \code{"psm"}. Default \code{"ra"}.
 #' @param vce character(1) or NULL. Variance-covariance estimator type
-#'   passed to RA estimator.
+#'   passed to RA estimator. Must be NULL for IPW, IPWRA, and PSM; use
+#'   \code{se_method} for their estimator-specific uncertainty estimators.
 #' @param cluster_var character(1) or NULL. Cluster variable for RA.
 #' @param alpha numeric(1). Significance level in (0, 1). Default 0.05.
 #' @param trim_threshold numeric(1). Propensity score trimming threshold
@@ -60,9 +75,13 @@
 #' @return A list with estimator-specific results, plus:
 #'   \describe{
 #'     \item{estimator}{character(1). The estimator used.}
-#'     \item{inference_dist}{character(1). \code{"t"} for RA
-#'       (Lee & Wooldridge 2026, Equation 2.10 exact t-inference),
+#'     \item{inference_dist}{character(1). \code{"t"} for RA under
+#'       the transformed cross-sectional regression assumptions,
 #'       \code{"normal"} for IPW/IPWRA/PSM (asymptotic normality).}
+#'     \item{vce_type}{character(1). The displayed uncertainty method:
+#'       RA VCE label, \code{"analytical"} or \code{"bootstrap"} for
+#'       IPW/IPWRA, and \code{"abadie_imbens"} or \code{"bootstrap"}
+#'       for PSM.}
 #'   }
 #'
 #' @references
@@ -106,6 +125,19 @@ dispatch_estimator <- function(data, y, d, controls = NULL,
   if (!is.null(ps_controls) && length(ps_controls) == 0L) ps_controls <- NULL
   if (!is.numeric(alpha) || length(alpha) != 1L || is.na(alpha) || alpha <= 0 || alpha >= 1) {
     stop_lwdid(sprintf("alpha must be in (0, 1), got: %s", deparse(alpha)), class = "lwdid_invalid_parameter")
+  }
+  if (!is.null(vce) && estimator != "ra") {
+    stop_lwdid(
+      paste0(
+        "vce is only supported when estimator='ra'. ",
+        sprintf("Got estimator='%s' with vce='%s'. ", estimator, vce),
+        "Use se_method for IPW/IPWRA/PSM uncertainty estimation."
+      ),
+      class = "lwdid_invalid_parameter",
+      param = "vce",
+      value = vce,
+      allowed = "NULL for estimator='ipw', 'ipwra', or 'psm'"
+    )
   }
   if (estimator == "ipwra" && is.null(controls)) {
     stop_lwdid("estimator='ipwra' requires 'controls' for the outcome model, but controls is NULL.", class = "lwdid_invalid_parameter")
@@ -163,5 +195,6 @@ dispatch_estimator <- function(data, y, d, controls = NULL,
   )
   result$estimator <- estimator
   result$inference_dist <- if (estimator == "ra") "t" else "normal"
+  result$vce_type <- .resolve_estimator_vce_type(estimator, vce, se_method)
   result
 }

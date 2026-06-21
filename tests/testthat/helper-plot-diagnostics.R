@@ -133,3 +133,25 @@ create_mock_transformation_recommendation <- function(
   class(obj) <- "lwdid_transformation_recommendation"
   obj
 }
+
+create_mock_parallel_trends <- function(
+    pre_trend_estimates = NULL,
+    joint_df = c(2L, 16L),
+    joint_f_stat = 0.24,
+    joint_pvalue = 0.79
+) {
+  if (is.null(pre_trend_estimates)) {
+    pre_trend_estimates <- list(
+      list(event_time = -3L, att = 0.10, se = 0.20, pvalue = 0.62, df = 8L),
+      list(event_time = -2L, att = -0.05, se = 0.18, pvalue = 0.78, df = 8L)
+    )
+  }
+  obj <- list(
+    pre_trend_estimates = pre_trend_estimates,
+    joint_df = joint_df,
+    joint_f_stat = joint_f_stat,
+    joint_pvalue = joint_pvalue
+  )
+  class(obj) <- "lwdid_parallel_trends"
+  obj
+}

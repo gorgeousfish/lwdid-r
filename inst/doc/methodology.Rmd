@@ -147,7 +147,8 @@ Matches each treated unit to the nearest control on the propensity score.
 Under CLM assumptions ($U_i | D_i \sim N(0, \sigma^2)$):
 $$\frac{\hat{\tau} - \tau}{\text{se}(\hat{\tau})} \sim t_{N-K-2}$$
 
-Valid even with $N_1 = 1$ (studentized residual interpretation).
+Designed for small transformed cross-sectional samples under the maintained
+Lee--Wooldridge transformed-regression assumptions.
 
 ### HC Robust Standard Errors
 
@@ -171,6 +172,73 @@ $$p_{\text{RI}} = \frac{1 + \sum_{b=1}^B \mathbf{1}(|T_b| \geq |T_{\text{obs}}|)
 
 Under the error-components structure, the lwdid estimator is BLUE and
 asymptotically efficient (Wooldridge, 2025a, Theorem 6.2).
+
+## 7. Robustness and Specification Comparison
+
+### Motivation
+
+In applied DiD research, reporting results from a single specification is
+insufficient for credible inference. The Lee & Wooldridge (2025) framework
+naturally supports multi-specification comparison because the same
+transformed cross-section can be analyzed with different estimators and
+transformations. If results are stable across specifications, conclusions
+are robust to model misspecification.
+
+### Transformation Properties
+
+The two transformations impose different identifying assumptions:
+
+**Demeaning** removes unit fixed effects:
+$$\dot{Y}_{it} = Y_{it} - \bar{Y}_{i,\text{pre}}$$
+
+Under homogeneous parallel trends (PT), RA on demeaned data yields the Best
+Linear Unbiased Estimator (BLUE) of $\tau_t$.
+
+**Detrending** removes unit-specific linear trends:
+$$\ddot{Y}_{it} = Y_{it} - \hat{A}_i - \hat{B}_i t$$
+
+This relaxes the standard PT assumption by allowing heterogeneous linear
+trends across units. If unit-specific trends exist, detrending provides
+consistent estimation where demeaning would be biased.
+
+### Estimator Efficiency Hierarchy
+
+Under the standard error-components structure with homoskedastic errors, the
+four estimators form an efficiency ordering:
+
+$$\text{Var}(\hat{\tau}^{RA}) \leq \text{Var}(\hat{\tau}^{IPWRA}) \leq \text{Var}(\hat{\tau}^{IPW}) \leq \text{Var}(\hat{\tau}^{PSM})$$
+
+where:
+
+- $\hat{\tau}^{RA}$: BLUE under correct outcome model specification
+- $\hat{\tau}^{IPWRA}$: doubly robust; consistent if either the outcome
+  model or propensity score model is correctly specified
+- $\hat{\tau}^{IPW}$: consistent when the propensity score is correct;
+  less efficient than RA due to weighting
+- $\hat{\tau}^{PSM}$: nonparametric; most robust to functional form but
+  least efficient
+
+The ATT for all estimators targets the same causal parameter:
+$$\tau_{ATT} = E[Y_{1t} - Y_{0t} \mid D = 1]$$
+
+### Logic of Multi-Specification Robustness
+
+The robustness check exploits the following logic:
+
+1. If the outcome model is correct, RA and IPWRA converge to the same
+   estimate (with RA being more efficient)
+2. If the propensity score model is correct, IPW and IPWRA converge to
+   the same estimate
+3. If both models are correct, all three parametric estimators converge
+4. Agreement between demean and detrend results suggests the standard PT
+   assumption holds (no heterogeneous trends)
+
+Substantive disagreement across specifications signals potential model
+misspecification and warrants further investigation.
+
+The `compare()` function in **lwdid** automates this comparison by
+aligning the ATT estimates, standard errors, confidence intervals, and
+significance levels across named specifications into a single table.
 
 ## References
 

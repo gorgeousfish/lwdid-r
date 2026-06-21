@@ -77,6 +77,8 @@ estimate_propensity_score <- function(data, d, controls,
               paste(missing_ctrl, collapse = ", ")),
       class = "lwdid_invalid_param", param = "controls")
   }
+  .validate_controls_dtype(data, controls)
+  .validate_no_infinite_numeric_values(data, c(d, controls), "propensity score")
 
   # --- Step 2: NA checks ---
   D <- data[[d]]
@@ -235,8 +237,8 @@ estimate_propensity_score <- function(data, d, controls,
 #'
 #' @references
 #'   Wooldridge (2025b Section 19.4): WLS for IPWRA ATT;
-#'   OLS: beta_hat = (X0'X0)^{-1} X0'Y0;
-#'   WLS: beta_hat = (X0'WX0)^{-1} X0'WY0
+#'   OLS: \eqn{\hat{\beta} = (X_0^\top X_0)^{-1} X_0^\top Y_0};
+#'   WLS: \eqn{\hat{\beta} = (X_0^\top W X_0)^{-1} X_0^\top W Y_0}
 #'
 #' @keywords internal
 estimate_outcome_model <- function(data, y, d, controls,
@@ -256,6 +258,8 @@ estimate_outcome_model <- function(data, y, d, controls,
               paste(missing_ctrl, collapse = ", ")),
       class = "lwdid_invalid_param", param = "controls")
   }
+  .validate_controls_dtype(data, controls)
+  .validate_no_infinite_numeric_values(data, c(y, d, controls), "outcome model")
 
   # --- Step 2: NA checks ---
   for (col_name in c(y, d)) {

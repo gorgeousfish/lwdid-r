@@ -10,7 +10,8 @@ aggregate_to_event_time(
   alpha = 0.05,
   event_time_range = NULL,
   df_strategy = "conservative",
-  verbose = FALSE
+  verbose = FALSE,
+  inference_dist = c("t", "normal")
 )
 }
 \arguments{
@@ -23,18 +24,25 @@ se (numeric). Optional: df_inference (integer).}
 
 \item{alpha}{numeric in (0,1), significance level. Default 0.05.}
 
-\item{event_time_range}{integer vector of length 2 or NULL,
-\code{c(min_e, max_e)} filter range. Default NULL (no filtering).}
+\item{event_time_range}{finite numeric vector of length 2 or NULL,
+\code{c(min_e, max_e)} filter range with \code{min_e <= max_e}.
+Default NULL (no filtering).}
 
 \item{df_strategy}{character, one of "conservative" (default), "weighted",
 "fallback".}
 
 \item{verbose}{logical, whether to output diagnostic messages. Default FALSE.}
+
+\item{inference_dist}{character, one of \code{"t"} or \code{"normal"}.
+\code{"t"} uses event-time degrees of freedom selected by
+\code{df_strategy}; \code{"normal"} uses asymptotic normal inference and
+records \code{df_inference = NA_integer_}. Default \code{"t"}.}
 }
 \value{
 list of lists, each with: event_time, att, se, ci_lower, ci_upper,
 t_stat, pvalue, df_inference, n_cohorts, cohort_contributions,
-weight_sum, alpha.
+weight_sum, alpha, inference_dist, se_aggregation,
+covariance_assumption.
 }
 \description{
 Aggregate (g,r) treatment effect estimates to event-time

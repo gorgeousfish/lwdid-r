@@ -1,0 +1,79 @@
+{
+  "story": "story-E8-03",
+  "task": "8.4",
+  "generated_at_cst": "2026-03-24 05:32 CST",
+  "dataset": "smoking",
+  "branch": "pre_period",
+  "specification": {
+    "n_pre_periods": 1,
+    "rolling": "demean",
+    "reference_period": 1988,
+    "post_periods": [
+      1989,
+      1990,
+      1991,
+      1992,
+      1993,
+      1994,
+      1995,
+      1996,
+      1997,
+      1998,
+      1999,
+      2000
+    ],
+    "n_treated": 1,
+    "n_control": 38,
+    "n_total": 39
+  },
+  "truth_source": {
+    "papers": [
+      "Docs/lw2025.md (2.21)",
+      "Docs/lw2026.md (2.21)",
+      "Docs/lw2026.md (2.10)"
+    ],
+    "derivation": "Apply Y_it - Y_i,S-1 to each post period, average by unit, then regress the cross-sectional transformed outcome on 1 and D."
+  },
+  "manual_oracle": {
+    "att": -0.306762820273115,
+    "se": 0.084015006052754,
+    "pvalue": 0.000801909718369,
+    "ci_lower": -0.476993392318549,
+    "ci_upper": -0.13653224822768
+  },
+  "r_current": {
+    "att": -0.306762820273115,
+    "se": 0.084015006052754,
+    "pvalue": 0.000801909718369,
+    "ci_lower": -0.47699339231855,
+    "ci_upper": -0.136532248227681
+  },
+  "python_reference": {
+    "att": -0.306762808333334,
+    "se": 0.084014997113155,
+    "pvalue": 0.000801909154138,
+    "ci_lower": -0.47699336226542,
+    "ci_upper": -0.136532254401247
+  },
+  "tolerances": {
+    "att": 1e-06,
+    "se": 0.0001
+  },
+  "comparison": {
+    "status": "manual-oracle-ready",
+    "r_vs_manual": {
+      "att_abs_diff": 0.0,
+      "se_abs_diff": 0.0,
+      "pvalue_abs_diff": 0.0,
+      "ci_lower_abs_diff": 9.992007221626409e-16,
+      "ci_upper_abs_diff": 9.992007221626409e-16
+    },
+    "python_vs_manual": {
+      "att_abs_diff": 1.19397809972277e-08,
+      "se_abs_diff": 8.939599005497456e-09,
+      "pvalue_abs_diff": 5.642310000296413e-10,
+      "ci_lower_abs_diff": 3.0053128985407795e-08,
+      "ci_upper_abs_diff": 6.173566990952395e-09
+    }
+  }
+}

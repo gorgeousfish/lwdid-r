@@ -14,7 +14,7 @@
 \item{level}{numeric, confidence level (default 0.95)}
 
 \item{type}{character, granularity (matches coef): "overall", "by_period",
-"by_cohort", "all"}
+"by_cohort", "event_time", "all"}
 
 \item{...}{ignored}
 }

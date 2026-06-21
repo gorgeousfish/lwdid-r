@@ -32,7 +32,7 @@ test_that("TC-6.2.1: No-confounding DGP — ATT close to true", {
   result <- estimate_ipw(df, "Y", "D", "X1")
   expect_true(abs(result$att - 3.0) < 0.5)
   expect_true(result$se > 0 && result$se < 1.0)
-  expect_length(result, 15L)
+  expect_length(result, 16L)
   expect_identical(result$estimator, "ipw")
   expect_identical(result$vce_method, "analytical")
 })
@@ -318,6 +318,10 @@ test_that("TC-6.2.20: Bootstrap seed reproducibility", {
 })
 
 test_that("TC-6.2.21: Bootstrap SE within 20% of analytical (large n)", {
+  skip_if_not(
+    identical(Sys.getenv("LWDID_RUN_EVIDENCE_TESTS"), "true"),
+    "Large-sample bootstrap calibration is run as evidence, not CRAN smoke."
+  )
   df <- generate_ipw_test_data(n = 2000, seed = 42)
   r_ana <- estimate_ipw(df, "Y", "D", c("X1", "X2"))
   r_boot <- estimate_ipw(df, "Y", "D", c("X1", "X2"),
@@ -342,6 +346,30 @@ test_that("TC-6.2.22: Bootstrap full pipeline (clip + drop)", {
       trim_method = "drop", trim_threshold = 0.05))
   expect_true(r_drop$se > 0)
   expect_identical(r_drop$vce_method, "bootstrap")
+})
+
+test_that("TC-6.2.22b: Bootstrap validates effective replication count", {
+  df <- data.frame(Y = c(0, 1), D = c(0L, 1L), X1 = c(-1, 1))
+
+  expect_error(
+    estimate_ipw(df, "Y", "D", "X1",
+      vce = "bootstrap", boot_reps = 9L, seed = 1),
+    class = "lwdid_invalid_param"
+  )
+
+  expect_error(
+    suppressWarnings(estimate_ipw(df, "Y", "D", "X1",
+      vce = "bootstrap", boot_reps = 12L, seed = 3)),
+    class = "lwdid_estimation_failed"
+  )
+
+  expect_warning(
+    result <- estimate_ipw(df, "Y", "D", "X1",
+      vce = "bootstrap", boot_reps = 30L, seed = 1),
+    class = "lwdid_convergence"
+  )
+  expect_identical(result$vce_method, "bootstrap")
+  expect_true(is.finite(result$att))
 })
 
 test_that("TC-6.2.23: Weight CV > 2 triggers lwdid_overlap warning", {
@@ -377,7 +405,7 @@ test_that("TC-6.2.25: Single covariate works", {
   expect_true(is.finite(result$att))
   expect_true(result$se > 0)
   expect_equal(result$n_treated + result$n_control, nrow(df))
-  expect_length(result, 15L)
+  expect_length(result, 16L)
 })
 
 test_that("TC-6.2.26: Multiple covariates work", {
@@ -386,7 +414,7 @@ test_that("TC-6.2.26: Multiple covariates work", {
   expect_true(is.finite(result$att))
   expect_true(result$se > 0)
   expect_equal(result$n_treated + result$n_control, nrow(df))
-  expect_length(result, 15L)
+  expect_length(result, 16L)
 })
 
 test_that("TC-6.2.27: Different propensity_controls routing", {
@@ -412,6 +440,26 @@ test_that("TC-6.2.28: Extreme but valid data (weight sum edge case)", {
   expect_true(sum(w_ctrl) > 0)
 })
 
+test_that("IPW rejects infinite numeric inputs", {
+  df <- generate_ipw_test_data(n = 100, seed = 2829)
+  df$Y[1] <- Inf
+
+  expect_error(
+    estimate_ipw(df, "Y", "D", c("X1", "X2")),
+    class = "lwdid_invalid_data"
+  )
+})
+
+test_that("IPW rejects non-numeric propensity controls", {
+  df <- generate_ipw_test_data(n = 100, seed = 2830)
+  df$X_factor <- factor(rep(c("a", "b"), length.out = nrow(df)))
+
+  expect_error(
+    estimate_ipw(df, "Y", "D", c("X1", "X_factor")),
+    class = "lwdid_invalid_parameter"
+  )
+})
+
 test_that("TC-6.2.29: Empty propensity_controls — lwdid_invalid_param", {
   df <- generate_ipw_test_data(n = 100, seed = 29)
   expect_error(
@@ -435,14 +483,14 @@ test_that("TC-6.2.31: d column not found — lwdid_invalid_param", {
 
 # --- Structural tests ---
 
-test_that("Structural: Return list has exactly 15 fields with correct names", {
+test_that("Structural: Return list has exactly 16 fields with correct names", {
   df <- generate_ipw_test_data(n = 300, seed = 50)
   result <- estimate_ipw(df, "Y", "D", c("X1", "X2"))
   expected_names <- c("att", "se", "ci_lower", "ci_upper",
     "t_stat", "pvalue", "propensity_scores", "weights",
     "propensity_model_coef", "n_treated", "n_control",
-    "n_trimmed", "df_resid", "vce_method", "estimator")
-  expect_length(result, 15L)
+    "n_trimmed", "weights_cv", "df_resid", "vce_method", "estimator")
+  expect_length(result, 16L)
   expect_setequal(names(result), expected_names)
   expect_identical(result$estimator, "ipw")
 })

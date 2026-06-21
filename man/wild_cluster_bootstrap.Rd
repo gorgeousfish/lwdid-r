@@ -17,7 +17,9 @@ wild_cluster_bootstrap(
   impose_null = TRUE,
   full_enumeration = NULL,
   restricted_model = "with_controls",
-  use_fwildclusterboot = TRUE
+  use_fwildclusterboot = TRUE,
+  parallel = FALSE,
+  n_cores = NULL
 )
 }
 \arguments{
@@ -55,6 +57,15 @@ for controls-aware WCB.}
 
 \item{use_fwildclusterboot}{When \code{TRUE}, emits a fallback warning and uses
 the native helper path until \code{fwildclusterboot} integration lands.}
+
+\item{parallel}{Logical scalar. When \code{TRUE}, bootstrap replications are
+executed in parallel via the \pkg{future} backend. Each replication is
+statistically independent (Cameron, Gelbach & Miller 2008), so
+parallelization does not affect validity. Uses L'Ecuyer-CMRG RNG streams
+for reproducible parallel seeds.}
+
+\item{n_cores}{Integer or NULL. Number of parallel workers. When \code{NULL},
+auto-detected as \code{future::availableCores() - 1}.}
 }
 \value{
 An object of class \code{lwdid_wcb_result}.

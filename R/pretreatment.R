@@ -19,6 +19,9 @@
 #'   time S)
 #' @param rolling character, transform method ("demean"/"detrend")
 #' @param controls character vector or NULL, control variable names
+#' @param ps_controls character vector or NULL, propensity-score control
+#'   variable names for IPW/IPWRA/PSM. If NULL, propensity-score
+#'   estimators fall back to \code{controls}.
 #' @param estimator character, estimator type
 #'   ("ra"/"ipw"/"ipwra"/"psm")
 #' @param vce character or NULL, VCE type
@@ -33,6 +36,7 @@ estimate_pre_treatment_common <- function(
     data, y, ivar, d, tvar, tpost1,
     rolling = "demean",
     controls = NULL,
+    ps_controls = NULL,
     estimator = "ra",
     vce = NULL,
     cluster_var = NULL,
@@ -158,6 +162,7 @@ estimate_pre_treatment_common <- function(
       ]
       t_data <- merge(t_data, ref_means, by = ivar,
                        all.x = TRUE)
+      # Demean outcome: subtract reference-period mean (in-place modification)
       t_data[, y_trans_pre := .SD[[y_col]] - ref_val,
              .SDcols = y_col]
     } else {
@@ -171,6 +176,7 @@ estimate_pre_treatment_common <- function(
         ]
         t_data <- merge(t_data, ref_means, by = ivar,
                          all.x = TRUE)
+        # Demean outcome (degraded from detrend due to < 2 ref periods) (in-place modification)
         t_data[, y_trans_pre := .SD[[y_col]] - ref_val,
                .SDcols = y_col]
       } else {
@@ -187,6 +193,7 @@ estimate_pre_treatment_common <- function(
         }, by = c(ivar), .SDcols = sd_cols]
         t_data <- merge(t_data, trend_fits, by = ivar,
                          all.x = TRUE)
+        # Detrend outcome: subtract fitted linear trend (in-place modification)
         t_data[,
           y_trans_pre := .SD[[y_col]] -
             (alpha_hat + beta_hat * .SD[[t_col]]),
@@ -234,19 +241,41 @@ estimate_pre_treatment_common <- function(
         .d_treat = d_k,
         stringsAsFactors = FALSE
       )
+      estimator_controls <- if (identical(estimator, "ra")) {
+        controls %||% character(0)
+      } else if (identical(estimator, "ipwra")) {
+        unique(c(controls %||% character(0),
+                 ps_controls %||% controls %||% character(0)))
+      } else {
+        ps_controls %||% controls %||% character(0)
+      }
       ctrl_names <- NULL
-      if (!is.null(controls) && length(controls) > 0L) {
+      ps_ctrl_names <- NULL
+      if (length(estimator_controls) > 0L) {
         ctrl_df <- as.data.frame(
-          t_data[, controls, with = FALSE]
+          t_data[, estimator_controls, with = FALSE]
         )
         est_df <- cbind(est_df, ctrl_df)
-        ctrl_names <- controls
+        available_controls <- names(ctrl_df)
+        if (identical(estimator, "ipwra")) {
+          ctrl_names <- intersect(controls %||% character(0),
+                                  available_controls)
+        } else if (is.null(ps_controls)) {
+          ctrl_names <- intersect(controls %||% character(0),
+                                  available_controls)
+        }
+        if (!is.null(ps_controls)) {
+          ps_ctrl_names <- intersect(ps_controls, available_controls)
+        }
+        if (length(ctrl_names) == 0L) ctrl_names <- NULL
+        if (length(ps_ctrl_names) == 0L) ps_ctrl_names <- NULL
       }
       dispatch_estimator(
         data = est_df,
         y = ".y_outcome",
         d = ".d_treat",
         controls = ctrl_names,
+        ps_controls = ps_ctrl_names,
         estimator = estimator,
         vce = vce,
         cluster_var = cluster_var,
@@ -345,10 +374,15 @@ estimate_pre_treatment_common <- function(
 #' @param rolling character, transform method ("demean"/"detrend")
 #' @param estimator character, estimator type ("ra"/"ipw"/"ipwra"/"psm")
 #' @param controls character vector or NULL, control variable names
+#' @param ps_controls character vector or NULL, propensity-score control
+#'   variable names for IPW/IPWRA/PSM. If NULL, propensity-score
+#'   estimators fall back to \code{controls}.
 #' @param control_group character, "not_yet_treated" or "never_treated"
 #' @param vce character or NULL, VCE type
 #' @param cluster_var character or NULL, cluster variable name
 #' @param alpha numeric, significance level (default 0.05)
+#' @param include_earliest_pre_period logical, whether to retain the earliest
+#'   pre-treatment period in staggered pre-treatment summaries.
 #' @return data.frame with 14 columns, or NULL if no estimable periods
 #' @keywords internal
 estimate_pre_treatment_staggered <- function(
@@ -356,6 +390,7 @@ estimate_pre_treatment_staggered <- function(
     rolling = "demean",
     estimator = "ra",
     controls = NULL,
+    ps_controls = NULL,
     control_group = "not_yet_treated",
     vce = NULL,
     cluster_var = NULL,
@@ -600,19 +635,41 @@ estimate_pre_treatment_staggered <- function(
           .d_treat = d_pre,
           stringsAsFactors = FALSE
         )
+        estimator_controls <- if (identical(estimator, "ra")) {
+          controls %||% character(0)
+        } else if (identical(estimator, "ipwra")) {
+          unique(c(controls %||% character(0),
+                   ps_controls %||% controls %||% character(0)))
+        } else {
+          ps_controls %||% controls %||% character(0)
+        }
         ctrl_names <- NULL
-        if (!is.null(controls) && length(controls) > 0L) {
+        ps_ctrl_names <- NULL
+        if (length(estimator_controls) > 0L) {
           ctrl_df <- as.data.frame(
-            t_data[, controls, with = FALSE]
+            t_data[, estimator_controls, with = FALSE]
           )
           est_df <- cbind(est_df, ctrl_df)
-          ctrl_names <- controls
+          available_controls <- names(ctrl_df)
+          if (identical(estimator, "ipwra")) {
+            ctrl_names <- intersect(controls %||% character(0),
+                                    available_controls)
+          } else if (is.null(ps_controls)) {
+            ctrl_names <- intersect(controls %||% character(0),
+                                    available_controls)
+          }
+          if (!is.null(ps_controls)) {
+            ps_ctrl_names <- intersect(ps_controls, available_controls)
+          }
+          if (length(ctrl_names) == 0L) ctrl_names <- NULL
+          if (length(ps_ctrl_names) == 0L) ps_ctrl_names <- NULL
         }
         dispatch_estimator(
           data = est_df,
           y = ".y_outcome",
           d = ".d_treat",
           controls = ctrl_names,
+          ps_controls = ps_ctrl_names,
           estimator = estimator,
           vce = vce,
           cluster_var = cluster_var,

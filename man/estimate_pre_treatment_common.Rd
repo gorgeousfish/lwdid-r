@@ -13,6 +13,7 @@ estimate_pre_treatment_common(
   tpost1,
   rolling = "demean",
   controls = NULL,
+  ps_controls = NULL,
   estimator = "ra",
   vce = NULL,
   cluster_var = NULL,
@@ -37,6 +38,10 @@ time S)}
 \item{rolling}{character, transform method ("demean"/"detrend")}
 
 \item{controls}{character vector or NULL, control variable names}
+
+\item{ps_controls}{character vector or NULL, propensity-score control
+variable names for IPW/IPWRA/PSM. If NULL, propensity-score
+estimators fall back to \code{controls}.}
 
 \item{estimator}{character, estimator type
 ("ra"/"ipw"/"ipwra"/"psm")}

@@ -8,6 +8,11 @@
 .mock_common_timing_result <- .mock_export_common_timing_result
 .mock_staggered_result <- .mock_export_staggered_result
 
+to_latex_impl <- to_latex
+to_csv_impl <- to_csv
+to_latex <- function(...) suppressMessages(to_latex_impl(...))
+to_csv <- function(...) suppressMessages(to_csv_impl(...))
+
 # TC-10.3.1: to_latex生成合法LaTeX
 test_that("TC-10.3.1: to_latex generates valid LaTeX", {
   x <- .mock_common_timing_result()
@@ -32,6 +37,89 @@ test_that("TC-10.3.3: to_csv summary exports single row with att", {
   df <- to_csv(x, file = f, what = "summary")
   expect_equal(nrow(df), 1L)
   expect_true("att" %in% names(df))
+})
+
+test_that("to_csv summary exports the fitted control-group path", {
+  x <- .mock_staggered_result()
+  x$aggregate <- "event_time"
+  x$control_group_used <- "never_treated"
+  f <- tempfile(fileext = ".csv")
+  on.exit(unlink(f), add = TRUE)
+
+  df <- to_csv(x, file = f, what = "summary")
+
+  expect_equal(df$control_group_used, "never_treated")
+  expect_equal(read.csv(f)$control_group_used, "never_treated")
+})
+
+test_that("to_csv summary exports event-time overlap and support extremes", {
+  x <- .mock_staggered_result()
+  x$aggregate <- "event_time"
+  x$event_time_effects <- list(
+    list(
+      event_time = 0L, att = 0.16, se = 0.01,
+      ci_lower = 0.14, ci_upper = 0.18, t_stat = 16.0, pvalue = 0.001,
+      df_inference = 8L, n_cohorts = 2L, weight_sum = 1.0,
+      max_weight_cv = 1.2, weighted_weight_cv = 1.1,
+      min_n_treated = 4L, max_n_treated = 8L,
+      min_n_control = 20L, max_n_control = 32L,
+      min_bootstrap_success_rate = 0.95,
+      min_bootstrap_reps_valid = 38L,
+      max_bootstrap_reps_failed = 2L,
+      cohort_contributions = list(
+        list(cohort = 2005L, weight = 1.0, att = 0.16, se = 0.01)
+      )
+    ),
+    list(
+      event_time = 1L, att = 0.30, se = 0.02,
+      ci_lower = 0.26, ci_upper = 0.34, t_stat = 15.0, pvalue = 0.001,
+      df_inference = 8L, n_cohorts = 1L, weight_sum = 1.0,
+      max_weight_cv = 2.4, weighted_weight_cv = 1.8,
+      min_n_treated = 1L, max_n_treated = 5L,
+      min_n_control = 18L, max_n_control = 27L,
+      min_bootstrap_success_rate = 0.85,
+      min_bootstrap_reps_valid = 34L,
+      max_bootstrap_reps_failed = 6L,
+      cohort_contributions = list(
+        list(cohort = 2007L, weight = 1.0, att = 0.30, se = 0.02)
+      )
+    )
+  )
+  f <- tempfile(fileext = ".csv")
+  on.exit(unlink(f), add = TRUE)
+
+  df <- to_csv(x, file = f, what = "summary")
+
+  expect_equal(df$event_time_n_event_time_rows, 2L)
+  expect_equal(df$event_time_max_weight_cv, 2.4)
+  expect_equal(df$event_time_max_weight_cv_event_time, 1L)
+  expect_equal(df$event_time_min_n_treated, 1L)
+  expect_equal(df$event_time_min_n_treated_event_time, 1L)
+  expect_match(df$event_time_cue, "max weight CV=2.40")
+  expect_match(df$event_time_cue, "min treated cell N=1")
+  expect_equal(df$event_time_bootstrap_min_bootstrap_success_rate, 0.85)
+  expect_equal(
+    df$event_time_bootstrap_min_bootstrap_success_rate_event_time,
+    1L
+  )
+  expect_equal(df$event_time_bootstrap_min_bootstrap_reps_valid, 34L)
+  expect_equal(df$event_time_bootstrap_max_bootstrap_reps_failed, 6L)
+  expect_match(
+    df$event_time_bootstrap_cue,
+    "min bootstrap success=0.85"
+  )
+
+  dict <- to_dict(x)
+  expect_equal(dict$event_time_support_summary$max_weight_cv, 2.4)
+  expect_equal(dict$event_time_support_summary$min_n_treated, 1L)
+  expect_equal(
+    dict$event_time_bootstrap_summary$min_bootstrap_success_rate,
+    0.85
+  )
+  expect_equal(
+    dict$event_time_bootstrap_summary$min_bootstrap_reps_valid,
+    34L
+  )
 })
 
 # TC-10.3.4: to_latex_comparison多模型表格
@@ -73,6 +161,32 @@ test_that("TC-10.3.7: to_latex escapes underscore in estimator", {
   expect_true(grepl("DR\\\\_improved", tex))
 })
 
+test_that("TC-10.3.7a: to_latex uses human-readable estimator and VCE labels", {
+  x <- .mock_common_timing_result(estimator = "ra", vce_type = "hc1")
+  tex <- to_latex(x)
+  expect_true(grepl("Regression Adjustment \\(RA\\)", tex))
+  expect_true(grepl("HC1 \\(Heteroskedasticity-robust\\)", tex))
+  expect_false(grepl("Estimator & ra", tex, fixed = TRUE))
+  expect_false(grepl("VCE & hc1", tex, fixed = TRUE))
+})
+
+test_that("TC-10.3.7b: to_latex escapes cluster labels after display formatting", {
+  x <- .mock_common_timing_result(vce_type = "cluster")
+  x$cluster_var <- "state_id"
+  tex <- to_latex(x)
+  expect_true(grepl("Cluster-robust \\(clustered by state\\\\_id\\)", tex))
+})
+
+test_that("TC-10.3.7c: to_latex handles missing VCE label explicitly", {
+  x <- .mock_common_timing_result(vce_type = NULL)
+  tex <- to_latex(x)
+  expect_true(grepl("OLS \\(Homoskedastic\\)", tex))
+
+  x$vce_type <- NA_character_
+  tex_missing <- to_latex(x)
+  expect_true(grepl("VCE &  \\\\\\\\", tex_missing))
+})
+
 # TC-10.3.8: to_latex_comparison使用命名模型
 test_that("TC-10.3.8: comparison with named models", {
   m1 <- .mock_common_timing_result()
@@ -80,6 +194,15 @@ test_that("TC-10.3.8: comparison with named models", {
   tex <- to_latex_comparison(m1, m2, model_names = c("Base", "Extended"))
   expect_true(grepl("Base", tex))
   expect_true(grepl("Extended", tex))
+})
+
+# TC-10.3.8a: comparison caption和label特殊字符被转义
+test_that("TC-10.3.8a: comparison caption and label escape special characters", {
+  m1 <- .mock_common_timing_result()
+  m2 <- .mock_common_timing_result(att = 2.0)
+  tex <- to_latex_comparison(m1, m2, caption = "A&B_1%", label = "tab_1%")
+  expect_true(grepl("\\\\caption\\{A\\\\&B\\\\_1\\\\%\\}", tex))
+  expect_true(grepl("\\\\label\\{tab\\\\_1\\\\%\\}", tex))
 })
 
 # TC-10.3.9: include_ci=FALSE不包含CI
@@ -99,6 +222,46 @@ test_that("TC-10.3.10: to_csv all exports finest granularity", {
   expect_equal(nrow(df), 9L)
 })
 
+test_that("TC-10.3.10a: to_csv exports event-time contribution weights", {
+  x <- .mock_staggered_result()
+  x$aggregate <- "event_time"
+  x$event_time_effects <- list(
+    list(
+      event_time = 0L, att = 0.16, se = 0.01,
+      ci_lower = 0.14, ci_upper = 0.18, t_stat = 16.0, pvalue = 0.001,
+      df_inference = 8L, n_cohorts = 2L, weight_sum = 1.0,
+      se_aggregation = "diagonal_weighted_cohort_se",
+      covariance_assumption = "zero_cross_cohort_covariance",
+      cohort_contributions = list(
+        list(cohort = 2005L, weight = 0.25, att = 0.1, se = 0.01),
+        list(cohort = 2006L, weight = 0.75, att = 0.18, se = 0.02)
+      )
+    )
+  )
+  f <- tempfile(fileext = ".csv")
+  on.exit(unlink(f), add = TRUE)
+
+  df <- to_csv(x, file = f, what = "event_time_contributions")
+
+  expect_equal(nrow(df), 2L)
+  expect_equal(df$cohort, c(2005L, 2006L))
+  expect_equal(df$weight, c(0.25, 0.75))
+  expect_equal(sum(df$weight), 1, tolerance = 1e-12)
+  expect_equal(
+    unique(df$se_aggregation),
+    "diagonal_weighted_cohort_se"
+  )
+  expect_equal(
+    unique(df$covariance_assumption),
+    "zero_cross_cohort_covariance"
+  )
+  expect_true(file.exists(f))
+  written <- utils::read.csv(f)
+  expect_equal(written$weight, df$weight)
+  expect_equal(written$se_aggregation, df$se_aggregation)
+  expect_equal(written$covariance_assumption, df$covariance_assumption)
+})
+
 # TC-10.3.11: stars=TRUE使用threeparttable
 test_that("TC-10.3.11: stars=TRUE uses threeparttable", {
   x <- .mock_common_timing_result()
@@ -110,10 +273,15 @@ test_that("TC-10.3.11: stars=TRUE uses threeparttable", {
 # TC-10.3.12: include_ri=TRUE输出RI信息
 test_that("TC-10.3.12: include_ri=TRUE outputs RI info", {
   x <- .mock_common_timing_result(
-    ri_pvalue = 0.023, ri_seed = 42L, rireps = 999L
+    ri_pvalue = 0.023, ri_observed_stat = 1.25, ri_estimator = "ipw",
+    ri_seed = 42L, rireps = 999L
   )
   tex <- to_latex(x, include_ri = TRUE)
   expect_true(grepl("RI p-value", tex))
+  expect_true(grepl("RI observed statistic", tex))
+  expect_true(grepl("RI estimator", tex))
+  expect_true(grepl("1\\.2500", tex))
+  expect_true(grepl("ipw", tex))
   expect_true(grepl("RI seed", tex))
   expect_true(grepl("RI reps", tex))
   expect_true(grepl("42", tex))
@@ -213,6 +381,20 @@ test_that("TC-10.3.19: period table handles conf.low/conf.high", {
   expect_true(grepl("\\[0\\.0800", tex))
 })
 
+# TC-10.3.19a: 时期效应标签特殊字符被转义
+test_that("TC-10.3.19a: period table escapes period labels", {
+  abp <- data.frame(
+    period = "p_1%",
+    att = 0.2, se = 0.06, pvalue = 0.04,
+    ci_lower = 0.08, ci_upper = 0.32,
+    stringsAsFactors = FALSE
+  )
+  x <- .mock_common_timing_result(att_by_period = abp)
+  tex <- to_latex(x, include_periods = TRUE)
+  expect_true(grepl("p\\\\_1\\\\%", tex))
+  expect_false(any(grepl("^p_1%", strsplit(tex, "\n")[[1]])))
+})
+
 # TC-10.3.20: include_periods=TRUE但att_by_period为NULL
 test_that("TC-10.3.20: include_periods=TRUE with NULL att_by_period", {
   x <- .mock_common_timing_result(att_by_period = NULL)
@@ -260,6 +442,45 @@ test_that("TC-10.3.24: cohort weights fallback to cohort_weights", {
   expect_true(grepl("0\\.6000", tex))
 })
 
+test_that("TC-10.3.24b: cohort table footnotes effective weight deviations", {
+  abc <- data.frame(
+    cohort = c(2004L, 2006L),
+    att = c(1.2, 1.8), se = c(0.25, 0.30),
+    n = c(100L, 150L),
+    stringsAsFactors = FALSE
+  )
+  x <- .mock_common_timing_result(
+    is_staggered = TRUE, att_by_cohort = abc,
+    cohort_weights = c("2004" = 0.40, "2006" = 0.60)
+  )
+  x$effective_weights <- c("2004" = 0.50, "2006" = 0.50)
+
+  tex <- to_latex(x, include_staggered = TRUE)
+
+  expect_true(grepl("Cohort & ATT & SE & N & Weight", tex, fixed = TRUE))
+  expect_true(grepl("Effective post-dropna regression-sample", tex, fixed = TRUE))
+  expect_true(grepl("CSV and dictionary exports", tex, fixed = TRUE))
+})
+
+# TC-10.3.24a: 队列标签特殊字符被转义
+test_that("TC-10.3.24a: cohort table escapes cohort labels", {
+  abc <- data.frame(
+    cohort = "g_1%",
+    att = 1.2, se = 0.25,
+    stringsAsFactors = FALSE
+  )
+  x <- .mock_common_timing_result(
+    is_staggered = TRUE, att_by_cohort = abc,
+    cohort_weights = c("g_1%" = 1)
+  )
+  x$cohort_sizes <- c("g_1%" = 2L)
+  x$cohort_sample_sizes <- c("g_1%" = 2L)
+  tex <- to_latex(x, include_staggered = TRUE)
+  expect_true(grepl("g\\\\_1\\\\%", tex))
+  expect_false(any(grepl("^g_1%", strsplit(tex, "\n")[[1]])))
+  expect_true(grepl("g\\\\_1\\\\% & 1\\.2000", tex))
+})
+
 # TC-10.3.25: 队列效应表格Overall行ATT与主表格ATT一致
 test_that("TC-10.3.25: cohort Overall ATT matches main ATT", {
   x <- .mock_staggered_result()
@@ -287,6 +508,27 @@ test_that("TC-10.3.26: all optional sections enabled", {
   expect_true(grepl("RI p-value", tex))
   expect_true(grepl("Period & ATT", tex))
   expect_true(grepl("Cohort & ATT", tex))
+})
+
+test_that("to_latex event-time table tolerates missing p-value metadata", {
+  x <- new_lwdid_result(
+    event_time_effects = data.frame(
+      event_time = 0L,
+      att = 0.1,
+      se = 0.02,
+      ci_lower = 0.06,
+      ci_upper = 0.14,
+      n_cohorts = 1L,
+      weight_sum = 1.0
+    ),
+    is_staggered = TRUE,
+    aggregate = "event_time"
+  )
+
+  tex <- to_latex(x, include_event_time = TRUE)
+
+  expect_true(grepl("Event time & WATT\\(e\\)", tex))
+  expect_true(grepl("0 & 0\\.1000 & 0\\.0200 & --", tex))
 })
 
 # TC-10.3.27: 默认参数向后兼容
@@ -338,15 +580,20 @@ test_that("TC-10.3.30: to_csv by_cohort errors for non-staggered", {
 # TC-10.3.31: to_csv summary包含RI信息
 test_that("TC-10.3.31: to_csv summary includes RI columns", {
   x <- .mock_common_timing_result(
-    ri_pvalue = 0.023, ri_seed = 42L, rireps = 999L
+    ri_pvalue = 0.023, ri_observed_stat = 1.25, ri_estimator = "ipw",
+    ri_seed = 42L, rireps = 999L
   )
   f <- tempfile(fileext = ".csv")
   on.exit(unlink(f), add = TRUE)
   df <- to_csv(x, file = f, what = "summary")
   expect_true("ri_pvalue" %in% names(df))
+  expect_true("ri_observed_stat" %in% names(df))
+  expect_true("ri_estimator" %in% names(df))
   expect_true("ri_seed" %in% names(df))
   expect_true("rireps" %in% names(df))
   expect_equal(df$ri_pvalue, 0.023)
+  expect_equal(df$ri_observed_stat, 1.25)
+  expect_equal(df$ri_estimator, "ipw")
 })
 
 # TC-10.3.32: to_csv summary无RI时不包含RI列
@@ -372,10 +619,19 @@ test_that("TC-10.3.33: comparison escapes model_names", {
 test_that("TC-10.3.34: comparison includes VCE row", {
   m1 <- .mock_common_timing_result(vce_type = "HC1_robust")
   m2 <- .mock_common_timing_result(vce_type = "cluster")
+  m2$cluster_var <- "state_id"
   tex <- to_latex_comparison(m1, m2)
   expect_true(grepl("VCE", tex))
   expect_true(grepl("HC1\\\\_robust", tex))
-  expect_true(grepl("cluster", tex))
+  expect_true(grepl("Cluster-robust \\(clustered by state\\\\_id\\)", tex))
+})
+
+test_that("TC-10.3.34a: comparison uses human-readable estimator labels", {
+  m1 <- .mock_common_timing_result(estimator = "ra")
+  m2 <- .mock_common_timing_result(estimator = "ipwra")
+  tex <- to_latex_comparison(m1, m2)
+  expect_true(grepl("Regression Adjustment \\(RA\\)", tex))
+  expect_true(grepl("IPW with Regression Adjustment \\(IPWRA\\)", tex))
 })
 
 # TC-10.3.35: to_latex digits参数验证
@@ -426,6 +682,16 @@ test_that("TC-10.3.40: comparison include_ci=FALSE excludes CI", {
   expect_false(grepl("CI \\[", tex))
 })
 
+# TC-10.3.40a: comparison CI alpha不一致时报错
+test_that("TC-10.3.40a: comparison mismatched alpha errors", {
+  m1 <- .mock_common_timing_result(alpha = 0.05)
+  m2 <- .mock_common_timing_result(alpha = 0.10)
+  expect_error(
+    to_latex_comparison(m1, m2, include_ci = TRUE),
+    "same alpha"
+  )
+})
+
 # TC-10.3.41: booktabs=FALSE使用hline
 test_that("TC-10.3.41: booktabs=FALSE uses hline", {
   x <- .mock_common_timing_result()
@@ -461,6 +727,14 @@ test_that("TC-10.3.44: caption and label output", {
   expect_true(grepl("\\\\label\\{tab:main\\}", tex))
 })
 
+# TC-10.3.45: caption和label特殊字符被转义
+test_that("TC-10.3.45: caption and label escape special characters", {
+  x <- .mock_common_timing_result()
+  tex <- to_latex(x, caption = "A&B_1%", label = "tab_1%")
+  expect_true(grepl("\\\\caption\\{A\\\\&B\\\\_1\\\\%\\}", tex))
+  expect_true(grepl("\\\\label\\{tab\\\\_1\\\\%\\}", tex))
+})
+
 # TC-10.3.45: to_csv by_period正常导出
 test_that("TC-10.3.45: to_csv by_period exports correctly", {
   abp <- data.frame(
@@ -476,6 +750,91 @@ test_that("TC-10.3.45: to_csv by_period exports correctly", {
   expect_equal(nrow(df), 3L)
   expect_true("att" %in% names(df))
   expect_true("period" %in% names(df))
+})
+
+test_that("TC-10.3.45a: to_csv by_period uses supplied joint VCE uncertainty", {
+  abp <- data.frame(
+    period = c(1L, 2L),
+    att = c(0.3, 0.5),
+    se = c(0.10, 0.15),
+    ci_lower = c(-9, -8),
+    ci_upper = c(9, 8),
+    pvalue = c(0.9, 0.8),
+    stringsAsFactors = FALSE
+  )
+  x <- .mock_common_timing_result(att_by_period = abp)
+  x$df_inference <- 50L
+  x$inference_dist <- "t"
+  x$vcov_att_periods <- matrix(c(0.04, 0.01, 0.01, 0.09), nrow = 2L)
+  f <- tempfile(fileext = ".csv")
+  on.exit(unlink(f), add = TRUE)
+
+  df <- to_csv(x, file = f, what = "by_period")
+  ci <- confint(x, type = "by_period", level = 1 - x$alpha)
+  expected_se <- c(0.20, 0.30)
+  expected_t <- abp$att / expected_se
+
+  expect_equal(df$se, expected_se, tolerance = 1e-12)
+  expect_equal(df$ci_lower, unname(ci[, 1]), tolerance = 1e-12)
+  expect_equal(df$ci_upper, unname(ci[, 2]), tolerance = 1e-12)
+  expect_equal(df$t_stat, expected_t, tolerance = 1e-12)
+  expect_equal(
+    df$pvalue,
+    2 * stats::pt(abs(expected_t), df = 50, lower.tail = FALSE),
+    tolerance = 1e-12
+  )
+
+  written <- utils::read.csv(f)
+  expect_equal(written$se, expected_se, tolerance = 1e-12)
+})
+
+test_that("TC-10.3.45b: to_latex period table uses supplied joint VCE uncertainty", {
+  abp <- data.frame(
+    period = c(1L, 2L),
+    att = c(0.3, 0.5),
+    se = c(0.10, 0.15),
+    ci_lower = c(-9, -8),
+    ci_upper = c(9, 8),
+    pvalue = c(0.9, 0.8),
+    stringsAsFactors = FALSE
+  )
+  x <- .mock_common_timing_result(att_by_period = abp)
+  x$df_inference <- 50L
+  x$inference_dist <- "t"
+  x$vcov_att_periods <- matrix(c(0.04, 0.01, 0.01, 0.09), nrow = 2L)
+
+  tex <- to_latex(x, include_periods = TRUE, digits = 4L)
+
+  expect_true(grepl("1 & 0\\.3000 & 0\\.2000", tex))
+  expect_true(grepl("2 & 0\\.5000 & 0\\.3000", tex))
+  expect_false(grepl("-9\\.0000", tex))
+  expect_false(grepl("9\\.0000", tex))
+})
+
+test_that("TC-10.3.45c: to_csv all period fallback uses supplied joint VCE uncertainty", {
+  abp <- data.frame(
+    period = c(1L, 2L),
+    att = c(0.3, 0.5),
+    se = c(0.10, 0.15),
+    ci_lower = c(-9, -8),
+    ci_upper = c(9, 8),
+    pvalue = c(0.9, 0.8),
+    stringsAsFactors = FALSE
+  )
+  x <- .mock_common_timing_result(att_by_period = abp)
+  x$df_inference <- 50L
+  x$inference_dist <- "t"
+  x$vcov_att_periods <- matrix(c(0.04, 0.01, 0.01, 0.09), nrow = 2L)
+  f <- tempfile(fileext = ".csv")
+  on.exit(unlink(f), add = TRUE)
+
+  df <- to_csv(x, file = f, what = "all")
+  ci <- confint(x, type = "all", level = 1 - x$alpha)
+  expected_se <- c(0.20, 0.30)
+
+  expect_equal(df$se, expected_se, tolerance = 1e-12)
+  expect_equal(df$ci_lower, unname(ci[, 1]), tolerance = 1e-12)
+  expect_equal(df$ci_upper, unname(ci[, 2]), tolerance = 1e-12)
 })
 
 # TC-10.3.46: to_csv what参数非法值报错
@@ -494,6 +853,125 @@ test_that("TC-10.3.47: to_csv summary includes alpha", {
   df <- to_csv(x, file = f, what = "summary")
   expect_true("alpha" %in% names(df))
   expect_equal(df$alpha, 0.05)
+})
+
+# TC-10.3.47a: to_csv summary includes design metadata
+test_that("TC-10.3.47a: to_csv summary includes design metadata", {
+  x <- .mock_staggered_result()
+  x$vce_type <- "cluster"
+  x$cluster_var <- "state"
+  x$n_clusters <- 51L
+  x$n_cohorts <- 3L
+  x$n_never_treated <- 120L
+  f <- tempfile(fileext = ".csv")
+  on.exit(unlink(f), add = TRUE)
+  df <- to_csv(x, file = f, what = "summary")
+  expect_true(all(c(
+    "cluster_var", "n_clusters", "method", "is_staggered",
+    "aggregate", "n_cohorts", "n_never_treated"
+  ) %in% names(df)))
+  expect_equal(df$cluster_var, "state")
+  expect_equal(df$n_clusters, 51L)
+  expect_true(df$is_staggered)
+  expect_equal(df$n_cohorts, 3L)
+  expect_equal(df$n_never_treated, 120L)
+})
+
+# TC-10.3.47b: to_csv by_cohort preserves cohort metadata
+test_that("TC-10.3.47b: to_csv by_cohort preserves cohort metadata", {
+  x <- .mock_staggered_result()
+  x$att_by_cohort <- data.frame(
+    cohort = c(2005L, 2007L),
+    att = c(1.0, 2.0),
+    se = c(0.2, 0.3),
+    stringsAsFactors = FALSE
+  )
+  x$cohort_sizes <- c("2005" = 40L, "2007" = 30L)
+  x$cohort_sample_sizes <- NULL
+  x$cohort_weights <- c("2005" = 0.57, "2007" = 0.43)
+  x$effective_weights <- c("2005" = 0.55, "2007" = 0.45)
+  f <- tempfile(fileext = ".csv")
+  on.exit(unlink(f), add = TRUE)
+  df <- to_csv(x, file = f, what = "by_cohort")
+  expect_true(all(c("n", "weight", "effective_weight") %in% names(df)))
+  expect_equal(df$n, c(40L, 30L))
+  expect_equal(df$weight, c(0.57, 0.43))
+  expect_equal(df$effective_weight, c(0.55, 0.45))
+})
+
+test_that("TC-10.3.47d: to_csv by_cohort uses supplied joint VCE uncertainty", {
+  x <- .mock_staggered_result()
+  x$att_by_cohort <- data.frame(
+    cohort = c(2005L, 2007L),
+    att = c(1.0, 2.0),
+    se = c(0.20, 0.30),
+    ci_lower = c(-9, -8),
+    ci_upper = c(9, 8),
+    pvalue = c(0.9, 0.8),
+    stringsAsFactors = FALSE
+  )
+  x$df_inference <- 40L
+  x$inference_dist <- "t"
+  x$vcov_att_cohorts <- matrix(c(0.25, 0.02, 0.02, 0.36), nrow = 2L)
+  x$cohort_sizes <- c("2005" = 40L, "2007" = 30L)
+  x$cohort_sample_sizes <- NULL
+  x$cohort_weights <- c("2005" = 0.57, "2007" = 0.43)
+  f <- tempfile(fileext = ".csv")
+  on.exit(unlink(f), add = TRUE)
+
+  df <- to_csv(x, file = f, what = "by_cohort")
+  ci <- confint(x, type = "by_cohort", level = 1 - x$alpha)
+  expected_se <- c(0.50, 0.60)
+
+  expect_equal(df$se, expected_se, tolerance = 1e-12)
+  expect_equal(df$ci_lower, unname(ci[, 1]), tolerance = 1e-12)
+  expect_equal(df$ci_upper, unname(ci[, 2]), tolerance = 1e-12)
+  expect_equal(df$n, c(40L, 30L))
+  expect_equal(df$weight, c(0.57, 0.43))
+})
+
+test_that("TC-10.3.47e: to_latex cohort table uses supplied joint VCE uncertainty", {
+  x <- .mock_staggered_result()
+  x$att_by_cohort <- data.frame(
+    cohort = c(2005L, 2007L),
+    att = c(1.0, 2.0),
+    se = c(0.20, 0.30),
+    pvalue = c(0.9, 0.8),
+    n = c(40L, 30L),
+    weight = c(0.57, 0.43),
+    stringsAsFactors = FALSE
+  )
+  x$df_inference <- 40L
+  x$inference_dist <- "t"
+  x$vcov_att_cohorts <- matrix(c(0.25, 0.02, 0.02, 0.36), nrow = 2L)
+
+  tex <- to_latex(x, include_staggered = TRUE, digits = 4L)
+
+  expect_true(grepl("2005 & 1\\.0000\\*? & 0\\.5000", tex))
+  expect_true(grepl("2007 & 2\\.0000\\*{3} & 0\\.6000", tex))
+})
+
+# TC-10.3.47c: to_csv all preserves cohort metadata
+test_that("TC-10.3.47c: to_csv all preserves cohort metadata", {
+  x <- .mock_staggered_result()
+  x$att_by_cohort_time <- data.frame(
+    cohort = c(2005L, 2007L),
+    period = c(2005L, 2007L),
+    att = c(1.0, 2.0),
+    se = c(0.2, 0.3),
+    stringsAsFactors = FALSE
+  )
+  x$cohort_sizes <- c("2005" = 40L, "2007" = 30L)
+  x$cohort_sample_sizes <- NULL
+  x$cohort_weights <- c("2005" = 0.57, "2007" = 0.43)
+  x$effective_weights <- c("2005" = 0.55, "2007" = 0.45)
+  f <- tempfile(fileext = ".csv")
+  on.exit(unlink(f), add = TRUE)
+  df <- to_csv(x, file = f, what = "all")
+  expect_true(all(c("n", "weight", "effective_weight") %in% names(df)))
+  expect_equal(df$n, c(40L, 30L))
+  expect_equal(df$weight, c(0.57, 0.43))
+  expect_equal(df$effective_weight, c(0.55, 0.45))
 })
 
 # TC-10.3.48: to_latex_comparison单模型正确生成
@@ -649,6 +1127,36 @@ test_that("TC-10.3.64: NA pvalue shows -- and no stars", {
   expect_true(grepl("p-value & --", tex))
 })
 
+test_that("TC-10.3.64a: non-finite numeric cells render as table dashes", {
+  abp <- data.frame(
+    period = c(0L, 1L),
+    att = c(NA_real_, 1.5),
+    se = c(0, Inf),
+    t_stat = c(NA_real_, Inf),
+    pvalue = c(NA_real_, NaN),
+    ci_lower = c(NA_real_, -Inf),
+    ci_upper = c(NA_real_, Inf),
+    stringsAsFactors = FALSE
+  )
+  x <- .mock_common_timing_result(
+    att = NA_real_, se_att = Inf, t_stat = NA_real_,
+    pvalue = NA_real_, ci_lower = -Inf, ci_upper = Inf,
+    nobs = NA_integer_, n_treated = NA_integer_, n_control = NA_integer_,
+    ri_pvalue = NaN, ri_seed = NA_integer_, rireps = NA_integer_,
+    att_by_period = abp
+  )
+
+  tex <- to_latex(x, include_periods = TRUE, include_ri = TRUE)
+
+  expect_false(grepl("\\bNA\\b|\\bNaN\\b|\\bInf\\b", tex))
+  expect_true(grepl("ATT & --", tex))
+  expect_true(grepl(" & \\(--\\)", tex))
+  expect_true(grepl("CI \\[95%\\] & \\[--, --\\]", tex))
+  expect_true(grepl("N & --", tex))
+  expect_true(grepl("RI p-value & --", tex))
+}
+)
+
 # TC-10.3.65: comparison中某模型pvalue为NA
 test_that("TC-10.3.65: comparison NA pvalue model", {
   m1 <- .mock_common_timing_result(pvalue = 0.001)
@@ -659,6 +1167,22 @@ test_that("TC-10.3.65: comparison NA pvalue model", {
   # p-value row should contain --
   pval_line <- strsplit(tex, "\n")[[1]][grepl("^p-value", strsplit(tex, "\n")[[1]])]
   expect_true(grepl("--", pval_line))
+})
+
+test_that("TC-10.3.65a: comparison non-finite numeric cells render as table dashes", {
+  m1 <- .mock_common_timing_result()
+  m2 <- .mock_common_timing_result(
+    att = NA_real_, se_att = Inf, pvalue = NaN,
+    ci_lower = NA_real_, ci_upper = Inf, nobs = NA_integer_
+  )
+
+  tex <- to_latex_comparison(m1, m2)
+
+  expect_false(grepl("\\bNA\\b|\\bNaN\\b|\\bInf\\b", tex))
+  expect_true(grepl("ATT & 1\\.5000\\*\\*\\* & --", tex))
+  expect_true(grepl(" & \\(0\\.3000\\) & \\(--\\)", tex))
+  expect_true(grepl("CI \\[95%\\] & \\[0\\.9000, 2\\.1000\\] & \\[--, --\\]", tex))
+  expect_true(grepl("N & 500 & --", tex))
 })
 
 # TC-10.3.66: 时期效应表格pvalue为NA

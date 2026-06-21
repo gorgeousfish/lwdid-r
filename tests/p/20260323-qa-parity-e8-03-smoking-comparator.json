@@ -1,0 +1,227 @@
+{
+  "story": "story-E8-03",
+  "generated_at_utc": "2026-03-23T10:59:33.322605+00:00",
+  "dataset": {
+    "source": "/Users/cxy/Desktop/lwdid_r/lwdid-py_v0.2.3/data/smoking.csv",
+    "rows": 1209,
+    "units": 39,
+    "treated_units": 1,
+    "years": [
+      1970,
+      2000
+    ],
+    "post_periods": 468,
+    "pre_periods": 741
+  },
+  "paper_reference": {
+    "table_3": {
+      "demean_att": -0.422,
+      "demean_se": 0.121,
+      "detrend_att": -0.2269887,
+      "detrend_se": 0.0940689
+    }
+  },
+  "python_reference": {
+    "warnings": [
+      "Only 1 treated unit found (N_treated=1). Estimation with a single treated unit is technically feasible but highly unstable. Results are extremely sensitive to this single unit and may not be reliable. Consider: (1) checking treatment variable 'd' for coding errors, (2) verifying sample selection, (3) using alternative methods (e.g., synthetic control).",
+      "Only 1 treated unit found (N_treated=1). Estimation with a single treated unit is technically feasible but highly unstable. Results are extremely sensitive to this single unit and may not be reliable. Consider: (1) checking treatment variable 'd' for coding errors, (2) verifying sample selection, (3) using alternative methods (e.g., synthetic control).",
+      "Only 1 treated unit found (N_treated=1). Estimation with a single treated unit is technically feasible but highly unstable. Results are extremely sensitive to this single unit and may not be reliable. Consider: (1) checking treatment variable 'd' for coding errors, (2) verifying sample selection, (3) using alternative methods (e.g., synthetic control).",
+      "Only 1 treated unit found (N_treated=1). Estimation with a single treated unit is technically feasible but highly unstable. Results are extremely sensitive to this single unit and may not be reliable. Consider: (1) checking treatment variable 'd' for coding errors, (2) verifying sample selection, (3) using alternative methods (e.g., synthetic control).",
+      "Only 1 treated unit found (N_treated=1). Estimation with a single treated unit is technically feasible but highly unstable. Results are extremely sensitive to this single unit and may not be reliable. Consider: (1) checking treatment variable 'd' for coding errors, (2) verifying sample selection, (3) using alternative methods (e.g., synthetic control).",
+      "Only 1 treated unit found (N_treated=1). Estimation with a single treated unit is technically feasible but highly unstable. Results are extremely sensitive to this single unit and may not be reliable. Consider: (1) checking treatment variable 'd' for coding errors, (2) verifying sample selection, (3) using alternative methods (e.g., synthetic control).",
+      "Only 1 treated unit found (N_treated=1). Estimation with a single treated unit is technically feasible but highly unstable. Results are extremely sensitive to this single unit and may not be reliable. Consider: (1) checking treatment variable 'd' for coding errors, (2) verifying sample selection, (3) using alternative methods (e.g., synthetic control).",
+      "Only 1 treated unit found (N_treated=1). Estimation with a single treated unit is technically feasible but highly unstable. Results are extremely sensitive to this single unit and may not be reliable. Consider: (1) checking treatment variable 'd' for coding errors, (2) verifying sample selection, (3) using alternative methods (e.g., synthetic control).",
+      "Only 1 treated unit found (N_treated=1). Estimation with a single treated unit is technically feasible but highly unstable. Results are extremely sensitive to this single unit and may not be reliable. Consider: (1) checking treatment variable 'd' for coding errors, (2) verifying sample selection, (3) using alternative methods (e.g., synthetic control).",
+      "Only 1 treated unit found (N_treated=1). Estimation with a single treated unit is technically feasible but highly unstable. Results are extremely sensitive to this single unit and may not be reliable. Consider: (1) checking treatment variable 'd' for coding errors, (2) verifying sample selection, (3) using alternative methods (e.g., synthetic control).",
+      "Only 1 treated unit found (N_treated=1). Estimation with a single treated unit is technically feasible but highly unstable. Results are extremely sensitive to this single unit and may not be reliable. Consider: (1) checking treatment variable 'd' for coding errors, (2) verifying sample selection, (3) using alternative methods (e.g., synthetic control).",
+      "Only 1 treated unit found (N_treated=1). Estimation with a single treated unit is technically feasible but highly unstable. Results are extremely sensitive to this single unit and may not be reliable. Consider: (1) checking treatment variable 'd' for coding errors, (2) verifying sample selection, (3) using alternative methods (e.g., synthetic control).",
+      "Only 1 treated unit found (N_treated=1). Estimation with a single treated unit is technically feasible but highly unstable. Results are extremely sensitive to this single unit and may not be reliable. Consider: (1) checking treatment variable 'd' for coding errors, (2) verifying sample selection, (3) using alternative methods (e.g., synthetic control).",
+      "Only 1 treated unit found (N_treated=1). Estimation with a single treated unit is technically feasible but highly unstable. Results are extremely sensitive to this single unit and may not be reliable. Consider: (1) checking treatment variable 'd' for coding errors, (2) verifying sample selection, (3) using alternative methods (e.g., synthetic control).",
+      "Only 1 treated unit found (N_treated=1). Estimation with a single treated unit is technically feasible but highly unstable. Results are extremely sensitive to this single unit and may not be reliable. Consider: (1) checking treatment variable 'd' for coding errors, (2) verifying sample selection, (3) using alternative methods (e.g., synthetic control).",
+      "Only 1 treated unit found (N_treated=1). Estimation with a single treated unit is technically feasible but highly unstable. Results are extremely sensitive to this single unit and may not be reliable. Consider: (1) checking treatment variable 'd' for coding errors, (2) verifying sample selection, (3) using alternative methods (e.g., synthetic control).",
+      "Only 1 treated unit found (N_treated=1). Estimation with a single treated unit is technically feasible but highly unstable. Results are extremely sensitive to this single unit and may not be reliable. Consider: (1) checking treatment variable 'd' for coding errors, (2) verifying sample selection, (3) using alternative methods (e.g., synthetic control).",
+      "Only 1 treated unit found (N_treated=1). Estimation with a single treated unit is technically feasible but highly unstable. Results are extremely sensitive to this single unit and may not be reliable. Consider: (1) checking treatment variable 'd' for coding errors, (2) verifying sample selection, (3) using alternative methods (e.g., synthetic control).",
+      "Only 1 treated unit found (N_treated=1). Estimation with a single treated unit is technically feasible but highly unstable. Results are extremely sensitive to this single unit and may not be reliable. Consider: (1) checking treatment variable 'd' for coding errors, (2) verifying sample selection, (3) using alternative methods (e.g., synthetic control).",
+      "Only 1 treated unit found (N_treated=1). Estimation with a single treated unit is technically feasible but highly unstable. Results are extremely sensitive to this single unit and may not be reliable. Consider: (1) checking treatment variable 'd' for coding errors, (2) verifying sample selection, (3) using alternative methods (e.g., synthetic control).",
+      "Only 1 treated unit found (N_treated=1). Estimation with a single treated unit is technically feasible but highly unstable. Results are extremely sensitive to this single unit and may not be reliable. Consider: (1) checking treatment variable 'd' for coding errors, (2) verifying sample selection, (3) using alternative methods (e.g., synthetic control).",
+      "Only 1 treated unit found (N_treated=1). Estimation with a single treated unit is technically feasible but highly unstable. Results are extremely sensitive to this single unit and may not be reliable. Consider: (1) checking treatment variable 'd' for coding errors, (2) verifying sample selection, (3) using alternative methods (e.g., synthetic control).",
+      "Only 1 treated unit found (N_treated=1). Estimation with a single treated unit is technically feasible but highly unstable. Results are extremely sensitive to this single unit and may not be reliable. Consider: (1) checking treatment variable 'd' for coding errors, (2) verifying sample selection, (3) using alternative methods (e.g., synthetic control).",
+      "Only 1 treated unit found (N_treated=1). Estimation with a single treated unit is technically feasible but highly unstable. Results are extremely sensitive to this single unit and may not be reliable. Consider: (1) checking treatment variable 'd' for coding errors, (2) verifying sample selection, (3) using alternative methods (e.g., synthetic control).",
+      "Only 1 treated unit found (N_treated=1). Estimation with a single treated unit is technically feasible but highly unstable. Results are extremely sensitive to this single unit and may not be reliable. Consider: (1) checking treatment variable 'd' for coding errors, (2) verifying sample selection, (3) using alternative methods (e.g., synthetic control)."
+    ],
+    "result": {
+      "overall_assessment": "Multiple concerns: pre-period sensitivity, transformation sensitivity. Interpret with caution.",
+      "recommendations": [
+        "Pre-period sensitivity detected (ratio=27.3%). Consider using detrend method or investigating data quality.",
+        "Substantial difference between demean and detrend (46.2%). This suggests heterogeneous trends may be present."
+      ],
+      "pre_period": {
+        "sensitivity_ratio": 0.27337455234702557,
+        "is_robust": false,
+        "robustness_level": "sensitive"
+      },
+      "anticipation": {
+        "anticipation_detected": false,
+        "recommended_exclusion": 0
+      },
+      "transformation": {
+        "demean_att": -0.4221746008541101,
+        "demean_se": 0.12079952595673699,
+        "detrend_att": -0.22698869173130326,
+        "detrend_se": 0.09406889491004852,
+        "difference": 0.19518590912280687
+      },
+      "estimator": null
+    }
+  },
+  "r_result": {
+    "warnings": [
+      "Only 1 treated unit (N_treated=1). Results may be unreliable.",
+      "Only 1 treated unit (N_treated=1). Results may be unreliable.",
+      "Only 1 treated unit (N_treated=1). Results may be unreliable.",
+      "Only 1 treated unit (N_treated=1). Results may be unreliable.",
+      "Only 1 treated unit (N_treated=1). Results may be unreliable.",
+      "Only 1 treated unit (N_treated=1). Results may be unreliable.",
+      "Only 1 treated unit (N_treated=1). Results may be unreliable.",
+      "Only 1 treated unit (N_treated=1). Results may be unreliable.",
+      "Only 1 treated unit (N_treated=1). Results may be unreliable.",
+      "Only 1 treated unit (N_treated=1). Results may be unreliable.",
+      "Only 1 treated unit (N_treated=1). Results may be unreliable.",
+      "Only 1 treated unit (N_treated=1). Results may be unreliable.",
+      "Only 1 treated unit (N_treated=1). Results may be unreliable.",
+      "Only 1 treated unit (N_treated=1). Results may be unreliable.",
+      "Only 1 treated unit (N_treated=1). Results may be unreliable.",
+      "Only 1 treated unit (N_treated=1). Results may be unreliable.",
+      "Only 1 treated unit (N_treated=1). Results may be unreliable.",
+      "Only 1 treated unit (N_treated=1). Results may be unreliable.",
+      "Only 1 treated unit (N_treated=1). Results may be unreliable.",
+      "Only 1 treated unit (N_treated=1). Results may be unreliable.",
+      "Only 1 treated unit (N_treated=1). Results may be unreliable.",
+      "Only 1 treated unit (N_treated=1). Results may be unreliable.",
+      "Only 1 treated unit (N_treated=1). Results may be unreliable.",
+      "Only 1 treated unit (N_treated=1). Results may be unreliable.",
+      "Only 1 treated unit (N_treated=1). Results may be unreliable."
+    ],
+    "error": null,
+    "result": {
+      "overall_assessment": "多项问题：前期敏感性、变换方法敏感性，需谨慎解读",
+      "recommendations": [
+        "前期敏感性检测到(SR=27.3%)，建议使用 detrend 或检查数据质量",
+        "demean 与 detrend 差异显著(46.2%)，可能存在异质性趋势"
+      ],
+      "pre_period": {
+        "sensitivity_ratio": 0.27337455234702435,
+        "is_robust": false,
+        "robustness_level": "sensitive"
+      },
+      "anticipation": {
+        "anticipation_detected": false,
+        "recommended_exclusion": 0
+      },
+      "transformation": {
+        "demean_att": -0.42217460085410935,
+        "demean_se": 0.12079952595673714,
+        "detrend_att": -0.2269886917313018,
+        "detrend_se": 0.09406889491004874,
+        "difference": 0.19518590912280756,
+        "rel_diff": 0.4623345618801398
+      },
+      "estimator": null
+    },
+    "stderr": ""
+  },
+  "comparison": {
+    "status": "passed",
+    "exact_status": "passed",
+    "numeric_status": "passed",
+    "exact_findings": [
+      {
+        "name": "pre_period.is_robust",
+        "status": "pass",
+        "expected": false,
+        "actual": false
+      },
+      {
+        "name": "pre_period.robustness_level",
+        "status": "pass",
+        "expected": "sensitive",
+        "actual": "sensitive"
+      },
+      {
+        "name": "anticipation.anticipation_detected",
+        "status": "pass",
+        "expected": false,
+        "actual": false
+      },
+      {
+        "name": "anticipation.recommended_exclusion",
+        "status": "pass",
+        "expected": 0,
+        "actual": 0
+      },
+      {
+        "name": "estimator.is_null",
+        "status": "pass",
+        "expected": true,
+        "actual": true
+      }
+    ],
+    "numeric_findings": [
+      {
+        "name": "pre_period.sensitivity_ratio",
+        "status": "pass",
+        "expected": 0.27337455234702557,
+        "actual": 0.27337455234702435,
+        "abs_diff": 1.2212453270876722e-15,
+        "tolerance": 1e-06
+      },
+      {
+        "name": "transformation.demean_att",
+        "status": "pass",
+        "expected": -0.4221746008541101,
+        "actual": -0.42217460085410935,
+        "abs_diff": 7.771561172376096e-16,
+        "tolerance": 1e-06
+      },
+      {
+        "name": "transformation.detrend_att",
+        "status": "pass",
+        "expected": -0.22698869173130326,
+        "actual": -0.2269886917313018,
+        "abs_diff": 1.4710455076283324e-15,
+        "tolerance": 1e-06
+      },
+      {
+        "name": "transformation.difference",
+        "status": "pass",
+        "expected": 0.19518590912280687,
+        "actual": 0.19518590912280756,
+        "abs_diff": 6.938893903907228e-16,
+        "tolerance": 1e-06
+      },
+      {
+        "name": "transformation.demean_se",
+        "status": "pass",
+        "expected": 0.12079952595673699,
+        "actual": 0.12079952595673714,
+        "abs_diff": 1.5265566588595902e-16,
+        "tolerance": 0.0001
+      },
+      {
+        "name": "transformation.detrend_se",
+        "status": "pass",
+        "expected": 0.09406889491004852,
+        "actual": 0.09406889491004874,
+        "abs_diff": 2.220446049250313e-16,
+        "tolerance": 0.0001
+      }
+    ],
+    "blockers": []
+  },
+  "paper_alignment": {
+    "demean_att_abs_diff_vs_table3": 0.00017460085410936355,
+    "demean_se_abs_diff_vs_table3": 0.00020047404326285767,
+    "detrend_att_abs_diff_vs_table3": 8.268698198365954e-09,
+    "detrend_se_abs_diff_vs_table3": 5.089951252146285e-09
+  }
+}

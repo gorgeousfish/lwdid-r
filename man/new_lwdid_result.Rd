@@ -57,12 +57,18 @@ new_lwdid_result(
   pvalue_overall = NULL,
   cohort_effects = NULL,
   event_time_effects = NULL,
+  event_time_omissions = list(),
+  event_time_omission_summary = data.frame(reason = character(0), n = integer(0),
+    stringsAsFactors = FALSE),
   att_cohort_agg = NULL,
   se_cohort_agg = NULL,
   t_stat_cohort_agg = NULL,
   pvalue_cohort_agg = NULL,
   ci_cohort_agg = NULL,
   cohort_weights = NULL,
+  skipped_pairs = list(),
+  skipped_summary = data.frame(reason = character(0), n = integer(0), stringsAsFactors =
+    FALSE),
   ri_pvalue = NULL,
   ri_seed = NULL,
   rireps = NULL,
@@ -71,6 +77,8 @@ new_lwdid_result(
   ri_failed = NULL,
   ri_error = NULL,
   ri_target = NULL,
+  ri_observed_stat = NULL,
+  ri_estimator = NULL,
   ri_distribution = NULL,
   diagnostics = NULL,
   warning_diagnostics = list(),
@@ -195,6 +203,11 @@ aggregation output.}
 
 \item{event_time_effects}{data.frame or NULL.}
 
+\item{event_time_omissions}{List of omitted event-time WATT diagnostics.}
+
+\item{event_time_omission_summary}{data.frame with \code{reason} and \code{n} columns
+summarizing omitted event-time WATT rows.}
+
 \item{att_cohort_agg}{Numeric or NULL, cohort-aggregated ATT.}
 
 \item{se_cohort_agg}{Numeric or NULL, standard error for the
@@ -211,6 +224,11 @@ for the cohort-aggregated ATT.}
 
 \item{cohort_weights}{Named numeric or NULL.}
 
+\item{skipped_pairs}{List of skipped staggered \verb{(g,r)} pair diagnostics.}
+
+\item{skipped_summary}{data.frame with \code{reason} and \code{n} columns summarizing
+skipped staggered \verb{(g,r)} pairs.}
+
 \item{ri_pvalue}{Numeric or NULL, RI p-value.}
 
 \item{ri_seed}{Integer or NULL.}
@@ -226,6 +244,10 @@ for the cohort-aggregated ATT.}
 \item{ri_error}{Character or NULL.}
 
 \item{ri_target}{Character or NULL.}
+
+\item{ri_observed_stat}{Numeric or NULL, observed statistic used by RI.}
+
+\item{ri_estimator}{Character or NULL, estimator used by RI refits.}
 
 \item{ri_distribution}{Numeric vector or NULL.}
 
@@ -263,7 +285,12 @@ Construct a new lwdid_result object
 }
 \seealso{
 Other lwdid-results: 
+\code{\link{compare}()},
 \code{\link{extract_effects}()},
-\code{\link{lwdid_result}}
+\code{\link{glance.lwdid_result}()},
+\code{\link{lwdid_result}},
+\code{\link{print.lwdid_comparison}()},
+\code{\link{tidy.lwdid_result}()},
+\code{\link{tidy_glance}}
 }
 \concept{lwdid-results}

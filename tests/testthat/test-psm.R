@@ -401,6 +401,10 @@ test_that("TC-6.4.18: CI uses qnorm(0.975), not qt", {
 # TC-6.4.19: Bootstrap SE vs AI SE — same order of magnitude (<30% diff)
 # ============================================================================
 test_that("TC-6.4.19: Bootstrap SE within 50% of AI SE (large sample)", {
+  skip_if_not(
+    identical(Sys.getenv("LWDID_RUN_EVIDENCE_TESTS"), "true"),
+    "Large-sample bootstrap calibration is run as evidence, not CRAN smoke."
+  )
   df <- generate_psm_noconf_data(n = 2000, seed = 19, tau = 1.0)
   r_ai <- estimate_psm(df, "Y", "D", "X1",
     se_method = "abadie_imbens", seed = 1)
@@ -504,6 +508,35 @@ test_that("TC-6.4.23: Bootstrap CI uses percentile method", {
   ci_width <- res$ci_upper - res$ci_lower
   expect_true(ci_width > 0)
   expect_true(ci_width < 5)  # reasonable for tau=1, n=300
+})
+
+test_that("PSM bootstrap rejects non-finite replicate estimates", {
+  df <- data.frame(
+    Y = c(Inf, 1, 2, 3, 4, 5),
+    D = c(1L, 0L, 0L, 0L, 0L, 0L),
+    X1 = c(2, 0, 1, -1, 0.5, -0.5)
+  )
+
+  expect_error(
+    suppressWarnings(
+      .compute_psm_se_bootstrap(
+        data = df,
+        y = "Y",
+        d = "D",
+        propensity_controls = "X1",
+        n_neighbors = 1L,
+        with_replacement = TRUE,
+        caliper = NULL,
+        caliper_scale = "sd",
+        trim_threshold = 0.01,
+        n_bootstrap = 20L,
+        seed = 1L,
+        alpha = 0.05,
+        match_order = "data"
+      )
+    ),
+    class = "lwdid_estimation_failed"
+  )
 })
 
 # ============================================================================
@@ -670,6 +703,17 @@ test_that("TC-6.4.31: NA in covariates auto-excluded by complete.cases", {
   expect_true(res$se > 0)
   # n_treated + n_control should be less than original n
   expect_true(res$n_treated + res$n_control <= 200 - 5)
+})
+
+test_that("PSM rejects infinite numeric inputs after NA exclusion", {
+  df <- generate_psm_test_data(n = 200, seed = 3131)
+  df$X1[c(1, 5, 10)] <- NA
+  df$Y[11] <- Inf
+
+  expect_error(
+    estimate_psm(df, "Y", "D", "X1", seed = 1),
+    class = "lwdid_invalid_data"
+  )
 })
 
 # ============================================================================

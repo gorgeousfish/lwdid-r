@@ -1,0 +1,86 @@
+{
+  "story": "story-E8-04",
+  "layer": "layer_4_monte_carlo",
+  "status": "standard-cluster-path-passed",
+  "metric_family": "standard_cluster_robust",
+  "contract_file": "/Users/cxy/Desktop/lwdid_r/_automation/test-artifacts/parity/e8_04_clustering_layer4_monte_carlo_contract.yaml",
+  "scenarios": [
+    {
+      "scenario_id": "coverage_medium_g",
+      "metric_name": "coverage_rate",
+      "metric_value": 0.92,
+      "n_simulations": 200,
+      "n_attempts": 200,
+      "acceptance_band": {
+        "lower": 0.88,
+        "upper": 0.99
+      }
+    },
+    {
+      "scenario_id": "coverage_small_g",
+      "metric_name": "coverage_rate",
+      "metric_value": 0.93,
+      "n_simulations": 200,
+      "n_attempts": 200,
+      "acceptance_band": {
+        "lower_exclusive": 0.8
+      }
+    },
+    {
+      "scenario_id": "size_under_null",
+      "metric_name": "rejection_rate",
+      "metric_value": 0.065,
+      "n_simulations": 200,
+      "n_attempts": 200,
+      "acceptance_band": {
+        "lower": 0.02,
+        "upper": 0.1
+      }
+    },
+    {
+      "scenario_id": "power_under_alternative",
+      "metric_name": "power",
+      "metric_value": 0.72,
+      "n_simulations": 200,
+      "n_attempts": 200,
+      "acceptance_band": {
+        "lower_exclusive": 0.5
+      }
+    },
+    {
+      "scenario_id": "unbalanced_treatment_coverage",
+      "metric_name": "coverage_rate",
+      "metric_value": 0.91,
+      "n_simulations": 100,
+      "n_attempts": 100,
+      "acceptance_band": {
+        "lower_exclusive": 0.85
+      }
+    },
+    {
+      "scenario_id": "heterogeneous_cluster_sizes_coverage",
+      "metric_name": "coverage_rate",
+      "metric_value": 0.92,
+      "n_simulations": 100,
+      "n_attempts": 100,
+      "acceptance_band": {
+        "lower_exclusive": 0.85
+      }
+    }
+  ],
+  "remaining_blockers": [
+    "wild_bootstrap_coverage_small_g",
+    "wild_bootstrap_relative_gap"
+  ],
+  "verification": {
+    "red_command": "Rscript -e \"devtools::test(pkg='/Users/cxy/Desktop/lwdid_r/lwdid-r', filter='clustering-diagnostics-parity', reporter='summary')\"",
+    "green_commands": [
+      "Rscript -e \"devtools::test(pkg='/Users/cxy/Desktop/lwdid_r/lwdid-r', filter='clustering-diagnostics', reporter='summary')\"",
+      "Rscript -e \"devtools::test(pkg='/Users/cxy/Desktop/lwdid_r/lwdid-r', filter='clustering-diagnostics-parity', reporter='summary')\""
+    ]
+  },
+  "notes": [
+    "This artifact freezes the remaining standard cluster-robust Layer 4 scenarios against the machine-readable contract.",
+    "Wild-bootstrap scenarios remain pending because the current R helper only covers the standard cluster-robust path."
+  ]
+}

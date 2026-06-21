@@ -17,3 +17,6 @@ A named list of parameters and statistics.
 \description{
 Convert an object to a dictionary (named list)
 }
+\seealso{
+\code{\link{to_latex}}, \code{\link{to_csv}}
+}

@@ -17,3 +17,6 @@ A character string containing LaTeX table markup.
 \description{
 S3 generic for converting estimation results to LaTeX table strings.
 }
+\seealso{
+\code{\link{to_csv}}, \code{\link{to_dict}}
+}

@@ -43,6 +43,10 @@ quiet_lwdid <- function(expr) {
   suppressWarnings(suppressMessages(expr))
 }
 
+has_warning_class <- function(warnings, class) {
+  any(vapply(warnings, inherits, logical(1), what = class))
+}
+
 # =============================================================================
 # Group A: Basic period estimation correctness (T-01 to T-08) — Task E2-05.8
 # Data: 10 units x 6 periods, S=4, 5 treated + 5 control, seed=42
@@ -559,14 +563,12 @@ test_that("T-23 perfect separation triggers degenerate SE path", {
     d = c(1L, 1L, 1L, 0L, 0L, 0L)
   )
 
-  w <- NULL
+  warnings_caught <- list()
   result <- withCallingHandlers(
     estimate_period_effects(dt, "y_trans", "d", "time",
                             x = NULL, periods = 4L),
-    lwdid_small_sample = function(cnd) {
-      if (!is.null(cnd$detail) && cnd$detail == "degenerate_period_regression") {
-        w <<- cnd
-      }
+    warning = function(cnd) {
+      warnings_caught[[length(warnings_caught) + 1L]] <<- cnd
       invokeRestart("muffleWarning")
     }
   )
@@ -579,8 +581,11 @@ test_that("T-23 perfect separation triggers degenerate SE path", {
   expect_equal(result$n_treated, 3L)
   expect_equal(result$n_control, 3L)
   # Degenerate warning was emitted
-  expect_false(is.null(w))
-  expect_equal(w$detail, "degenerate_period_regression")
+  expect_true(any(vapply(warnings_caught, function(cnd) {
+    inherits(cnd, "lwdid_small_sample") &&
+      isTRUE(cnd$detail == "degenerate_period_regression")
+  }, logical(1))))
+  expect_true(has_warning_class(warnings_caught, "lwdid_numerical"))
 })
 
 test_that("T-24 N=2 period triggers tryCatch (N<3 error)", {

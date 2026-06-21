@@ -10,12 +10,17 @@
 \item{object}{lwdid_result object}
 
 \item{type}{character, granularity: "overall" (1x1), "by_period",
-"by_cohort", "full" (complete OLS parameter VCE)}
+"by_cohort", "event_time", "full" (complete OLS parameter VCE)}
 
 \item{...}{ignored}
 }
 \value{
-variance-covariance matrix
+variance-covariance matrix. For \code{type = "event_time"}, this is the
+diagonal matrix formed from marginal WATT(e) standard errors unless a
+fitted object carries a numeric, symmetric \code{vcov_att_event_time} matrix
+with dimensions matching the event-time rows. Attributes record the
+standard-error aggregation rule and covariance boundary; supplied joint
+matrices keep their own \code{covariance_assumption} attribute when present.
 }
 \description{
 Extract variance-covariance matrix for ATT estimates.

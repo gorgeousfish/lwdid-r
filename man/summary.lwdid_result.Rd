@@ -18,5 +18,8 @@ summary.lwdid_result object (invisibly)
 }
 \description{
 Generate a full regression summary including period effects,
-cohort effects, parallel trends test, and diagnostics.
+cohort effects, skipped staggered \verb{(g,r)} diagnostics, omitted event-time
+WATT diagnostics, event-time overlap/support extremes when available,
+event-time bootstrap replicate diagnostics when available,
+parallel trends test, and diagnostics.
 }

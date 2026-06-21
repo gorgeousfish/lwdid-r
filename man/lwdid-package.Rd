@@ -10,7 +10,7 @@ approach for difference-in-differences (DiD) estimation with panel data.
 Through unit-specific time-series transformations (demeaning or
 detrending), the package converts panel DiD estimation into standard
 cross-sectional treatment effect problems, enabling application of
-multiple estimators and exact small-sample inference.
+multiple estimators and randomization-based small-sample inference.
 }
 \details{
 \strong{Core Transformations}:
@@ -66,11 +66,11 @@ Sample Sizes."
 \code{\link{lwdid_test_parallel_trends}} for parallel trends testing.
 }
 \author{
-\strong{Maintainer}: Xuanyu Cai \email{xuanyuCAI@outlook.com}
+\strong{Maintainer}: Xuanyu Cai \email{xuanyuCAI@outlook.com} (City University of Macau)
 
 Authors:
 \itemize{
-  \item Wenli Xu \email{wlxu@cityu.edu.mo}
+  \item Wenli Xu \email{wlxu@cityu.edu.mo} (City University of Macau)
 }
 
 }

@@ -1,5 +1,17 @@
 library(testthat)
 
+capture_warnings <- function(expr) {
+  warnings_caught <- list()
+  result <- withCallingHandlers(
+    expr,
+    warning = function(w) {
+      warnings_caught[[length(warnings_caught) + 1L]] <<- w
+      invokeRestart("muffleWarning")
+    }
+  )
+  list(result = result, warnings = warnings_caught)
+}
+
 make_selection_observed_y_panel <- function() {
   data.frame(
     id = c(1, 1, 2, 2),
@@ -666,15 +678,22 @@ test_that("E8-05.7: non-finite MCAR/MNAR p-values do not crash diagnosis", {
   )
 
   diagnosis <- NULL
+  warning_capture <- NULL
   expect_no_error({
-    diagnosis <- diagnose_selection_mechanism(
+    warning_capture <- capture_warnings(diagnose_selection_mechanism(
       panel,
       ivar = "id",
       tvar = "time",
       y = "y",
       verbose = FALSE
-    )
+    ))
+    diagnosis <- warning_capture$result
   })
+  expect_true(any(grepl(
+    "standard deviation is zero",
+    vapply(warning_capture$warnings, conditionMessage, character(1)),
+    fixed = TRUE
+  )))
 
   expect_s3_class(diagnosis, "lwdid_selection_diagnosis")
   expect_true(is.finite(diagnosis$selection_risk_score))

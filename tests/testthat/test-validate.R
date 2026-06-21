@@ -378,6 +378,35 @@ test_that("Layer 4: controls NULL skips", {
   expect_silent(.validate_controls_dtype(df, NULL))
 })
 
+test_that("validate_inputs rejects non-numeric ps_controls", {
+  df <- data.frame(
+    id = rep(1:8, each = 2),
+    year = rep(1:2, 8),
+    d = rep(c(0, 1), each = 8),
+    post = rep(c(0, 1), 8),
+    y = rnorm(16),
+    x1 = rnorm(16),
+    ps_bad = rep(c("a", "b"), 8),
+    stringsAsFactors = FALSE
+  )
+
+  expect_error(
+    validate_inputs(
+      data = df,
+      y = "y",
+      d = "d",
+      ivar = "id",
+      tvar = "year",
+      post = "post",
+      estimator = "ipw",
+      controls = "x1",
+      ps_controls = "ps_bad",
+      aggregate = "none"
+    ),
+    class = "lwdid_invalid_parameter"
+  )
+})
+
 
 test_that("Layer 5: d time-invariant passes", {
   df <- data.frame(
@@ -534,6 +563,23 @@ test_that("Layer 6: estimator=ipw + no controls/ps_controls → error", {
     ),
     class = "lwdid_invalid_parameter"
   )
+})
+
+test_that("Layer 6: non-RA estimators reject vce options", {
+  for (estimator in c("ipw", "ipwra", "psm")) {
+    expect_error(
+      .validate_cross_param_consistency(
+        vce = "cluster", cluster_var = "cl", rolling = "demean",
+        season_var = NULL, tvar = "year", estimator = estimator,
+        controls = "x1", ps_controls = NULL, aggregate = "none",
+        control_group = "not_yet_treated", graph = FALSE,
+        ri = FALSE, rireps = 1000L, ri_method = "bootstrap",
+        exclude_pre_periods = 0L, Q = 4L, mode = "common_timing"
+      ),
+      regexp = "vce is only supported when estimator='ra'",
+      class = "lwdid_invalid_parameter"
+    )
+  }
 })
 
 test_that("Layer 6: vce=robust + cluster_var → warning", {

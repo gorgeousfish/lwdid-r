@@ -34,7 +34,7 @@ generates predictions for all units. Supports OLS (default) and WLS
 }
 \references{
 Wooldridge (2025b Section 19.4): WLS for IPWRA ATT;
-OLS: beta_hat = (X0'X0)^{-1} X0'Y0;
-WLS: beta_hat = (X0'WX0)^{-1} X0'WY0
+OLS: \eqn{\hat{\beta} = (X_0^\top X_0)^{-1} X_0^\top Y_0};
+WLS: \eqn{\hat{\beta} = (X_0^\top W X_0)^{-1} X_0^\top W Y_0}
 }
 \keyword{internal}

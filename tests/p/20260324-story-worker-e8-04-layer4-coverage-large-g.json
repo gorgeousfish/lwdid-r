@@ -1,0 +1,26 @@
+{
+  "story": "story-E8-04",
+  "layer": "layer_4_monte_carlo",
+  "scenario_id": "coverage_large_g",
+  "status": "passed",
+  "metric_name": "coverage_rate",
+  "metric_value": 0.91,
+  "n_simulations": 200,
+  "n_attempts": 200,
+  "acceptance_band": {
+    "lower": 0.90,
+    "upper": 0.99
+  },
+  "contract_file": "/Users/cxy/Desktop/lwdid_r/_automation/test-artifacts/parity/e8_04_clustering_layer4_monte_carlo_contract.yaml",
+  "verification": {
+    "red_command": "Rscript -e \"devtools::test(pkg='/Users/cxy/Desktop/lwdid_r/lwdid-r', filter='clustering-diagnostics-parity', reporter='summary')\"",
+    "green_commands": [
+      "Rscript -e \"devtools::test(pkg='/Users/cxy/Desktop/lwdid_r/lwdid-r', filter='clustering-diagnostics', reporter='summary')\"",
+      "Rscript -e \"devtools::test(pkg='/Users/cxy/Desktop/lwdid_r/lwdid-r', filter='clustering-diagnostics-parity', reporter='summary')\""
+    ]
+  },
+  "notes": [
+    "This artifact freezes the first Layer 4 standard cluster-robust coverage scenario.",
+    "The helper currently supports the standard cluster_robust_t_ci / cluster_robust_t_test path; wild-bootstrap scenarios remain pending."
+  ]
+}

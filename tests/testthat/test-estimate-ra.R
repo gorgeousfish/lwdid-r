@@ -91,9 +91,11 @@ test_that("T2-04: Tier 1 centers at treated-group mean (BUG-009)", {
   d <- c(rep(1L, 3L), rep(0L, 3L))
   x <- matrix(c(10, 20, 30, 1, 2, 3), ncol = 1)
   y_trans <- c(15, 25, 35, 5, 6, 7)
-  est <- estimate_ra_common(y_trans, d, x)
+  cw <- capture_with_warnings(estimate_ra_common(y_trans, d, x))
+  est <- cw$result
 
   expect_equal(est$controls_tier, "full_interaction")
+  expect_true(has_warning_class(cw$warnings, "lwdid_numerical"))
   x_c_treated <- est$X_design[d == 1, 3]
   expect_equal(mean(x_c_treated), 0, tolerance = 1e-12)
   simple_diff <- mean(y_trans[d == 1]) - mean(y_trans[d == 0])
@@ -150,8 +152,11 @@ test_that("T2-07: degenerate SE sets inference to NA with warning", {
 # --- T3-01: Demean end-to-end with smoking data ---
 test_that("T3-01: demean ATT/SE/df/t-stat/N match Stata benchmarks", {
   data(smoking)
-  result <- lwdid(smoking, y = "lcigsale", ivar = "state", tvar = "year",
-                  d = "d", post = "post", rolling = "demean")
+  cw <- capture_with_warnings(
+    lwdid(smoking, y = "lcigsale", ivar = "state", tvar = "year",
+          d = "d", post = "post", rolling = "demean")
+  )
+  result <- cw$result
 
   expect_equal(result$att, -0.4221746, tolerance = 1e-6)
   expect_equal(result$se_att, 0.1207995, tolerance = 1e-4)
@@ -161,6 +166,7 @@ test_that("T3-01: demean ATT/SE/df/t-stat/N match Stata benchmarks", {
   expect_true(result$att < 0)
   expect_true(result$se_att > 0)
   expect_true(result$pvalue < 0.05)
+  expect_true(has_warning_class(cw$warnings, "lwdid_small_sample"))
 })
 
 # --- T3-02: Detrend end-to-end with smoking data ---

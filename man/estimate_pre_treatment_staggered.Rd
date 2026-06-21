@@ -13,6 +13,7 @@ estimate_pre_treatment_staggered(
   rolling = "demean",
   estimator = "ra",
   controls = NULL,
+  ps_controls = NULL,
   control_group = "not_yet_treated",
   vce = NULL,
   cluster_var = NULL,
@@ -37,6 +38,10 @@ estimate_pre_treatment_staggered(
 
 \item{controls}{character vector or NULL, control variable names}
 
+\item{ps_controls}{character vector or NULL, propensity-score control
+variable names for IPW/IPWRA/PSM. If NULL, propensity-score
+estimators fall back to \code{controls}.}
+
 \item{control_group}{character, "not_yet_treated" or "never_treated"}
 
 \item{vce}{character or NULL, VCE type}
@@ -44,6 +49,9 @@ estimate_pre_treatment_staggered(
 \item{cluster_var}{character or NULL, cluster variable name}
 
 \item{alpha}{numeric, significance level (default 0.05)}
+
+\item{include_earliest_pre_period}{logical, whether to retain the earliest
+pre-treatment period in staggered pre-treatment summaries.}
 }
 \value{
 data.frame with 14 columns, or NULL if no estimable periods

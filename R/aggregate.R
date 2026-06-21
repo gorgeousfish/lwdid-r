@@ -183,6 +183,7 @@ aggregate_to_cohort <- function(dt, y, ivar, tvar, gvar,
     ]
     sample_units <- c(cohort_units, nt_units)
     reg_data <- Y_bar_ig[get(ivar) %in% sample_units]
+    # Assign treatment indicator in-place for regression (in-place modification)
     reg_data[, D_ig := as.integer(get(ivar) %in% cohort_units)]
     # Add control variables (unit-level, time-invariant)
     K <- 0L
@@ -508,6 +509,7 @@ construct_aggregated_outcome <- function(dt, y, ivar, tvar, gvar,
     Y_bar_ig_dt <- cohort_Y_bars[[g_char]]
     col_name <- paste0("Ybar_", g_char)
     match_idx <- match(all_units, Y_bar_ig_dt[[ivar]])
+    # Attach cohort-specific Y_bar column in-place; avoids repeated copies (in-place modification)
     wide_dt[, (col_name) := Y_bar_ig_dt$Y_bar_ig[match_idx]]
   }
 
@@ -1139,21 +1141,28 @@ select_degrees_of_freedom <- function(cohort_dfs, weights, strategy, n_cohorts) 
 #' @param cohort_sizes named integer vector or named list, cohort sizes
 #'   (N_g). Names are cohort values as character.
 #' @param alpha numeric in (0,1), significance level. Default 0.05.
-#' @param event_time_range integer vector of length 2 or NULL,
-#'   \code{c(min_e, max_e)} filter range. Default NULL (no filtering).
+#' @param event_time_range finite numeric vector of length 2 or NULL,
+#'   \code{c(min_e, max_e)} filter range with \code{min_e <= max_e}.
+#'   Default NULL (no filtering).
 #' @param df_strategy character, one of "conservative" (default), "weighted",
 #'   "fallback".
 #' @param verbose logical, whether to output diagnostic messages. Default FALSE.
+#' @param inference_dist character, one of \code{"t"} or \code{"normal"}.
+#'   \code{"t"} uses event-time degrees of freedom selected by
+#'   \code{df_strategy}; \code{"normal"} uses asymptotic normal inference and
+#'   records \code{df_inference = NA_integer_}. Default \code{"t"}.
 #' @return list of lists, each with: event_time, att, se, ci_lower, ci_upper,
 #'   t_stat, pvalue, df_inference, n_cohorts, cohort_contributions,
-#'   weight_sum, alpha.
+#'   weight_sum, alpha, inference_dist, se_aggregation,
+#'   covariance_assumption.
 #' @keywords internal
 aggregate_to_event_time <- function(cohort_time_effects,
                                     cohort_sizes,
                                     alpha = 0.05,
                                     event_time_range = NULL,
                                     df_strategy = "conservative",
-                                    verbose = FALSE) {
+                                    verbose = FALSE,
+                                    inference_dist = c("t", "normal")) {
 
   # ========================================================================
   # Phase 1: Input validation
@@ -1180,6 +1189,28 @@ aggregate_to_event_time <- function(cohort_time_effects,
     )
   }
 
+  valid_inference_dist <- c("t", "normal")
+  if (!is.character(inference_dist) || length(inference_dist) < 1L) {
+    stop_lwdid(
+      "inference_dist must be one of: t, normal.",
+      class = "lwdid_invalid_input"
+    )
+  }
+  if (length(inference_dist) == 1L) {
+    if (!(inference_dist %in% valid_inference_dist)) {
+      stop_lwdid(
+        sprintf(
+          "inference_dist must be one of: %s. Got: '%s'",
+          paste(valid_inference_dist, collapse = ", "),
+          inference_dist
+        ),
+        class = "lwdid_invalid_input"
+      )
+    }
+  } else {
+    inference_dist <- match.arg(inference_dist, valid_inference_dist)
+  }
+
   if (!is.null(event_time_range)) {
     if (!is.numeric(event_time_range) || length(event_time_range) != 2L) {
       stop_lwdid(
@@ -1189,9 +1220,15 @@ aggregate_to_event_time <- function(cohort_time_effects,
         class = "lwdid_invalid_input"
       )
     }
-    if (any(is.na(event_time_range))) {
+    if (any(!is.finite(event_time_range))) {
       stop_lwdid(
-        "event_time_range must not contain NA values.",
+        "event_time_range must contain finite values.",
+        class = "lwdid_invalid_input"
+      )
+    }
+    if (event_time_range[1L] > event_time_range[2L]) {
+      stop_lwdid(
+        "event_time_range lower bound must be less than or equal to upper bound.",
         class = "lwdid_invalid_input"
       )
     }
@@ -1343,7 +1380,8 @@ aggregate_to_event_time <- function(cohort_time_effects,
 
   unique_event_times <- sort(unique(cohort_time_effects$event_time))
   results <- vector("list", length(unique_event_times))
-  n_nan_results <- 0L
+  event_time_omissions <- list()
+  n_skipped_results <- 0L
 
   for (i in seq_along(unique_event_times)) {
     e <- unique_event_times[i]
@@ -1366,22 +1404,26 @@ aggregate_to_event_time <- function(cohort_time_effects,
 
     rows_valid <- rows_e[valid_rows, , drop = FALSE]
 
-    # --- 9c: If all invalid -> store NaN result ---
+    # --- 9c: If all invalid -> omit this non-estimable event time ---
     if (nrow(rows_valid) == 0L) {
-      n_nan_results <- n_nan_results + 1L
-      results[[i]] <- list(
+      n_skipped_results <- n_skipped_results + 1L
+      event_time_omissions[[length(event_time_omissions) + 1L]] <- list(
         event_time = as.integer(e),
-        att = NaN,
-        se = NaN,
-        ci_lower = NaN,
-        ci_upper = NaN,
-        t_stat = NaN,
-        pvalue = NaN,
-        df_inference = NA_integer_,
-        n_cohorts = 0L,
-        cohort_contributions = list(),
-        weight_sum = NaN,
-        alpha = alpha
+        reason = "non_finite_att_or_se",
+        n_rows = as.integer(nrow(rows_e)),
+        cohorts = as.integer(rows_e$cohort)
+      )
+      warn_lwdid(
+        sprintf(
+          paste0(
+            "event_time=%d has no finite ATT/SE cohort rows; ",
+            "omitting it from WATT(e) aggregation."
+          ),
+          e
+        ),
+        class = "lwdid_data",
+        detail = "event_time_all_invalid",
+        action_taken = "event time omitted"
       )
       next
     }
@@ -1391,36 +1433,7 @@ aggregate_to_event_time <- function(cohort_time_effects,
     n_cohorts <- length(available_cohorts)
 
     # --- 9e: Compute event-time weights ---
-    weights <- tryCatch(
-      compute_event_time_weights(cohort_sizes_vec, available_cohorts),
-      error = function(err) {
-        if (verbose) {
-          message(sprintf(
-            "[aggregate_to_event_time] event_time=%d: weight computation failed: %s",
-            e, conditionMessage(err)))
-        }
-        NULL
-      }
-    )
-
-    if (is.null(weights)) {
-      n_nan_results <- n_nan_results + 1L
-      results[[i]] <- list(
-        event_time = as.integer(e),
-        att = NaN,
-        se = NaN,
-        ci_lower = NaN,
-        ci_upper = NaN,
-        t_stat = NaN,
-        pvalue = NaN,
-        df_inference = NA_integer_,
-        n_cohorts = n_cohorts,
-        cohort_contributions = list(),
-        weight_sum = NaN,
-        alpha = alpha
-      )
-      next
-    }
+    weights <- compute_event_time_weights(cohort_sizes_vec, available_cohorts)
 
     # --- 9f: Validate weight sum ---
     wv <- validate_weight_sum(weights)
@@ -1436,17 +1449,96 @@ aggregate_to_event_time <- function(cohort_time_effects,
     w_vec <- weights[available_cohorts]
     watt <- sum(w_vec * att_vec)
 
-    # --- 9h: Compute SE(WATT(e)) = sqrt(sum(w_g^2 * se_g^2)) ---
+    # --- 9h: Compute SE(WATT(e)) using the diagonal cohort-SE contract ---
+    # Upstream (g,r) estimation currently stores scalar SEs, not a joint
+    # influence-function or covariance representation across cohorts.
     se_watt <- sqrt(sum(w_vec^2 * se_vec^2))
 
     # --- 9i: Collect per-cohort df_inference values ---
     cohort_dfs <- rows_valid$df_inference
 
+    has_weight_cv <- "weights_cv" %in% names(rows_valid)
+    has_ps_range <- all(c("ps_min", "ps_max") %in% names(rows_valid))
+    has_trimmed <- "n_trimmed" %in% names(rows_valid)
+    has_support_counts <- all(c("n_treated", "n_control") %in% names(rows_valid))
+    has_bootstrap_diagnostics <- all(
+      c("bootstrap_reps_valid", "bootstrap_success_rate") %in% names(rows_valid)
+    )
+    max_weight_cv <- weighted_weight_cv <- NA_real_
+    min_ps <- max_ps <- NA_real_
+    min_bootstrap_success_rate <- NA_real_
+    total_trimmed <- NA_integer_
+    min_n_treated <- max_n_treated <- NA_integer_
+    min_n_control <- max_n_control <- NA_integer_
+    min_bootstrap_reps_valid <- max_bootstrap_reps_failed <- NA_integer_
+
+    if (has_weight_cv) {
+      cv_vec <- as.numeric(rows_valid$weights_cv)
+      finite_cv <- is.finite(cv_vec)
+      if (any(finite_cv)) {
+        max_weight_cv <- max(cv_vec[finite_cv])
+        weighted_weight_cv <- sum(w_vec[finite_cv] * cv_vec[finite_cv]) /
+          sum(w_vec[finite_cv])
+      }
+    }
+    if (has_ps_range) {
+      ps_min_vec <- as.numeric(rows_valid$ps_min)
+      ps_max_vec <- as.numeric(rows_valid$ps_max)
+      finite_ps_min <- ps_min_vec[is.finite(ps_min_vec)]
+      finite_ps_max <- ps_max_vec[is.finite(ps_max_vec)]
+      if (length(finite_ps_min) > 0L) min_ps <- min(finite_ps_min)
+      if (length(finite_ps_max) > 0L) max_ps <- max(finite_ps_max)
+    }
+    if (has_trimmed) {
+      trimmed_vec <- as.numeric(rows_valid$n_trimmed)
+      finite_trimmed <- trimmed_vec[is.finite(trimmed_vec)]
+      if (length(finite_trimmed) > 0L) {
+        total_trimmed <- as.integer(sum(finite_trimmed))
+      }
+    }
+    if (has_support_counts) {
+      n_treated_vec <- as.numeric(rows_valid$n_treated)
+      n_control_vec <- as.numeric(rows_valid$n_control)
+      finite_treated <- n_treated_vec[is.finite(n_treated_vec)]
+      finite_control <- n_control_vec[is.finite(n_control_vec)]
+      if (length(finite_treated) > 0L) {
+        min_n_treated <- as.integer(min(finite_treated))
+        max_n_treated <- as.integer(max(finite_treated))
+      }
+      if (length(finite_control) > 0L) {
+        min_n_control <- as.integer(min(finite_control))
+        max_n_control <- as.integer(max(finite_control))
+      }
+    }
+    if (has_bootstrap_diagnostics) {
+      success_vec <- as.numeric(rows_valid$bootstrap_success_rate)
+      finite_success <- success_vec[is.finite(success_vec)]
+      if (length(finite_success) > 0L) {
+        min_bootstrap_success_rate <- min(finite_success)
+      }
+      valid_vec <- as.numeric(rows_valid$bootstrap_reps_valid)
+      finite_valid <- valid_vec[is.finite(valid_vec)]
+      if (length(finite_valid) > 0L) {
+        min_bootstrap_reps_valid <- as.integer(min(finite_valid))
+      }
+      if ("bootstrap_reps_failed" %in% names(rows_valid)) {
+        failed_vec <- as.numeric(rows_valid$bootstrap_reps_failed)
+        finite_failed <- failed_vec[is.finite(failed_vec)]
+        if (length(finite_failed) > 0L) {
+          max_bootstrap_reps_failed <- as.integer(max(finite_failed))
+        }
+      }
+    }
+
     # --- 9j: Select degrees of freedom ---
-    df <- select_degrees_of_freedom(cohort_dfs, w_vec, df_strategy, n_cohorts)
+    df <- if (identical(inference_dist, "t")) {
+      select_degrees_of_freedom(cohort_dfs, w_vec, df_strategy, n_cohorts)
+    } else {
+      NA_integer_
+    }
 
     # Verbose: check if all df are NA (R enhancement)
-    if (verbose && all(is.na(cohort_dfs))) {
+    if (identical(inference_dist, "t") && verbose && all(is.na(cohort_dfs))) {
       message(sprintf(
         "[aggregate_to_event_time] event_time=%d: all cohort df_inference are NA, using fallback df=%d",
         e, df))
@@ -1466,7 +1558,9 @@ aggregate_to_event_time <- function(cohort_time_effects,
     }
 
     # --- 9l: Compute p-value ---
-    if (is.finite(t_stat)) {
+    if (is.finite(t_stat) && identical(inference_dist, "normal")) {
+      pvalue <- 2 * stats::pnorm(abs(t_stat), lower.tail = FALSE)
+    } else if (is.finite(t_stat)) {
       pvalue <- 2 * stats::pt(abs(t_stat), df = df, lower.tail = FALSE)
     } else if (is.infinite(t_stat)) {
       pvalue <- 0
@@ -1476,7 +1570,9 @@ aggregate_to_event_time <- function(cohort_time_effects,
     }
 
     # --- 9m-o: Compute CI ---
-    if (df > 0) {
+    if (identical(inference_dist, "normal")) {
+      t_crit <- stats::qnorm(1 - alpha / 2)
+    } else if (df > 0) {
       t_crit <- stats::qt(1 - alpha / 2, df = df)
     } else {
       # R improvement: use qnorm instead of hardcoded 1.96
@@ -1495,10 +1591,22 @@ aggregate_to_event_time <- function(cohort_time_effects,
         att = as.numeric(att_vec[j]),
         se = as.numeric(se_vec[j])
       )
+      optional_contribution_cols <- intersect(
+        c(
+          "n", "n_treated", "n_control", "ps_min", "ps_max", "ps_mean",
+          "n_trimmed", "weights_cv", "n_matched", "match_rate", "n_dropped",
+          "bootstrap_reps_requested", "bootstrap_reps_valid",
+          "bootstrap_reps_failed", "bootstrap_success_rate"
+        ),
+        names(rows_valid)
+      )
+      for (col in optional_contribution_cols) {
+        cohort_contributions[[j]][[col]] <- rows_valid[[col]][j]
+      }
     }
 
     # --- 9q: Store result ---
-    results[[i]] <- list(
+    result_i <- list(
       event_time = as.integer(e),
       att = watt,
       se = se_watt,
@@ -1506,12 +1614,42 @@ aggregate_to_event_time <- function(cohort_time_effects,
       ci_upper = ci_upper,
       t_stat = t_stat,
       pvalue = pvalue,
-      df_inference = as.integer(df),
+      df_inference = if (identical(inference_dist, "normal")) {
+        NA_integer_
+      } else {
+        as.integer(df)
+      },
       n_cohorts = as.integer(n_cohorts),
       cohort_contributions = cohort_contributions,
       weight_sum = wv$weight_sum,
-      alpha = alpha
+      alpha = alpha,
+      inference_dist = inference_dist,
+      se_aggregation = "diagonal_weighted_cohort_se",
+      covariance_assumption = "zero_cross_cohort_covariance"
     )
+    if (has_weight_cv) {
+      result_i$max_weight_cv <- max_weight_cv
+      result_i$weighted_weight_cv <- weighted_weight_cv
+    }
+    if (has_ps_range) {
+      result_i$min_ps <- min_ps
+      result_i$max_ps <- max_ps
+    }
+    if (has_trimmed) {
+      result_i$total_trimmed <- total_trimmed
+    }
+    if (has_support_counts) {
+      result_i$min_n_treated <- min_n_treated
+      result_i$max_n_treated <- max_n_treated
+      result_i$min_n_control <- min_n_control
+      result_i$max_n_control <- max_n_control
+    }
+    if (has_bootstrap_diagnostics) {
+      result_i$min_bootstrap_success_rate <- min_bootstrap_success_rate
+      result_i$min_bootstrap_reps_valid <- min_bootstrap_reps_valid
+      result_i$max_bootstrap_reps_failed <- max_bootstrap_reps_failed
+    }
+    results[[i]] <- result_i
   }  # end for loop over event times
 
   # ========================================================================
@@ -1519,11 +1657,29 @@ aggregate_to_event_time <- function(cohort_time_effects,
   # ========================================================================
 
   # Results are already sorted since we iterated over sorted unique_event_times
+  results <- Filter(Negate(is.null), results)
+  event_time_omission_summary <- data.frame(
+    reason = character(0),
+    n = integer(0),
+    stringsAsFactors = FALSE
+  )
+  if (length(event_time_omissions) > 0L) {
+    omission_reasons <- vapply(
+      event_time_omissions, function(x) x$reason, character(1L)
+    )
+    omission_counts <- table(omission_reasons)
+    event_time_omission_summary <- data.frame(
+      reason = names(omission_counts),
+      n = as.integer(omission_counts),
+      stringsAsFactors = FALSE
+    )
+  }
+  attr(results, "event_time_omissions") <- event_time_omissions
+  attr(results, "event_time_omission_summary") <- event_time_omission_summary
 
   # --- Verbose summary via message() ---
   if (verbose) {
     n_total <- length(results)
-    n_valid <- n_total - n_nan_results
     et_range <- if (n_total > 0L) {
       sprintf("[%d, %d]",
               results[[1L]]$event_time,
@@ -1533,8 +1689,9 @@ aggregate_to_event_time <- function(cohort_time_effects,
     }
     message(sprintf(
       paste0("[aggregate_to_event_time] Summary: %d event times, ",
-             "%d valid, %d NaN. Range: %s. df_strategy='%s', alpha=%.3f"),
-      n_total, n_valid, n_nan_results, et_range, df_strategy, alpha))
+             "%d skipped. Range: %s. df_strategy='%s', inference='%s', alpha=%.3f"),
+      n_total, n_skipped_results, et_range, df_strategy,
+      inference_dist, alpha))
   }
 
   results

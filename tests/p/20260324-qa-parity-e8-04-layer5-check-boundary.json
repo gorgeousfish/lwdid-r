@@ -1,0 +1,53 @@
+{
+  "story": "story-E8-04",
+  "layer": "layer_5",
+  "role": "qa-parity",
+  "generated_at": "2026-03-24 18:24:56 CST",
+  "targeted_release_probe": {
+    "status": "passed",
+    "evidence": "/Users/cxy/Desktop/lwdid_r/_automation/test-artifacts/parity/20260324-qa-parity-e8-04-layer5-release-regression.md"
+  },
+  "targeted_test_reruns": [
+    {
+      "filter": "vce-return-values",
+      "status": "passed",
+      "notes": [
+        "T5e-01e now asserts the current 21-field estimate_ra_common contract",
+        "Remaining output is warning-only for few-cluster WCB advice"
+      ]
+    },
+    {
+      "filter": "vce-integration",
+      "status": "passed",
+      "notes": [
+        "T5-02d now compares HC3 vcov against lm(y ~ D) so coefficient names match the package fit"
+      ]
+    }
+  ],
+  "fresh_check": {
+    "status": "failed",
+    "errors": 1,
+    "warnings": 5,
+    "notes": 3,
+    "check_log": "/private/var/folders/80/yx4y3m9s2x19mghrsz2f8hkc0000gn/T/RtmpBCGjZ2/file17df57a8a6e3/lwdid.Rcheck/00check.log"
+  },
+  "live_test_blockers": [
+    "test-transform-detrend.R:378: muffle_detrend helper missing",
+    "test-utils.R:37: LWDID_VALID_AGGREGATE_LEVELS still expects the old three-level set and omits event_time",
+    "test-validate.R:1064: deferred aggregate + not_yet_treated path no longer emits the expected lwdid_data warning"
+  ],
+  "warning_buckets": [
+    "Rd files",
+    "Rd cross-references",
+    "missing documentation entries",
+    "code/documentation mismatches",
+    "Rd usage sections"
+  ],
+  "note_buckets": [
+    "R code for possible problems",
+    "package dependencies",
+    "future file timestamps"
+  ],
+  "blocker_boundary": "release-contracts-cleared-vce-stale-tests-cleared-live-error-now-transform-utils-validate",
+  "remaining_gap": "full check still blocked by test helper/contracts plus Rd/documentation hygiene"
+}

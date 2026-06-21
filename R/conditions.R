@@ -23,7 +23,7 @@
 #' @param gvar Character name of the cohort variable.
 #' @param invalid_values Vector of invalid cohort values.
 #' @param aggregate_type Character aggregation type associated with the error.
-#' @param method Character transformation or rolling method.
+#' @param method Character rolling transformation method.
 #' @param vce_type Character variance estimator type.
 #' @param treat_var Character treatment-variable name.
 #' @param n_units Integer number of units.

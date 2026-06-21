@@ -70,6 +70,73 @@ LWDID_VALID_AGGREGATE_LEVELS <- c("none", "cohort", "overall", "event_time")
 `%||%` <- function(a, b) if (is.null(a)) b else a
 
 # ============================================================================
+# Result Metadata Inference
+# ============================================================================
+
+#' Infer result-level design counts from stored result metadata
+#'
+#' @param data Optional estimation data.
+#' @param ivar Optional unit identifier column.
+#' @param tvar Optional time identifier column.
+#' @param cohorts Optional cohort vector.
+#' @param att_by_cohort Optional cohort-level effects.
+#' @param cohort_effects Optional cohort effects list.
+#' @return Named list with nullable integer counts.
+#' @keywords internal
+.infer_lwdid_design_counts <- function(data = NULL,
+                                       ivar = NULL,
+                                       tvar = NULL,
+                                       cohorts = NULL,
+                                       att_by_cohort = NULL,
+                                       cohort_effects = NULL) {
+  n_units <- NULL
+  n_periods <- NULL
+  n_cohorts <- NULL
+
+  if (is.data.frame(data)) {
+    if (is.character(ivar) && length(ivar) == 1L && ivar %in% names(data)) {
+      n_units <- as.integer(length(unique(data[[ivar]])))
+    }
+    if (is.character(tvar) && length(tvar) == 1L && tvar %in% names(data)) {
+      n_periods <- as.integer(length(unique(data[[tvar]])))
+    }
+  }
+
+  if (!is.null(cohorts)) {
+    cohort_values <- cohorts
+    if (is.numeric(cohort_values) || is.integer(cohort_values)) {
+      cohort_values <- cohort_values[
+        !is.na(cohort_values) & is.finite(cohort_values) & cohort_values != 0
+      ]
+    } else {
+      cohort_values <- cohort_values[!is.na(cohort_values)]
+    }
+    n_cohorts <- as.integer(length(unique(cohort_values)))
+  } else if (is.data.frame(att_by_cohort) && "cohort" %in% names(att_by_cohort)) {
+    n_cohorts <- as.integer(length(unique(att_by_cohort$cohort)))
+  } else if (is.list(cohort_effects) && length(cohort_effects) > 0L) {
+    cohort_ids <- vapply(cohort_effects, function(effect) {
+      if (is.list(effect) && !is.null(effect$cohort)) {
+        return(as.character(effect$cohort[1L]))
+      }
+      NA_character_
+    }, character(1))
+    cohort_ids <- cohort_ids[!is.na(cohort_ids)]
+    n_cohorts <- if (length(cohort_ids) > 0L) {
+      as.integer(length(unique(cohort_ids)))
+    } else {
+      as.integer(length(cohort_effects))
+    }
+  }
+
+  list(
+    n_units = n_units,
+    n_periods = n_periods,
+    n_cohorts = n_cohorts
+  )
+}
+
+# ============================================================================
 # NT Unit Identification Functions
 # ============================================================================
 
@@ -188,6 +255,39 @@ get_valid_periods_for_cohort <- function(cohort, T_max) {
 #' @keywords internal
 extract_cross_section <- function(dt, tvar, period) {
   dt[dt[[tvar]] == period, ]
+}
+
+# ============================================================================
+# Floating-Point Comparison Utilities
+# ============================================================================
+
+#' Safe floating-point comparison with tolerance
+#'
+#' Compares two numeric vectors element-wise allowing for floating-point
+#' imprecision. Used when comparing values that should theoretically be
+#' equal but may differ due to IEEE 754 representation.
+#'
+#' @param a Numeric vector.
+#' @param b Numeric vector or scalar.
+#' @param tol Tolerance (default: sqrt(.Machine$double.eps)).
+#' @return Logical vector.
+#' @keywords internal
+.nearly_equal <- function(a, b, tol = sqrt(.Machine$double.eps)) {
+  abs(a - b) < tol
+}
+
+#' Safe near-zero check
+#'
+#' Checks whether values are effectively zero within floating-point
+#' tolerance. Useful for variance checks where computed variance of a
+#' constant column may not be exactly zero.
+#'
+#' @param x Numeric vector.
+#' @param tol Tolerance (default: .Machine$double.eps * 100).
+#' @return Logical vector.
+#' @keywords internal
+.is_nearly_zero <- function(x, tol = .Machine$double.eps * 100) {
+  abs(x) < tol
 }
 
 # ============================================================================

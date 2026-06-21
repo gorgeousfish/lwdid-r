@@ -173,7 +173,7 @@ failure.}
 
 \item{aggregate_type}{Character aggregation type associated with the error.}
 
-\item{method}{Character transformation or rolling method.}
+\item{method}{Character rolling transformation method.}
 
 \item{vce_type}{Character variance estimator type.}
 

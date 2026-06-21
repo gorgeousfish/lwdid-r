@@ -46,7 +46,8 @@ score model controls. If NULL, \code{controls} is used.}
 \code{"ipwra"}, \code{"psm"}. Default \code{"ra"}.}
 
 \item{vce}{character(1) or NULL. Variance-covariance estimator type
-passed to RA estimator.}
+passed to RA estimator. Must be NULL for IPW, IPWRA, and PSM; use
+\code{se_method} for their estimator-specific uncertainty estimators.}
 
 \item{cluster_var}{character(1) or NULL. Cluster variable for RA.}
 
@@ -91,9 +92,13 @@ score diagnostics. Default FALSE.}
 A list with estimator-specific results, plus:
 \describe{
 \item{estimator}{character(1). The estimator used.}
-\item{inference_dist}{character(1). \code{"t"} for RA
-(Lee & Wooldridge 2026, Equation 2.10 exact t-inference),
+\item{inference_dist}{character(1). \code{"t"} for RA under
+the transformed cross-sectional regression assumptions,
 \code{"normal"} for IPW/IPWRA/PSM (asymptotic normality).}
+\item{vce_type}{character(1). The displayed uncertainty method:
+RA VCE label, \code{"analytical"} or \code{"bootstrap"} for
+IPW/IPWRA, and \code{"abadie_imbens"} or \code{"bootstrap"}
+for PSM.}
 }
 }
 \description{

@@ -326,7 +326,7 @@ test_that("print: displays header and metadata", {
   )
   out <- capture.output(print(result))
   out_text <- paste(out, collapse = "\n")
-  expect_true(grepl("Local Wald DID", out_text))
+  expect_true(grepl("Lee-Wooldridge DiD Estimation", out_text))
   expect_true(grepl("staggered", out_text))
   expect_true(grepl("demean", out_text, ignore.case = TRUE))
   expect_true(grepl("none", out_text))

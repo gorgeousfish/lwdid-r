@@ -22,12 +22,109 @@ test_that("E8-07.1: get_diagnostics returns normalized diagnostics entries", {
 
   expect_named(
     all_diags,
-    c("clustering", "selection", "trends", "sensitivity")
+    c("clustering", "selection", "trends", "propensity", "sensitivity")
   )
   expect_identical(all_diags$selection, selection_diag)
   expect_identical(all_diags$trends, trend_diag)
   expect_null(all_diags$clustering)
+  expect_null(all_diags$propensity)
   expect_null(all_diags$sensitivity)
+})
+
+diagnostics_castle_suite <- local({
+  suite <- NULL
+  function() {
+    if (is.null(suite)) {
+      data(castle, package = "lwdid")
+      suite <<- suppressWarnings(lwdid_diagnose(
+        castle,
+        y = "lhomicide",
+        ivar = "sid",
+        tvar = "year",
+        gvar = "gvar",
+        controls = c("income", "unemployrt", "poverty"),
+        cluster_vars = c("state_name"),
+        run_all_trend_diagnostics = FALSE,
+        verbose = FALSE
+      ))
+    }
+    suite
+  }
+})
+
+diagnostics_smoking_suite <- local({
+  suite <- NULL
+  function() {
+    if (is.null(suite)) {
+      data(smoking, package = "lwdid")
+      suite <<- suppressWarnings(lwdid_diagnose(
+        smoking,
+        y = "lcigsale",
+        ivar = "state",
+        tvar = "year",
+        d = "d",
+        controls = c("lretprice", "lnincome"),
+        cluster_vars = NULL,
+        run_all_trend_diagnostics = FALSE,
+        verbose = FALSE
+      ))
+    }
+    suite
+  }
+})
+
+diagnostics_smoking_base_result <- local({
+  result <- NULL
+  function() {
+    if (is.null(result)) {
+      data(smoking, package = "lwdid")
+      result <<- suppressWarnings(lwdid(
+        smoking,
+        y = "lcigsale",
+        ivar = "state",
+        tvar = "year",
+        d = "d",
+        post = "post",
+        verbose = "quiet"
+      ))
+    }
+    result
+  }
+})
+
+diagnostics_smoking_diagnosed_quiet <- local({
+  cached <- NULL
+  function() {
+    if (is.null(cached)) {
+      data(smoking, package = "lwdid")
+      captured_messages <- character(0)
+      captured_output <- capture.output(
+        diagnosed_result <- withCallingHandlers(
+          suppressWarnings(lwdid(
+            smoking,
+            y = "lcigsale",
+            ivar = "state",
+            tvar = "year",
+            d = "d",
+            post = "post",
+            return_diagnostics = TRUE,
+            verbose = "quiet"
+          )),
+          message = function(m) {
+            captured_messages <<- c(captured_messages, conditionMessage(m))
+            invokeRestart("muffleMessage")
+          }
+        ),
+        type = "output"
+      )
+      cached <<- list(
+        result = diagnosed_result,
+        output = captured_output,
+        messages = captured_messages
+      )
+    }
+    cached
+  }
 })
 
 test_that("E8-07.1: get_diagnostics returns type-specific diagnostics", {
@@ -66,7 +163,23 @@ test_that("E8-07.1: get_diagnostics validates input object and type", {
   result <- new_lwdid_result(att = 1, se_att = 0.2, df_inference = 10L)
 
   expect_error(get_diagnostics(list(), "all"), "lwdid")
-  expect_error(get_diagnostics(result, "invalid"), "all, clustering, selection, trends, sensitivity")
+  expect_error(
+    get_diagnostics(result, "invalid"),
+    "all, clustering, selection, trends, propensity, sensitivity"
+  )
+})
+
+test_that("E8-07.2: lwdid_diagnose validates trend diagnostics switch", {
+  expect_error(
+    lwdid_diagnose(
+      data.frame(id = 1L, year = 1L, y = 1),
+      y = "y",
+      ivar = "id",
+      tvar = "year",
+      run_all_trend_diagnostics = NA
+    ),
+    "run_all_trend_diagnostics must be TRUE or FALSE"
+  )
 })
 
 test_that("E8-07.2: lwdid_diagnose matches direct diagnostics on castle real data", {
@@ -99,16 +212,7 @@ test_that("E8-07.2: lwdid_diagnose matches direct diagnostics on castle real dat
     verbose = FALSE
   ))
 
-  suite <- suppressWarnings(lwdid_diagnose(
-    castle,
-    y = "lhomicide",
-    ivar = "sid",
-    tvar = "year",
-    gvar = "gvar",
-    controls = c("income", "unemployrt", "poverty"),
-    cluster_vars = c("state_name"),
-    verbose = FALSE
-  ))
+  suite <- diagnostics_castle_suite()
 
   expect_s3_class(suite, "lwdid_diagnostics_suite")
   expect_identical(
@@ -160,16 +264,7 @@ test_that("E8-07.2: lwdid_diagnose handles common-timing smoking data", {
     verbose = FALSE
   )
 
-  suite <- lwdid_diagnose(
-    smoking,
-    y = "lcigsale",
-    ivar = "state",
-    tvar = "year",
-    d = "d",
-    controls = c("lretprice", "lnincome"),
-    cluster_vars = NULL,
-    verbose = FALSE
-  )
+  suite <- diagnostics_smoking_suite()
 
   expect_s3_class(suite, "lwdid_diagnostics_suite")
   expect_null(suite$clustering)
@@ -209,6 +304,7 @@ test_that("E8-07.2: lwdid_diagnose respects custom never-treated markers", {
     gvar = "gvar",
     controls = c("income", "unemployrt", "poverty"),
     cluster_vars = NULL,
+    run_all_trend_diagnostics = FALSE,
     verbose = FALSE
   ))
   custom_suite <- suppressWarnings(lwdid_diagnose(
@@ -220,6 +316,7 @@ test_that("E8-07.2: lwdid_diagnose respects custom never-treated markers", {
     controls = c("income", "unemployrt", "poverty"),
     cluster_vars = NULL,
     never_treated_values = 999,
+    run_all_trend_diagnostics = FALSE,
     verbose = FALSE
   ))
 
@@ -256,6 +353,7 @@ test_that("E8-07.2: lwdid_diagnose isolates failing modules", {
       gvar = "gvar",
       controls = c("income", "unemployrt", "poverty"),
       cluster_vars = c("missing_cluster"),
+      run_all_trend_diagnostics = FALSE,
       verbose = FALSE
     ),
     warning = function(w) {
@@ -274,51 +372,70 @@ test_that("E8-07.2: lwdid_diagnose isolates failing modules", {
 test_that("E8-07.2: diagnostics suite print and summary expose module summaries", {
   data(castle, package = "lwdid")
 
-  suite <- suppressWarnings(lwdid_diagnose(
-    castle,
-    y = "lhomicide",
-    ivar = "sid",
-    tvar = "year",
-    gvar = "gvar",
-    controls = c("income", "unemployrt", "poverty"),
-    cluster_vars = c("state_name"),
-    verbose = FALSE
-  ))
+  suite <- diagnostics_castle_suite()
 
   expect_output(print(suite), "^lwdid", perl = TRUE)
   expect_output(summary(suite), "Transformation Recommendation")
 })
 
 test_that("E8-07.3: return_diagnostics attaches staggered diagnostics without changing estimates", {
-  data(castle, package = "lwdid")
+  base_result <- new_lwdid_result(
+    att = 1.25,
+    se_att = 0.15,
+    df_inference = 8L,
+    diagnostics = list(controls_tier = "none")
+  )
+  selection_diag <- structure(
+    list(selection_risk = "Low"),
+    class = "lwdid_selection_diagnosis"
+  )
+  trend_diag <- structure(
+    list(recommended_method = "demean", confidence_level = "High"),
+    class = "lwdid_transformation_recommendation"
+  )
+  clustering_diag <- structure(
+    list(recommended_cluster_var = "state_name"),
+    class = "lwdid_clustering_diagnosis"
+  )
 
-  base_result <- suppressWarnings(lwdid(
-    castle,
-    y = "lhomicide",
-    ivar = "sid",
-    tvar = "year",
-    gvar = "gvar",
-    controls = c("income", "unemployrt", "poverty"),
-    cluster_var = "state_name",
-    aggregate = "cohort",
-    verbose = "quiet"
-  ))
+  trend_args <- NULL
+  testthat::local_mocked_bindings(
+    diagnose_selection_mechanism = function(...) selection_diag,
+    lwdid_recommend_transformation = function(...) {
+      trend_args <<- list(...)
+      trend_diag
+    },
+    diagnose_clustering = function(...) clustering_diag,
+    .package = "lwdid"
+  )
 
-  diagnosed_result <- suppressWarnings(lwdid(
-    castle,
-    y = "lhomicide",
-    ivar = "sid",
-    tvar = "year",
-    gvar = "gvar",
-    controls = c("income", "unemployrt", "poverty"),
-    cluster_var = "state_name",
-    aggregate = "cohort",
-    return_diagnostics = TRUE,
-    verbose = "quiet"
-  ))
+  diagnosed_result <- .attach_mainline_diagnostics(
+    base_result,
+    list(
+      data = data.frame(
+        id = rep(1:4, each = 3),
+        year = rep(1:3, times = 4),
+        y = 1:12,
+        gvar = rep(c(3, 3, Inf, Inf), each = 3),
+        state_name = rep(c("A", "A", "B", "B"), each = 3)
+      ),
+      validated_params = list(
+        ivar = "id",
+        tvar = "year",
+        depvar = "y",
+        gvar = "gvar",
+        d = NULL,
+        controls = NULL,
+        cluster_var = "state_name",
+        never_treated_values = c(0, Inf)
+      ),
+      never_treated_values = c(0, Inf)
+    )
+  )
 
   expect_identical(diagnosed_result$att, base_result$att)
   expect_identical(diagnosed_result$se_att, base_result$se_att)
+  expect_true(isTRUE(trend_args$run_all_diagnostics))
   expect_s3_class(
     get_diagnostics(diagnosed_result, "selection"),
     "lwdid_selection_diagnosis"
@@ -334,43 +451,14 @@ test_that("E8-07.3: return_diagnostics attaches staggered diagnostics without ch
 })
 
 test_that("E8-07.3: common-timing mainline diagnostics skip clustering and stay quiet", {
-  data(smoking, package = "lwdid")
-
-  base_result <- suppressWarnings(lwdid(
-    smoking,
-    y = "lcigsale",
-    ivar = "state",
-    tvar = "year",
-    d = "d",
-    post = "post",
-    verbose = "quiet"
-  ))
-
-  captured_messages <- character(0)
-  captured_output <- capture.output(
-    diagnosed_result <- withCallingHandlers(
-      suppressWarnings(lwdid(
-        smoking,
-        y = "lcigsale",
-        ivar = "state",
-        tvar = "year",
-        d = "d",
-        post = "post",
-        return_diagnostics = TRUE,
-        verbose = "quiet"
-      )),
-      message = function(m) {
-        captured_messages <<- c(captured_messages, conditionMessage(m))
-        invokeRestart("muffleMessage")
-      }
-    ),
-    type = "output"
-  )
+  base_result <- diagnostics_smoking_base_result()
+  quiet_run <- diagnostics_smoking_diagnosed_quiet()
+  diagnosed_result <- quiet_run$result
 
   expect_identical(diagnosed_result$att, base_result$att)
   expect_identical(diagnosed_result$se_att, base_result$se_att)
-  expect_length(captured_output, 0L)
-  expect_length(captured_messages, 0L)
+  expect_length(quiet_run$output, 0L)
+  expect_length(quiet_run$messages, 0L)
   expect_s3_class(
     get_diagnostics(diagnosed_result, "selection"),
     "lwdid_selection_diagnosis"
@@ -384,18 +472,7 @@ test_that("E8-07.3: common-timing mainline diagnostics skip clustering and stay 
 
 test_that("E8-07.3: diagnostics plot consumes mainline selection diagnostics shape", {
   skip_if_not_installed("ggplot2")
-  data(smoking, package = "lwdid")
-
-  diagnosed_result <- suppressWarnings(lwdid(
-    smoking,
-    y = "lcigsale",
-    ivar = "state",
-    tvar = "year",
-    d = "d",
-    post = "post",
-    return_diagnostics = TRUE,
-    verbose = "quiet"
-  ))
+  diagnosed_result <- diagnostics_smoking_diagnosed_quiet()$result
 
   selection_plot <- plot(
     diagnosed_result,
@@ -532,17 +609,7 @@ test_that("E8-07.5.4: lwdid_diagnose survives tiny-sample input", {
 })
 
 test_that("E8-07.5.4: default mainline keeps only legacy controls metadata when diagnostics are off", {
-  data(smoking, package = "lwdid")
-
-  result <- suppressWarnings(lwdid(
-    smoking,
-    y = "lcigsale",
-    ivar = "state",
-    tvar = "year",
-    d = "d",
-    post = "post",
-    verbose = "quiet"
-  ))
+  result <- diagnostics_smoking_base_result()
 
   expect_named(result$diagnostics, "controls_tier")
   expect_true(is.character(result$diagnostics$controls_tier))

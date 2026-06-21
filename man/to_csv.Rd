@@ -19,3 +19,6 @@ invisible file path.
 S3 generic for writing estimation results to CSV files or returning
 CSV-formatted strings.
 }
+\seealso{
+\code{\link{to_latex}}, \code{\link{to_dict}}
+}

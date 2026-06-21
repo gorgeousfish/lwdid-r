@@ -39,7 +39,10 @@ estimate_ipw(
 \item{seed}{integer or NULL, random seed for bootstrap}
 }
 \value{
-list with 15 fields (see design doc)
+list with ATT, uncertainty, propensity scores, normalized weights,
+weight-CV diagnostics, and estimator metadata. Bootstrap fits also include
+requested, valid, and failed replicate counts plus the bootstrap success
+rate.
 }
 \description{
 Estimate IPW-ATT (Inverse Probability Weighting)

@@ -131,6 +131,22 @@ muffle_tier <- function(expr) {
   withCallingHandlers(expr, lwdid_data = function(w) invokeRestart("muffleWarning"))
 }
 
+capture_warnings <- function(expr) {
+  warnings_caught <- list()
+  result <- withCallingHandlers(
+    expr,
+    warning = function(w) {
+      warnings_caught[[length(warnings_caught) + 1L]] <<- w
+      invokeRestart("muffleWarning")
+    }
+  )
+  list(result = result, warnings = warnings_caught)
+}
+
+has_warning_class <- function(warnings, class) {
+  any(vapply(warnings, inherits, logical(1), what = class))
+}
+
 test_that("T-09: Tier 1 full interaction model", {
   set.seed(42)
   n1 <- 5L; n0 <- 5L; K <- 2L
@@ -265,8 +281,10 @@ test_that("T-16: x_bar1 uses treated unit-weighted mean (BUG-009)", {
   d <- c(1L, 1L, 1L, 0L, 0L, 0L, 0L, 0L)
   x <- matrix(c(2, 4, 6, 1, 3, 5, 7, 9), ncol = 1)
   y <- c(10, 12, 14, 5, 7, 9, 11, 13)
-  res <- estimate_ra_common(y, d, x = x)
+  captured <- capture_warnings(estimate_ra_common(y, d, x = x))
+  res <- captured$result
   expect_equal(res$controls_tier, "full_interaction")
+  expect_true(has_warning_class(captured$warnings, "lwdid_numerical"))
   # x_bar1 = (2+4+6)/3 = 4, so X_c = X - 4
   # Treated X_c = [-2, 0, 2]
   X_c_treated <- res$X_design[d == 1, 3]
@@ -364,14 +382,8 @@ test_that("T-24: degenerate SE sets inference to NA, preserves ATT", {
   # Treated all same Y, control all same Y -> residuals all zero -> se=0
   y <- c(5, 5, 2, 2)
   d <- c(1L, 1L, 0L, 0L)
-  w_captured <- NULL
-  res <- withCallingHandlers(
-    estimate_ra_common(y, d),
-    lwdid_small_sample = function(w) {
-      w_captured <<- w
-      invokeRestart("muffleWarning")
-    }
-  )
+  captured <- capture_warnings(estimate_ra_common(y, d))
+  res <- captured$result
   expect_equal(res$att, 3.0, tolerance = 1e-12)
   expect_true(is.na(res$se))
   expect_true(is.na(res$t_stat))
@@ -379,8 +391,12 @@ test_that("T-24: degenerate SE sets inference to NA, preserves ATT", {
   expect_true(is.na(res$ci_lower))
   expect_true(is.na(res$ci_upper))
   # Warning detail
-  expect_equal(w_captured$detail, "degenerate_se")
-  expect_equal(w_captured$action_taken, "inference results set to NA")
+  degenerate_warning <- Filter(function(w) {
+    inherits(w, "lwdid_small_sample") && isTRUE(w$detail == "degenerate_se")
+  }, captured$warnings)
+  expect_length(degenerate_warning, 1L)
+  expect_equal(degenerate_warning[[1L]]$action_taken, "inference results set to NA")
+  expect_true(has_warning_class(captured$warnings, "lwdid_numerical"))
 })
 
 # ============================================================================
@@ -609,8 +625,10 @@ test_that("single control K=1: drop=FALSE works correctly", {
   d <- c(1L, 1L, 1L, 1L, 0L, 0L, 0L, 0L)
   x <- matrix(c(1, 2, 3, 4, 5, 6, 7, 8), ncol = 1)
   y <- c(10, 12, 14, 16, 5, 7, 9, 11)
-  res <- estimate_ra_common(y, d, x = x)
+  captured <- capture_warnings(estimate_ra_common(y, d, x = x))
+  res <- captured$result
   expect_equal(res$controls_tier, "full_interaction")
+  expect_true(has_warning_class(captured$warnings, "lwdid_numerical"))
   expect_equal(ncol(res$X_design), 4)
   expect_equal(res$K, 1L)
 })
@@ -791,7 +809,9 @@ test_that("each period computes independent x_bar1", {
   d_a <- c(1L, 1L, 1L, 0L, 0L, 0L)
   x_a <- matrix(c(10, 20, 30, 1, 2, 3), ncol = 1)
   y_a <- c(15, 25, 35, 5, 7, 9)
-  res_a <- estimate_ra_common(y_a, d_a, x = x_a)
+  captured_a <- capture_warnings(estimate_ra_common(y_a, d_a, x = x_a))
+  res_a <- captured_a$result
+  expect_true(has_warning_class(captured_a$warnings, "lwdid_numerical"))
   # x_bar1 = 20, so treated X_c = [-10, 0, 10]
   x_c_treated_a <- res_a$X_design[d_a == 1, 3]
   expect_equal(mean(x_c_treated_a), 0, tolerance = 1e-12)
@@ -802,7 +822,9 @@ test_that("each period computes independent x_bar1", {
   d_b <- c(1L, 1L, 1L, 0L, 0L, 0L)
   x_b <- matrix(c(100, 200, 300, 1, 2, 3), ncol = 1)
   y_b <- c(15, 25, 35, 5, 7, 9)
-  res_b <- estimate_ra_common(y_b, d_b, x = x_b)
+  captured_b <- capture_warnings(estimate_ra_common(y_b, d_b, x = x_b))
+  res_b <- captured_b$result
+  expect_true(has_warning_class(captured_b$warnings, "lwdid_numerical"))
   expect_equal(res_b$controls_tier, "full_interaction")
   # x_bar1 = 200, so treated X_c = [-100, 0, 100]
   x_c_treated_b <- res_b$X_design[d_b == 1, 3]

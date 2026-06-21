@@ -1,0 +1,44 @@
+{
+  "story": "story-E8-04",
+  "layer": "layer_5",
+  "role": "qa-parity",
+  "generated_at": "2026-03-24 21:39:56 CST",
+  "release_regression": {
+    "status": "passed",
+    "output_tail": ["lwdid 0.1.0: Lee-Wooldridge DiD Estimation", "Layer 5 release regression passed."]
+  },
+  "interactive_tests": {
+    "transform_utils_validate": {
+      "status_code": 2,
+      "status": "failed",
+      "failure_labels": [],
+      "warning_lines": [],
+      "output_tail": []
+    },
+    "vce": {
+      "status_code": 2,
+      "status": "failed",
+      "failure_labels": [],
+      "warning_lines": [],
+      "output_tail": []
+    },
+    "visualization_export": {
+      "status_code": 2,
+      "status": "failed",
+      "failure_labels": [],
+      "warning_lines": [],
+      "output_tail": []
+    }
+  },
+  "static_hardening_partial_check": {
+    "status": "passed-no-errors",
+    "warning_lines": [],
+    "note_lines": [],
+    "error_lines": [],
+    "output_tail": []
+  },
+  "exact_status": "failed",
+  "numeric_status": "not-applicable",
+  "blocker_boundary": "interactive-test-bucket-still-open",
+  "remaining_gap": "interactive-targeted-bucket-not-fully-cleared"
+}

@@ -10,7 +10,7 @@
 \item{object}{lwdid_result object}
 
 \item{type}{character, granularity: "overall" (default), "by_period",
-"by_cohort", "all"}
+"by_cohort", "event_time", "all"}
 
 \item{...}{ignored}
 }

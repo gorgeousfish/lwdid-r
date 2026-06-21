@@ -9,6 +9,22 @@
 # Section 0: Test DGP Helper (TC-7.3.1 / TC-7.3.2 setup)
 # ============================================================================
 
+capture_warnings <- function(expr) {
+  warnings_caught <- list()
+  result <- withCallingHandlers(
+    expr,
+    warning = function(w) {
+      warnings_caught[[length(warnings_caught) + 1L]] <<- w
+      invokeRestart("muffleWarning")
+    }
+  )
+  list(result = result, warnings = warnings_caught)
+}
+
+has_warning_class <- function(warnings, class) {
+  any(vapply(warnings, inherits, logical(1), what = class))
+}
+
 #' Generate panel data for pre-treatment testing
 #' @param n_treat Number of treated units
 #' @param n_ctrl Number of control units
@@ -363,13 +379,18 @@ test_that("TC-7.3.10: estimator failure degrades to NA row", {
   dt <- make_pretreat_dgp(tpost1 = 5L, seed = 800L)
   # ipwra requires controls; passing NULL should cause failure
   # which gets caught by tryCatch and returns NA
-  expect_warning(
-    res <- estimate_pre_treatment_common(
-      dt, y = "y", ivar = "unit", d = "d",
-      tvar = "time", tpost1 = 5L,
-      estimator = "ipwra", controls = NULL
-    )
-  )
+  warning_capture <- capture_warnings(estimate_pre_treatment_common(
+    dt, y = "y", ivar = "unit", d = "d",
+    tvar = "time", tpost1 = 5L,
+    estimator = "ipwra", controls = NULL
+  ))
+  res <- warning_capture$result
+  warning_messages <- vapply(warning_capture$warnings, conditionMessage, character(1))
+  expect_true(any(grepl(
+    "ipwra|controls|failed",
+    warning_messages,
+    ignore.case = TRUE
+  )))
   # Should still return a data.frame (not error out)
   expect_s3_class(res, "data.frame")
   expect_equal(ncol(res), 14L)
@@ -444,10 +465,12 @@ test_that("TC-7.3.14: detrend OLS on symmetric ref periods", {
     d = rep(c(1L, 1L, 0L), each = 7L)
   )
 
-  res <- estimate_pre_treatment_common(
+  warning_capture <- capture_warnings(estimate_pre_treatment_common(
     dt, y = "y", ivar = "unit", d = "d",
     tvar = "time", tpost1 = 5L, rolling = "detrend"
-  )
+  ))
+  res <- warning_capture$result
+  expect_true(has_warning_class(warning_capture$warnings, "lwdid_numerical"))
 
   # For t=2, ref_periods = {3, 4}
   # Unit 1: OLS on (3,2.5),(4,3.0) => alpha=1, beta=0.5
@@ -497,14 +520,19 @@ test_that("TC-7.3.15: detrend degrades to demean with 1 ref period", {
     d = rep(c(1L, 1L, 0L), each = 5L)
   )
 
-  res_detrend <- estimate_pre_treatment_common(
+  detrend_capture <- capture_warnings(estimate_pre_treatment_common(
     dt, y = "y", ivar = "unit", d = "d",
     tvar = "time", tpost1 = 4L, rolling = "detrend"
-  )
-  res_demean <- estimate_pre_treatment_common(
+  ))
+  res_detrend <- detrend_capture$result
+  expect_true(has_warning_class(detrend_capture$warnings, "lwdid_numerical"))
+
+  demean_capture <- capture_warnings(estimate_pre_treatment_common(
     dt, y = "y", ivar = "unit", d = "d",
     tvar = "time", tpost1 = 4L, rolling = "demean"
-  )
+  ))
+  res_demean <- demean_capture$result
+  expect_true(has_warning_class(demean_capture$warnings, "lwdid_numerical"))
 
   # For t=2, ref={3} (1 period): detrend should equal demean
   t2_detrend <- res_detrend[res_detrend$period == 2L, ]
@@ -536,10 +564,12 @@ test_that("TC-7.3.16: raw data input, transform matches manual", {
     d = rep(c(1L, 1L, 0L, 0L), each = 6L)
   )
 
-  res <- estimate_pre_treatment_common(
+  warning_capture <- capture_warnings(estimate_pre_treatment_common(
     dt, y = "y", ivar = "unit", d = "d",
     tvar = "time", tpost1 = 5L, rolling = "demean"
-  )
+  ))
+  res <- warning_capture$result
+  expect_true(has_warning_class(warning_capture$warnings, "lwdid_numerical"))
 
   # Manual calculation for t=2, ref_periods = {3, 4}
   # Unit 1: ref_mean = (30+40)/2 = 35, y_trans = 20 - 35 = -15

@@ -115,6 +115,11 @@ run_seasonal_wcb_public_smoke <- function(seed = 42L) {
   )
 }
 
+testthat::skip_if_not(
+  identical(Sys.getenv("LWDID_RUN_EVIDENCE_TESTS"), "true"),
+  "Set LWDID_RUN_EVIDENCE_TESTS=true to run long seasonal/WCB evidence tests."
+)
+
 make_e906_quarterly_panel <- function() {
   data.frame(
     id = rep(1L, 6L),

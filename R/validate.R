@@ -589,6 +589,39 @@ FREQ_LABELS <- list("4" = "quarter", "12" = "month", "52" = "week")
   invisible(NULL)
 }
 
+#' Validate numeric variables do not contain infinite values
+#'
+#' @param data data.frame
+#' @param vars character vector of variables to inspect.
+#' @param estimator character scalar used in the error message.
+#' @return NULL (invisible).
+#' @keywords internal
+.validate_no_infinite_numeric_values <- function(data, vars, estimator) {
+  vars <- unique(vars)
+  bad_vars <- character(0)
+
+  for (v in vars) {
+    col <- data[[v]]
+    if ((is.numeric(col) || is.integer(col)) &&
+        any(!is.na(col) & !is.finite(col))) {
+      bad_vars <- c(bad_vars, v)
+    }
+  }
+
+  if (length(bad_vars) > 0L) {
+    stop_lwdid(
+      sprintf("%s input variable(s) contain infinite values: %s",
+              estimator, paste(bad_vars, collapse = ", ")),
+      class = "lwdid_invalid_data",
+      param = "data",
+      value = bad_vars,
+      allowed = "finite numeric values"
+    )
+  }
+
+  invisible(NULL)
+}
+
 
 # ============================================================================
 # Layer 5: Time-invariance validation (Common Timing only)
@@ -709,6 +742,22 @@ FREQ_LABELS <- list("4" = "quarter", "12" = "month", "52" = "week")
   controls, ps_controls, aggregate, control_group,
   graph, ri, rireps, ri_method, exclude_pre_periods, Q, mode
 ) {
+  # J0: vce is an RA/OLS inference option. IPW/IPWRA/PSM expose their
+  # estimator-specific uncertainty estimators through se_method.
+  if (!is.null(vce) && !identical(estimator, "ra")) {
+    stop_lwdid(
+      message = paste0(
+        "vce is only supported when estimator='ra'. ",
+        sprintf("Got estimator='%s' with vce='%s'. ", estimator, vce),
+        "For IPW/IPWRA use se_method='analytical' or 'bootstrap'; ",
+        "for PSM use se_method='abadie_imbens' or 'bootstrap'."
+      ),
+      class = "lwdid_invalid_parameter",
+      param = "vce", value = vce,
+      allowed = "NULL for estimator='ipw', 'ipwra', or 'psm'"
+    )
+  }
+
   # J1: vce requires cluster_var
   if ((!is.null(vce)) && vce %in% c("cluster", "bootstrap") &&
       is.null(cluster_var)) {
@@ -1969,7 +2018,9 @@ FREQ_LABELS <- list("4" = "quarter", "12" = "month", "52" = "week")
 #' @param with_replacement logical(1). PSM with replacement.
 #' @param match_order character(1). PSM match order.
 #' @param return_diagnostics logical(1). Return PS diagnostics.
-#' @param vce character(1) or NULL. Variance estimator type.
+#' @param vce character(1) or NULL. Variance estimator type. Supported
+#'   for \code{estimator = "ra"} only; IPW, IPWRA, and PSM require
+#'   \code{vce = NULL} and use \code{se_method}.
 #' @param cluster_var character(1) or NULL. Cluster variable.
 #' @param alpha numeric(1). Significance level.
 #' @param ri logical(1). Randomization inference.
@@ -2112,6 +2163,7 @@ validate_inputs <- function(
   # ==== Layer 4: Data type validation ====
   .validate_outcome_dtype(data, y)
   .validate_controls_dtype(data, controls)
+  .validate_controls_dtype(data, ps_controls)
 
   # ==== Layer 5: Time-invariance (CT only) ====
   if (mode == "common_timing") {

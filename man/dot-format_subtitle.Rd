@@ -4,7 +4,14 @@
 \alias{.format_subtitle}
 \title{Format subtitle string for event study plot}
 \usage{
-.format_subtitle(aggregation, df_strategy, df_values, is_staggered)
+.format_subtitle(
+  aggregation,
+  df_strategy,
+  df_values,
+  is_staggered,
+  facet_by_cohort = FALSE,
+  inference_dist = "t"
+)
 }
 \arguments{
 \item{aggregation}{Character: "mean" or "weighted".}
@@ -14,6 +21,12 @@
 \item{df_values}{Numeric vector of df_inference values from plot data.}
 
 \item{is_staggered}{Logical: whether the result is from staggered mode.}
+
+\item{facet_by_cohort}{Logical: whether the plot shows cohort-specific
+estimates instead of an aggregated event-study path.}
+
+\item{inference_dist}{Character: \code{"t"} or \code{"normal"} inference
+scale used for confidence intervals.}
 }
 \value{
 Character string for use as plot subtitle.

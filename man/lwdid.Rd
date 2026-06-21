@@ -94,9 +94,12 @@ mode. One of \code{"not_yet_treated"}, \code{"never_treated"},
 One of \code{"none"}, \code{"cohort"}, \code{"overall"}.
 Default \code{"cohort"}.}
 
-\item{event_time_range}{Numeric vector of length 2 or NULL. Used when
-\code{aggregate = "event_time"} to keep only event times in
-\code{c(min_e, max_e)}.}
+\item{event_time_range}{Finite numeric vector of length 2 or NULL. Used when
+\code{aggregate = "event_time"} to keep only post-treatment WATT(e) rows
+with event times in \code{c(min_e, max_e)}, where
+\code{min_e <= max_e}. Pre-treatment display rows are controlled
+separately by \code{include_pretreatment} in fitting and
+\code{show_pre_treatment} in plotting.}
 
 \item{df_strategy}{Character(1). Degrees-of-freedom aggregation strategy for
 event-time summaries. One of \code{"conservative"}, \code{"weighted"}, or
@@ -109,14 +112,26 @@ Case-insensitive. Default \code{"demean"}.}
 \item{estimator}{character(1). Estimator type. One of \code{"ra"},
 \code{"ipw"}, \code{"ipwra"}, \code{"psm"}. Default \code{"ra"}.}
 
-\item{controls}{character vector or NULL. Names of control variable columns.}
+\item{controls}{character vector or NULL. Names of outcome-regression
+control variable columns. For \code{estimator = "ra"}, these controls
+enter the regression adjustment model. For \code{estimator = "ipwra"},
+they enter the outcome model; propensity-score controls are taken from
+\code{ps_controls} when supplied, otherwise from \code{controls}. For
+\code{estimator = "ipw"} or \code{"psm"}, \code{controls} are used as
+propensity-score controls only when \code{ps_controls = NULL}.}
 
-\item{ps_controls}{character vector or NULL. Names of propensity score
-model control variable columns.}
+\item{ps_controls}{character vector or NULL. Names of propensity-score
+model control variable columns for \code{estimator = "ipw"},
+\code{"ipwra"}, or \code{"psm"}. If NULL, those estimators fall back to
+\code{controls}. When supplied for IPW or PSM, unused \code{controls}
+do not enter the estimator frame or complete-case filtering.}
 
 \item{vce}{character(1) or NULL. Variance-covariance estimator type.
 One of \code{NULL}, \code{"hc0"}-\code{"hc4"}, \code{"robust"},
-\code{"cluster"}, \code{"bootstrap"}.}
+\code{"cluster"}, \code{"bootstrap"}. Supported for
+\code{estimator = "ra"} only; IPW, IPWRA, and PSM use
+\code{se_method} for estimator-specific analytical or bootstrap
+uncertainty estimation and require \code{vce = NULL}.}
 
 \item{cluster_var}{character(1) or NULL. Name of the cluster variable
 column. Required when \code{vce} is \code{"cluster"} or
@@ -260,8 +275,9 @@ The function performs the following steps:
 }
 }
 \details{
-When \code{estimator = "ra"} (default), inference uses the exact
-t-distribution (Lee & Wooldridge 2026, Equation 2.10). For
+When \code{estimator = "ra"} (default), inference uses
+t-distribution critical values under the transformed cross-sectional
+regression assumptions discussed by Lee and Wooldridge (2026). For
 \code{estimator = "ipw"}, \code{"ipwra"}, or \code{"psm"}, inference
 uses the asymptotic normal distribution based on:
 \itemize{
@@ -272,6 +288,18 @@ uses the asymptotic normal distribution based on:
 This distinction affects confidence interval construction: RA uses
 \code{qt(1 - alpha/2, df)} critical values, while IPW/IPWRA/PSM
 use \code{qnorm(1 - alpha/2)}.
+In staggered designs with \code{aggregate = "overall"}, RA uses the
+aggregated-outcome regression representation, while IPW/IPWRA/PSM
+aggregate their estimator-specific cohort effects with treated-unit
+cohort-size weights.
+
+When \code{ri = TRUE}, \code{ri_pvalue} is computed against
+\code{ri_observed_stat}, the observed statistic selected for the RI target.
+For common-timing designs this is the top-level ATT. For staggered designs,
+\code{ri_target} records whether RI targeted the overall, cohort, or
+cohort-time estimand. In particular, \code{aggregate = "none"} uses the
+first finite cohort-time ATT as the RI target, so \code{ri_observed_stat}
+can differ from the scalar \code{att} summary.
 }
 \examples{
 \dontrun{

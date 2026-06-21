@@ -23,7 +23,10 @@
 #' @param boot_reps integer, bootstrap replications (default 200)
 #' @param seed integer or NULL, random seed for bootstrap
 #'
-#' @return list with 15 fields (see design doc)
+#' @return list with ATT, uncertainty, propensity scores, normalized weights,
+#'   weight-CV diagnostics, and estimator metadata. Bootstrap fits also include
+#'   requested, valid, and failed replicate counts plus the bootstrap success
+#'   rate.
 #' @keywords internal
 estimate_ipw <- function(data, y, d, propensity_controls,
                          trim_threshold = 0.01,
@@ -44,6 +47,8 @@ estimate_ipw <- function(data, y, d, propensity_controls,
     stop_lwdid("IPW requires at least one propensity control variable.",
                class = "lwdid_invalid_param", param = "propensity_controls")
   }
+  .validate_no_infinite_numeric_values(
+    data, unique(c(y, d, propensity_controls)), "IPW")
 
   # ---- Step 2: Data extraction ----
   Y_all <- as.numeric(data[[y]])
@@ -171,8 +176,14 @@ estimate_ipw <- function(data, y, d, propensity_controls,
 
   } else {
     # ---- Bootstrap SE ----
+    if (boot_reps < 10L) {
+      stop_lwdid(
+        "IPW bootstrap requires at least 10 replications.",
+        class = "lwdid_invalid_param", param = "boot_reps"
+      )
+    }
     if (!is.null(seed)) set.seed(seed)
-    boot_atts <- numeric(boot_reps)
+    boot_atts <- rep(NA_real_, boot_reps)
     for (b in seq_len(boot_reps)) {
       idx <- sample.int(n_total, n_total, replace = TRUE)
       boot_atts[b] <- .ipw_point_estimate(
@@ -183,11 +194,26 @@ estimate_ipw <- function(data, y, d, propensity_controls,
         trim_method = trim_method
       )
     }
-    se <- sd(boot_atts, na.rm = TRUE)
+    valid_boot_atts <- boot_atts[is.finite(boot_atts)]
+    n_valid_boot <- length(valid_boot_atts)
+    success_rate <- n_valid_boot / boot_reps
+    if (success_rate < 0.5) {
+      warn_lwdid(
+        sprintf("IPW bootstrap success rate = %.1f%% (< 50%%). SE may be unreliable.",
+                100 * success_rate),
+        class = "lwdid_convergence", detail = "ipw_bootstrap_low_success")
+    }
+    if (n_valid_boot < 10L) {
+      stop_lwdid(
+        sprintf("IPW bootstrap: only %d valid replicates (need >= 10).",
+                n_valid_boot),
+        class = "lwdid_estimation_failed")
+    }
+    se <- sd(valid_boot_atts)
   }
 
   # ---- Step 10: Normal distribution inference ----
-  if (se > 0) {
+  if (is.finite(se) && se > 0) {
     t_stat <- att / se
     pvalue <- 2 * (1 - pnorm(abs(t_stat)))
   } else {
@@ -200,9 +226,10 @@ estimate_ipw <- function(data, y, d, propensity_controls,
 
   # ---- Step 11: Weight CV diagnostic ----
   w_ctrl_norm <- weights_valid[which(control_mask)]
-  if (mean(w_ctrl_norm) > 0) {
+  weights_cv <- NA_real_
+  if (length(w_ctrl_norm) > 1L && mean(w_ctrl_norm) > 0) {
     weights_cv <- sd(w_ctrl_norm) / mean(w_ctrl_norm)
-    if (weights_cv > 2.0) {
+    if (is.finite(weights_cv) && weights_cv > 2.0) {
       warn_lwdid(
         sprintf("IPW weight CV = %.2f > 2.0. Possible overlap violation.", weights_cv),
         class = "lwdid_overlap", detail = "ipw_extreme_weights")
@@ -216,8 +243,8 @@ estimate_ipw <- function(data, y, d, propensity_controls,
   weights_all <- numeric(n_total)
   weights_all[which(valid_mask)] <- weights_valid
 
-  # ---- Step 14: Return 15-field list ----
-  list(
+  # ---- Step 14: Return result list ----
+  result <- list(
     att                   = att,
     se                    = se,
     ci_lower              = ci_lower,
@@ -230,10 +257,18 @@ estimate_ipw <- function(data, y, d, propensity_controls,
     n_treated             = as.integer(n1),
     n_control             = as.integer(n0),
     n_trimmed             = as.integer(n_trimmed),
+    weights_cv            = weights_cv,
     df_resid              = as.integer(df_resid),
     vce_method            = vce_method,
     estimator             = "ipw"
   )
+  if (identical(vce_method, "bootstrap")) {
+    result$bootstrap_reps_requested <- as.integer(boot_reps)
+    result$bootstrap_reps_valid <- as.integer(n_valid_boot)
+    result$bootstrap_reps_failed <- as.integer(boot_reps - n_valid_boot)
+    result$bootstrap_success_rate <- as.numeric(success_rate)
+  }
+  result
 }
 
 
@@ -252,12 +287,11 @@ estimate_ipw <- function(data, y, d, propensity_controls,
   # PS estimation (tryCatch: return NA on failure)
   fml <- as.formula(paste(d, "~", paste(propensity_controls, collapse = " + ")))
   glm_fit <- tryCatch(
-    glm(fml, data = data, family = binomial(link = "logit")),
-    error = function(e) return(NULL),
-    warning = function(w) {
-      # Suppress glm warnings (convergence etc.) in bootstrap
-      invokeRestart("muffleWarning")
-    }
+    suppressWarnings(
+      stats::glm(fml, data = data,
+                 family = stats::binomial(link = "logit"))
+    ),
+    error = function(e) return(NULL)
   )
   if (is.null(glm_fit)) return(NA_real_)
 

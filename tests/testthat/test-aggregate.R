@@ -3513,6 +3513,36 @@ test_that("G45.9: event_time_range wrong length raises lwdid_invalid_input", {
   )
 })
 
+test_that("G45.9a: event_time_range requires finite ordered bounds", {
+  effects <- data.frame(
+    cohort = 3L, period = 3L, att = 1.0, se = 0.5
+  )
+  cs <- c("3" = 30)
+  expect_error(
+    aggregate_to_event_time(effects, cs, event_time_range = c(0, Inf)),
+    class = "lwdid_invalid_input"
+  )
+  expect_error(
+    aggregate_to_event_time(effects, cs, event_time_range = c(NA_real_, 2)),
+    class = "lwdid_invalid_input"
+  )
+  expect_error(
+    aggregate_to_event_time(effects, cs, event_time_range = c(2, 0)),
+    class = "lwdid_invalid_input"
+  )
+})
+
+test_that("G45.10: invalid inference_dist raises lwdid_invalid_input", {
+  effects <- data.frame(
+    cohort = 3L, period = 3L, att = 1.0, se = 0.5
+  )
+  cs <- c("3" = 30)
+  expect_error(
+    aggregate_to_event_time(effects, cs, inference_dist = "invalid"),
+    class = "lwdid_invalid_input"
+  )
+})
+
 # ============================================================================
 # Group 46: aggregate_to_event_time() — Core WATT Calculation Tests (E5-04.6)
 # ============================================================================
@@ -3747,6 +3777,30 @@ test_that("G47.4: df >= 1 always — CI uses qt for df >= 1", {
   expect_equal(r$ci_upper, expected_ci_upper, tolerance = 1e-10)
 })
 
+test_that("G47.5: normal inference uses pnorm/qnorm and no df", {
+  effects <- data.frame(
+    cohort = c(3L, 5L),
+    period = c(3L, 5L),
+    att = c(2.0, 1.5),
+    se = c(0.5, 0.4),
+    df_inference = c(48L, 38L)
+  )
+  cs <- c("3" = 30, "5" = 20)
+  result <- aggregate_to_event_time(
+    effects, cs, inference_dist = "normal"
+  )
+
+  r <- result[[1]]
+  expected_t <- r$att / r$se
+  expected_p <- 2 * stats::pnorm(abs(expected_t), lower.tail = FALSE)
+  z_crit <- stats::qnorm(0.975)
+  expect_equal(r$pvalue, expected_p, tolerance = 1e-12)
+  expect_equal(r$ci_lower, r$att - z_crit * r$se, tolerance = 1e-12)
+  expect_equal(r$ci_upper, r$att + z_crit * r$se, tolerance = 1e-12)
+  expect_true(is.na(r$df_inference))
+  expect_equal(r$inference_dist, "normal")
+})
+
 # ============================================================================
 # Group 48: aggregate_to_event_time() — Data Processing Tests (E5-04.6)
 # ============================================================================
@@ -3793,7 +3847,7 @@ test_that("G48.2: NaN ATT/SE excluded — rows with NaN are filtered out", {
   expect_identical(r$n_cohorts, 1L)
 })
 
-test_that("G48.3: all NaN for one event time — NaN result for that event time", {
+test_that("G48.3: all NaN for one event time — event time omitted", {
   effects <- data.frame(
     cohort = c(3L, 3L),
     period = c(3L, 4L),
@@ -3802,16 +3856,16 @@ test_that("G48.3: all NaN for one event time — NaN result for that event time"
     df_inference = c(48L, 48L)
   )
   cs <- c("3" = 30)
-  result <- aggregate_to_event_time(effects, cs)
+  expect_warning(
+    result <- aggregate_to_event_time(effects, cs),
+    class = "lwdid_data"
+  )
 
-  # e=0 should be NaN (all invalid), e=1 should be valid
-  expect_length(result, 2L)
-  expect_true(is.nan(result[[1]]$att))
-  expect_true(is.nan(result[[1]]$se))
-  expect_identical(result[[1]]$n_cohorts, 0L)
-  # e=1 is valid
-  expect_equal(result[[2]]$att, 2.0, tolerance = 1e-12)
-  expect_true(is.finite(result[[2]]$se))
+  # e=0 is non-estimable and omitted; e=1 remains valid.
+  expect_length(result, 1L)
+  expect_identical(result[[1]]$event_time, 1L)
+  expect_equal(result[[1]]$att, 2.0, tolerance = 1e-12)
+  expect_true(is.finite(result[[1]]$se))
 })
 
 test_that("G48.4: duplicate (cohort, period) detection — warns lwdid_data", {
@@ -3948,7 +4002,8 @@ test_that("G50.1: all 12 fields present in each result element", {
   expected_fields <- c(
     "event_time", "att", "se", "ci_lower", "ci_upper",
     "t_stat", "pvalue", "df_inference", "n_cohorts",
-    "cohort_contributions", "weight_sum", "alpha"
+    "cohort_contributions", "weight_sum", "alpha",
+    "inference_dist", "se_aggregation", "covariance_assumption"
   )
 
   for (i in seq_along(result)) {
@@ -3959,8 +4014,7 @@ test_that("G50.1: all 12 fields present in each result element", {
         info = sprintf("Missing field '%s' in result[[%d]]", field, i)
       )
     }
-    # Exactly 12 fields
-    expect_identical(length(r), 12L)
+    expect_identical(length(r), length(expected_fields))
   }
 })
 

@@ -551,9 +551,9 @@ compute_cluster_vce <- function(fit, cluster, type = "HC1") {
 #' @description Compute complete t-distribution inference results from an
 #'   ATT point estimate, variance-covariance matrix, and degrees of freedom.
 #' @details Uses the t-distribution, rather than the normal distribution,
-#'   for p-values and confidence intervals, following lw2026 Equation 2.10.
-#'   This is a pure computation helper with no dependency on the sandwich
-#'   package.
+#'   for p-values and confidence intervals under transformed cross-sectional
+#'   regression assumptions. This is a pure computation helper with no
+#'   dependency on the sandwich package.
 #'
 #' @param att Numeric scalar. The ATT point estimate.
 #' @param vcov_mat Numeric matrix of coefficient variances and covariances.
@@ -574,16 +574,16 @@ compute_cluster_vce <- function(fit, cluster, type = "HC1") {
 #' var_att, SE. This ensures the most informative error is thrown first.
 #'
 #' @section Distribution Choice:
-#' Uses \code{pt()}/\code{qt()} (t-distribution), NOT
+#' Uses \code{pt()}/\code{qt()} (t-distribution), not
 #' \code{pnorm()}/\code{qnorm()} (normal distribution). Under the
-#' normality assumption (lw2026 Eq. 2.9/2.19), the t-statistic follows
-#' an exact t-distribution. For small samples, the t-distribution has
-#' heavier tails than the normal, yielding wider confidence intervals
-#' and larger p-values.
+#' relevant transformed-regression assumptions, the t-distribution has
+#' heavier tails than the normal in small samples, yielding wider
+#' confidence intervals and larger p-values.
 #'
 #' @references
-#' Lee, S. and Wooldridge, J. M. (2025, 2026). A simple approach to
-#'   difference-in-differences estimation. Equation 2.10.
+#' Lee, S. and Wooldridge, J. M. (2026). Simple approaches to inference
+#'   with difference-in-differences estimators with small cross-sectional
+#'   sample sizes.
 #'
 #' @keywords internal
 compute_inference <- function(att, vcov_mat, df, alpha = 0.05,
@@ -722,7 +722,7 @@ compute_inference <- function(att, vcov_mat, df, alpha = 0.05,
     )
   }
 
-  # --- 7. t-inference (lw2026 Eq. 2.10) ---
+  # --- 7. t-inference under transformed-regression assumptions ---
   # t-statistic
   t_stat <- att / se
 

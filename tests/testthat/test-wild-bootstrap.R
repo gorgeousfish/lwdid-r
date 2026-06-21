@@ -1,3 +1,8 @@
+testthat::skip_if_not(
+  identical(Sys.getenv("LWDID_RUN_EVIDENCE_TESTS"), "true"),
+  "Set LWDID_RUN_EVIDENCE_TESTS=true to run long WCB evidence tests."
+)
+
 local_suppress_lwdid_warnings <- function(expr) {
   withCallingHandlers(
     expr,
@@ -762,8 +767,13 @@ test_that("TC-9.4.8 TC-9.4.22: fully degenerate input returns a NaN result that 
   expect_true(is.nan(result$ci_upper))
   expect_true(any(grepl("Wild Cluster Bootstrap Result", print_output, fixed = TRUE)))
   expect_true(any(grepl("ATT:", print_output, fixed = TRUE)))
+  expect_true(any(grepl("Confidence interval:", print_output, fixed = TRUE)))
+  expect_true(any(grepl("Requested bootstrap draws:", print_output, fixed = TRUE)))
+  expect_true(any(grepl("Actual bootstrap draws:", print_output, fixed = TRUE)))
+  expect_false(any(grepl(" | ", print_output, fixed = TRUE)))
   expect_true(any(grepl("Wild Cluster Bootstrap Result", summary_output, fixed = TRUE)))
   expect_true(any(grepl("P-value:", summary_output, fixed = TRUE)))
+  expect_false(any(grepl(" | ", summary_output, fixed = TRUE)))
 })
 
 test_that("Layer 3 smoking small-G replay stays deterministic on the public first slice", {

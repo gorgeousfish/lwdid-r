@@ -42,7 +42,9 @@ estimate_ipwra(
 \item{seed}{integer or NULL, random seed for bootstrap}
 }
 \value{
-list with 15 fields (see design doc)
+list with ATT, uncertainty, propensity/outcome model metadata, sample
+diagnostics, and estimator metadata. Bootstrap fits also include requested,
+valid, and failed replicate counts plus the bootstrap success rate.
 }
 \description{
 Estimate IPWRA-ATT (Doubly-Robust)

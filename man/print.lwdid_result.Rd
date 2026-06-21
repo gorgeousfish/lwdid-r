@@ -17,7 +17,6 @@
 invisible(x)
 }
 \description{
-Compact output of ATT estimate, SE, CI, and sample info.
-Staggered mode shows meta information, top-level ATT summary,
-and aggregate-specific effect summaries.
+Compact output with Stata-quality formatting. Delegates to
+\code{summary()} for consistent display.
 }

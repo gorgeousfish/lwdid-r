@@ -1,0 +1,71 @@
+{
+  "story": "story-E8-08",
+  "task": "E8-08.10",
+  "layer": "full-check-audit",
+  "role": "story-worker",
+  "generated_at": "2026-03-27 12:57:04 CST",
+  "script": "e8_08_task10_full_check_audit.R",
+  "full_check": {
+    "status": "completed",
+    "command": "devtools::check(pkg=\"/Users/cxy/Desktop/lwdid_r/lwdid-r\", args=c(\"--no-manual\"), document=FALSE, error_on=\"never\", check_dir=\"/Users/cxy/Desktop/lwdid_r/_automation/tmp-check/20260327-story-worker-task10-full-check-20260327-124112\", quiet=TRUE)",
+    "command_status": 0,
+    "check_dir": "/Users/cxy/Desktop/lwdid_r/_automation/tmp-check/20260327-story-worker-task10-full-check-20260327-124112",
+    "check_log": "/Users/cxy/Desktop/lwdid_r/_automation/tmp-check/20260327-story-worker-task10-full-check-20260327-124112/lwdid.Rcheck/00check.log",
+    "testthat_rout": "/Users/cxy/Desktop/lwdid_r/_automation/tmp-check/20260327-story-worker-task10-full-check-20260327-124112/lwdid.Rcheck/tests/testthat.Rout",
+    "result": "0 errors / 0 warnings / 3 notes",
+    "status_line": "Status: 3 NOTEs",
+    "runtime": {
+      "started_at": "2026-03-27 12:41:12 CST",
+      "finished_at": "2026-03-27 12:57:04 CST",
+      "elapsed_seconds": 952.2451
+    },
+    "check_summary": {
+      "error_count": 0,
+      "warning_count": 0,
+      "note_count": 3
+    },
+    "notes": [
+      "* checking package dependencies ... NOTE",
+      "* checking for future file timestamps ... NOTE",
+      "* checking R code for possible problems ... [21s/69s] NOTE",
+      "Status: 3 NOTEs"
+    ],
+    "tests": {
+      "status": "passed",
+      "summary": {
+        "fail": 0,
+        "warn": 940,
+        "skip": 17,
+        "pass": 10756
+      },
+      "summary_line": "[ FAIL 0 | WARN 940 | SKIP 17 | PASS 10756 ]"
+    },
+    "output_tail": [
+      "    'event_time'",
+      "  plot.lwdid_parallel_trends: no visible binding for global variable",
+      "    'pvalue'",
+      "  plot_cohort_trends : <anonymous>: no visible binding for global",
+      "    variable 'se_y'",
+      "  plot_cohort_trends : <anonymous>: no visible binding for global",
+      "    variable 'n_y'",
+      "  plot_cohort_trends : <anonymous>: no visible binding for global",
+      "    variable 'sd_y'",
+      "  plot_cohort_trends : <anonymous>: no visible binding for global",
+      "    variable 't_crit'",
+      "  plot_cohort_trends : <anonymous>: no visible binding for global",
+      "    variable 'treatment_time'",
+      "  plot_cohort_trends: no visible binding for global variable",
+      "    'treatment_time'",
+      "  Undefined global functions or variables:",
+      "    .trend_treat_dummy _gvar_dummy _missing _y_lag event_time n_missing",
+      "    n_y post_placebo pvalue sd_y se_y t_crit treat_cohort treatment_time",
+      "",
+      "0 errors v | 0 warnings v | 3 notes x"
+    ]
+  },
+  "story_status": "closure-ready-confirmed",
+  "closure_boundary": "full-check-completed-notes-only",
+  "exact_status": "passed",
+  "numeric_status": "not-applicable",
+  "remaining_gap": "none"
+}

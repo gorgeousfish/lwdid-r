@@ -12,6 +12,7 @@
 #   G+: castle cohort state name verification
 #   G-ATT: castle ATT benchmarks (conditional skip)
 #   H: Python/Stata consistency (conditional skip)
+#   W: walmart release data integrity
 #   I: simulate_panel_data() tests
 # ============================================================================
 
@@ -324,6 +325,90 @@ test_that("H2: castle vs Python CSV", {
   py <- read.csv("../../../lwdid-py_v0.2.3/data/castle.csv")
   expect_equal(nrow(py), 550L)
 })
+
+# Group W — walmart release data integrity
+test_that("W1: walmart loads with expected dimensions and columns", {
+  data(walmart, package = "lwdid")
+  expected_cols <- c(
+    "fips", "state_fips", "county_fips", "year", "g", "any_open",
+    "n_open", "rel_year", "log_retail_emp", "retail_emp",
+    "log_nonretail_emp", "nonretail_emp", "total_pop",
+    "retail_emp_share", "nonretail_emp_share", "log_wholesale_emp",
+    "log_manufacturing_emp", "log_construction_emp", "balanced",
+    "emp1964", "emp1977"
+  )
+  expect_true(is.data.frame(walmart))
+  expect_equal(nrow(walmart), 29440L)
+  expect_equal(ncol(walmart), length(expected_cols))
+  expect_identical(names(walmart), expected_cols)
+})
+
+test_that("W2: walmart column types match the documented data contract", {
+  data(walmart, package = "lwdid")
+  expect_type(walmart$fips, "integer")
+  expect_type(walmart$state_fips, "integer")
+  expect_type(walmart$county_fips, "integer")
+  expect_type(walmart$year, "integer")
+  expect_type(walmart$g, "double")
+  expect_type(walmart$any_open, "logical")
+  expect_type(walmart$n_open, "integer")
+  expect_type(walmart$rel_year, "double")
+  expect_type(walmart$log_retail_emp, "double")
+  expect_type(walmart$retail_emp, "double")
+  expect_type(walmart$log_nonretail_emp, "double")
+  expect_type(walmart$nonretail_emp, "double")
+  expect_type(walmart$total_pop, "integer")
+  expect_type(walmart$retail_emp_share, "double")
+  expect_type(walmart$nonretail_emp_share, "double")
+  expect_type(walmart$log_wholesale_emp, "double")
+  expect_type(walmart$log_manufacturing_emp, "double")
+  expect_type(walmart$log_construction_emp, "double")
+  expect_type(walmart$balanced, "logical")
+  expect_type(walmart$emp1964, "integer")
+  expect_type(walmart$emp1977, "double")
+})
+
+test_that("W3: walmart has a balanced county-year panel without duplicate keys", {
+  data(walmart, package = "lwdid")
+  expect_equal(anyDuplicated(walmart[c("fips", "year")]), 0L)
+  expect_equal(length(unique(walmart$fips)), 1280L)
+  expect_identical(sort(unique(walmart$year)), 1977L:1999L)
+  expect_true(all(table(walmart$fips) == 23L))
+  expect_true(all(walmart$balanced))
+})
+
+test_that("W4: walmart cohort distribution matches the shipped data", {
+  data(walmart, package = "lwdid")
+  county_cohorts <- walmart$g[!duplicated(walmart$fips)]
+  expect_equal(sum(is.finite(county_cohorts)), 886L)
+  expect_equal(sum(is.infinite(county_cohorts)), 394L)
+  expect_equal(
+    table(county_cohorts, useNA = "ifany"),
+    structure(
+      c(69L, 74L, 60L, 77L, 118L, 113L, 88L, 97L, 46L, 53L,
+        22L, 25L, 23L, 21L, 394L),
+      dim = 15L,
+      dimnames = list(county_cohorts = c(
+        "1986", "1987", "1988", "1989", "1990", "1991", "1992",
+        "1993", "1994", "1995", "1996", "1997", "1998", "1999",
+        "Inf"
+      ))
+    )
+  )
+})
+
+test_that("W5: walmart relative time and outcome logs are internally consistent", {
+  data(walmart, package = "lwdid")
+  finite_g <- is.finite(walmart$g)
+  expect_equal(walmart$rel_year[finite_g], walmart$year[finite_g] - walmart$g[finite_g])
+  expect_true(all(is.infinite(walmart$rel_year[!finite_g])))
+  expect_true(all(walmart$rel_year[!finite_g] < 0))
+  expect_equal(walmart$log_retail_emp, log1p(walmart$retail_emp), tolerance = 1e-10)
+  expect_equal(walmart$log_nonretail_emp, log1p(walmart$nonretail_emp), tolerance = 1e-10)
+  expect_false(anyNA(walmart$log_retail_emp))
+  expect_false(anyNA(walmart$log_nonretail_emp))
+})
+
 # Group I — simulate_panel_data() tests
 # I.1 Common Timing basic
 test_that("I1a: CT columns", {

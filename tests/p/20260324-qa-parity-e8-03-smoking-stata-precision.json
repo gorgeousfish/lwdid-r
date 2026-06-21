@@ -1,0 +1,93 @@
+{
+  "story": "story-E8-03",
+  "generated_at_utc": "2026-03-23T17:14:51.133019+00:00",
+  "dataset": {
+    "name": "smoking",
+    "r_source": "/Users/cxy/Desktop/lwdid_r/lwdid-r",
+    "stata_source": "/Users/cxy/Desktop/lwdid_r/lwdid_stata/smoking.dta"
+  },
+  "commands": {
+    "r": "Rscript -e 'devtools::load_all(\"/Users/cxy/Desktop/lwdid_r/lwdid-r\", quiet=TRUE); data(smoking, package=\"lwdid\"); lwdid_sensitivity(data=smoking, y=\"lcigsale\", ivar=\"state\", tvar=\"year\", d=\"d\", post=\"post\", type=\"all\", verbose=FALSE)'",
+    "stata": "stata-mp -b do <tempdo>  # lwdid lcigsale d, ivar(state) tvar(year) post(post) rolling(demean|detrend)"
+  },
+  "tolerances": {
+    "att": 1e-06,
+    "se": 0.0001
+  },
+  "r_current": {
+    "warnings": "Only 1 treated unit (N_treated=1). Results may be unreliable.",
+    "estimator_is_null": true,
+    "transformation": {
+      "demean_att": -0.4221746150201277,
+      "demean_se": 0.12079952386677353,
+      "detrend_att": -0.22698869955616785,
+      "detrend_se": 0.09406889384388836,
+      "difference": 0.19518591546395986,
+      "rel_diff": 0.4623345613867715
+    }
+  },
+  "stata_reference": {
+    "transformation": {
+      "demean_att": -0.42217461502012654,
+      "demean_se": 0.12079952386677335,
+      "detrend_att": -0.22698869955616763,
+      "detrend_se": 0.09406889384388831,
+      "difference": 0.19518591546395891,
+      "rel_diff": 0.46233456138677054
+    }
+  },
+  "comparison": {
+    "status": "passed",
+    "numeric_status": "passed",
+    "findings": [
+      {
+        "name": "demean_att",
+        "status": "pass",
+        "expected": -0.42217461502012654,
+        "actual": -0.4221746150201277,
+        "abs_diff": 1.1657341758564144e-15,
+        "tolerance": 1e-06
+      },
+      {
+        "name": "demean_se",
+        "status": "pass",
+        "expected": 0.12079952386677335,
+        "actual": 0.12079952386677353,
+        "abs_diff": 1.8041124150158794e-16,
+        "tolerance": 0.0001
+      },
+      {
+        "name": "detrend_att",
+        "status": "pass",
+        "expected": -0.22698869955616763,
+        "actual": -0.22698869955616785,
+        "abs_diff": 2.220446049250313e-16,
+        "tolerance": 1e-06
+      },
+      {
+        "name": "detrend_se",
+        "status": "pass",
+        "expected": 0.09406889384388831,
+        "actual": 0.09406889384388836,
+        "abs_diff": 5.551115123125783e-17,
+        "tolerance": 0.0001
+      },
+      {
+        "name": "difference",
+        "status": "pass",
+        "expected": 0.19518591546395891,
+        "actual": 0.19518591546395986,
+        "abs_diff": 9.43689570931383e-16,
+        "tolerance": 1e-06
+      },
+      {
+        "name": "rel_diff",
+        "status": "pass",
+        "expected": 0.46233456138677054,
+        "actual": 0.4623345613867715,
+        "abs_diff": 9.43689570931383e-16,
+        "tolerance": 1e-06
+      }
+    ]
+  }
+}

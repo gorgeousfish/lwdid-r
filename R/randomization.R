@@ -141,13 +141,42 @@ randomization_inference <- function(y_trans, d, x = NULL,
     }
   }
 
+  # Convergence-monitored RI loop: track failures in real time
+  ri_early_stop <- FALSE
+
   if (isTRUE(parallel) && .can_use_parallel()) {
     ri_stats <- unlist(
       .parallel_lapply(seq_len(reps), .ri_one_rep),
       use.names = FALSE
     )
   } else {
-    ri_stats <- vapply(seq_len(reps), .ri_one_rep, numeric(1))
+    # Sequential path with convergence monitoring
+    ri_stats <- rep(NA_real_, reps)
+    n_failed_running <- 0L
+
+    for (b in seq_len(reps)) {
+      ri_stats[b] <- .ri_one_rep(b)
+
+      if (is.na(ri_stats[b])) {
+        n_failed_running <- n_failed_running + 1L
+      }
+
+      # Convergence check: after 50 iterations, if >20% failed, warn and stop
+      if (b >= 50L && n_failed_running / b > 0.2) {
+        warn_lwdid(
+          sprintf(
+            paste0("Randomization inference: %.1f%% of permutations failed ",
+                   "(%d/%d). Results may be unreliable. ",
+                   "Consider checking data structure or reducing reps."),
+            n_failed_running / b * 100, n_failed_running, b
+          ),
+          class = "lwdid_ri_convergence"
+        )
+        ri_stats <- ri_stats[seq_len(b)]
+        ri_early_stop <- TRUE
+        break
+      }
+    }
   }
 
   # --- Post-processing (Task E7-01.3) ---
@@ -156,12 +185,22 @@ randomization_inference <- function(y_trans, d, x = NULL,
   ri_valid <- ri_stats[!is.na(ri_stats)]
 
   # 2. Compute failure statistics
+  n_total      <- length(ri_stats)
   n_valid      <- length(ri_valid)
-  n_failed     <- reps - n_valid
-  failure_rate <- n_failed / reps
+  n_failed     <- n_total - n_valid
+  failure_rate <- n_failed / max(n_total, 1L)
 
-  # 3. Warn if failure rate exceeds 5%
-  if (failure_rate > 0.05) {
+  # 3. Final high-failure-rate warning (post-loop, complements early-stop)
+  if (!ri_early_stop && failure_rate > 0.1) {
+    warn_lwdid(
+      sprintf(
+        paste0("Randomization inference completed with %.1f%% failure rate. ",
+               "Effective replications: %d/%d"),
+        failure_rate * 100, n_valid, reps
+      ),
+      class = "lwdid_ri_convergence"
+    )
+  } else if (!ri_early_stop && failure_rate > 0.05) {
     warn_lwdid(
       sprintf(
         "RI: %d/%d replications failed (%.1f%%); results may be unreliable",
@@ -206,6 +245,207 @@ randomization_inference <- function(y_trans, d, x = NULL,
   )
 }
 
+.common_timing_randomization_inference <- function(
+    data, y, d, controls = NULL, ps_controls = NULL,
+    estimator = c("ipw", "ipwra", "psm"),
+    reps = 1000L, seed = NULL,
+    method = c("bootstrap", "permutation"),
+    trim_threshold = 0.01,
+    trim_method = "clip",
+    n_neighbors = 1L,
+    caliper = NULL,
+    caliper_scale = "sd",
+    with_replacement = TRUE,
+    match_order = "data",
+    se_method = NULL,
+    boot_reps = 200L,
+    return_diagnostics = FALSE,
+    parallel = FALSE) {
+
+  estimator <- match.arg(estimator)
+  method <- match.arg(method)
+
+  if (!is.null(seed)) set.seed(seed)
+
+  if (!is.data.frame(data)) {
+    data <- as.data.frame(data)
+  }
+  if (!y %in% names(data) || !d %in% names(data)) {
+    stop_lwdid(
+      "Common-timing RI requires transformed outcome and treatment columns in data.",
+      class = "lwdid_invalid_param"
+    )
+  }
+  if (anyNA(data[[y]]) || anyNA(data[[d]])) {
+    stop_lwdid(
+      "Common-timing RI data must not contain NA transformed outcomes or treatment values.",
+      class = "lwdid_invalid_param"
+    )
+  }
+  d_vec <- as.integer(data[[d]])
+  if (!all(d_vec %in% c(0L, 1L))) {
+    stop_lwdid(
+      "Common-timing RI treatment column must contain only 0 and 1 values.",
+      class = "lwdid_invalid_param"
+    )
+  }
+  reps <- as.integer(reps)
+  if (reps < 1L) {
+    stop_lwdid(
+      "reps must be a positive integer (>= 1)",
+      class = "lwdid_invalid_param"
+    )
+  }
+
+  n <- length(d_vec)
+  if (n < 3L) {
+    stop_lwdid(
+      paste0(
+        "Sample size too small for common-timing randomization inference: ",
+        "N must be >= 3"
+      ),
+      class = "lwdid_insufficient_sample"
+    )
+  }
+
+  estimate_att <- function(d_candidate) {
+    est_data <- data
+    est_data[[d]] <- as.integer(d_candidate)
+    res <- dispatch_estimator(
+      data = est_data,
+      y = y,
+      d = d,
+      controls = controls,
+      ps_controls = ps_controls,
+      estimator = estimator,
+      vce = NULL,
+      cluster_var = NULL,
+      alpha = 0.05,
+      trim_threshold = trim_threshold,
+      trim_method = trim_method,
+      n_neighbors = n_neighbors,
+      caliper = caliper,
+      caliper_scale = caliper_scale,
+      with_replacement = with_replacement,
+      match_order = match_order,
+      se_method = se_method,
+      boot_reps = boot_reps,
+      seed = seed,
+      return_diagnostics = return_diagnostics
+    )
+    as.numeric(res$att)
+  }
+
+  obs_att <- estimate_att(d_vec)
+
+  .ri_one_rep <- function(rep_idx) {
+    d_perm <- if (method == "permutation") {
+      sample(d_vec)
+    } else {
+      d_vec[sample.int(n, n, replace = TRUE)]
+    }
+    n1_perm <- sum(d_perm == 1L)
+    if (n1_perm == 0L || n1_perm == n) {
+      return(NA_real_)
+    }
+    tryCatch(
+      estimate_att(d_perm),
+      error = function(e) NA_real_
+    )
+  }
+
+  # Convergence-monitored RI loop
+  ri_early_stop <- FALSE
+
+  if (isTRUE(parallel) && .can_use_parallel()) {
+    ri_stats <- unlist(
+      .parallel_lapply(seq_len(reps), .ri_one_rep),
+      use.names = FALSE
+    )
+  } else {
+    # Sequential path with convergence monitoring
+    ri_stats <- rep(NA_real_, reps)
+    n_failed_running <- 0L
+
+    for (b in seq_len(reps)) {
+      ri_stats[b] <- .ri_one_rep(b)
+
+      if (is.na(ri_stats[b])) {
+        n_failed_running <- n_failed_running + 1L
+      }
+
+      # Convergence check: after 50 iterations, if >20% failed, warn and stop
+      if (b >= 50L && n_failed_running / b > 0.2) {
+        warn_lwdid(
+          sprintf(
+            paste0("Randomization inference: %.1f%% of permutations failed ",
+                   "(%d/%d). Results may be unreliable. ",
+                   "Consider checking data structure or reducing reps."),
+            n_failed_running / b * 100, n_failed_running, b
+          ),
+          class = "lwdid_ri_convergence"
+        )
+        ri_stats <- ri_stats[seq_len(b)]
+        ri_early_stop <- TRUE
+        break
+      }
+    }
+  }
+
+  ri_valid <- ri_stats[!is.na(ri_stats)]
+  n_total <- length(ri_stats)
+  n_valid <- length(ri_valid)
+  n_failed <- n_total - n_valid
+  failure_rate <- n_failed / max(n_total, 1L)
+
+  # Final high-failure-rate warning (post-loop, complements early-stop)
+  if (!ri_early_stop && failure_rate > 0.1) {
+    warn_lwdid(
+      sprintf(
+        paste0("Randomization inference completed with %.1f%% failure rate. ",
+               "Effective replications: %d/%d"),
+        failure_rate * 100, n_valid, reps
+      ),
+      class = "lwdid_ri_convergence"
+    )
+  } else if (!ri_early_stop && failure_rate > 0.05) {
+    warn_lwdid(
+      sprintf(
+        "RI: %d/%d replications failed (%.1f%%); results may be unreliable",
+        n_failed, reps, failure_rate * 100
+      ),
+      class = "lwdid_numerical"
+    )
+  }
+
+  min_valid <- if (method == "bootstrap") {
+    max(100L, as.integer(0.1 * reps))
+  } else {
+    max(10L, as.integer(0.1 * reps))
+  }
+  if (n_valid < min_valid) {
+    stop_lwdid(
+      sprintf(
+        "RI: only %d valid replications (minimum %d required)",
+        n_valid, min_valid
+      ),
+      class = "lwdid_numerical"
+    )
+  }
+
+  list(
+    ri_pvalue = sum(abs(ri_valid) >= abs(obs_att)) / n_valid,
+    ri_distribution = ri_valid,
+    obs_att = obs_att,
+    reps = reps,
+    n_valid = n_valid,
+    n_failed = n_failed,
+    failure_rate = failure_rate,
+    method = method,
+    seed = seed
+  )
+}
+
 
 #' @title Staggered Randomization Inference
 #'
@@ -230,8 +470,13 @@ randomization_inference <- function(y_trans, d, x = NULL,
 #'   (required when \code{target = "cohort_time"}).
 #' @param rolling Character, panel transformation method
 #'   (\code{"demean"} or \code{"detrend"}).
-#' @param controls Character vector or NULL, control variable
+#' @param estimator Character, estimator used when recomputing each
+#'   permuted sample. One of \code{"ra"}, \code{"ipw"}, \code{"ipwra"},
+#'   or \code{"psm"}.
+#' @param controls Character vector or NULL, outcome-regression control
 #'   names forwarded to estimation functions.
+#' @param ps_controls Character vector or NULL, propensity-score control
+#'   names for IPW/IPWRA/PSM permutation refits.
 #' @param vce Character or NULL, variance estimation method.
 #' @param cluster_var Character or NULL, clustering variable.
 #' @param reps Positive integer, number of RI replications
@@ -239,6 +484,9 @@ randomization_inference <- function(y_trans, d, x = NULL,
 #' @param seed Integer or NULL, random seed for reproducibility.
 #' @param method Character, \code{"permutation"} (default) or
 #'   \code{"bootstrap"}.
+#' @param trim_threshold,trim_method,n_neighbors,caliper,caliper_scale,with_replacement,match_order,se_method,boot_reps
+#'   Estimator-specific tuning parameters forwarded when
+#'   \code{estimator} is IPW, IPWRA, or PSM.
 #'
 #' @return A list with 11 fields:
 #'   \describe{
@@ -263,17 +511,29 @@ ri_staggered <- function(data, y, ivar, tvar, gvar,
                          target_cohort = NULL,
                          target_period = NULL,
                          rolling = "demean",
+                         estimator = "ra",
                          controls = NULL,
+                         ps_controls = NULL,
                          vce = NULL, cluster_var = NULL,
                          reps = 1000L, seed = NULL,
                          method = c("permutation",
                                     "bootstrap"),
+                         trim_threshold = 0.01,
+                         trim_method = "clip",
+                         n_neighbors = 1L,
+                         caliper = NULL,
+                         caliper_scale = "sd",
+                         with_replacement = TRUE,
+                         match_order = "data",
+                         se_method = NULL,
+                         boot_reps = 200L,
                          parallel = FALSE) {
 
   # -- Phase 1: Input validation & initialization --
 
   target <- match.arg(target)
   method <- match.arg(method)
+  estimator <- match.arg(estimator, c("ra", "ipw", "ipwra", "psm"))
 
   if (!is.null(seed)) set.seed(seed)
 
@@ -378,24 +638,92 @@ ri_staggered <- function(data, y, ivar, tvar, gvar,
 
       if (target == "overall") {
         agg <- suppressWarnings(
-          aggregate_to_overall(
-            data_perm, y, ivar, tvar, gvar,
-            valid_cohorts, t_max, pre_stats, rolling,
-            vce = vce, cluster_var = cluster_var,
-            controls = controls
-          )
+          if (identical(estimator, "ra")) {
+            aggregate_to_overall(
+              data_perm, y, ivar, tvar, gvar,
+              valid_cohorts, t_max, pre_stats, rolling,
+              vce = vce, cluster_var = cluster_var,
+              controls = controls
+            )
+          } else {
+            ct_effects <- estimate_staggered_effects(
+              data_perm, y, ivar, tvar, gvar,
+              rolling, "never_treated", controls,
+              vce, cluster_var, alpha = 0.05,
+              pre_stats,
+              estimator = estimator,
+              ps_controls = ps_controls,
+              trim_threshold = trim_threshold,
+              trim_method = trim_method,
+              n_neighbors = n_neighbors,
+              caliper = caliper,
+              caliper_scale = caliper_scale,
+              with_replacement = with_replacement,
+              match_order = match_order,
+              se_method = se_method,
+              boot_reps = boot_reps
+            )
+            cohort_effects <- .aggregate_gr_to_cohort(
+              ct_effects, valid_cohorts, alpha = 0.05
+            )
+            cohort_units <- get_unit_level_gvar(
+              data.table::as.data.table(data_perm), gvar, ivar
+            )
+            cohort_sizes <- cohort_units[
+              !is_never_treated(cohort_units[[gvar]]),
+              ,
+              drop = FALSE
+            ]
+            cohort_sizes <- data.table::as.data.table(cohort_sizes)[
+              ,
+              .N,
+              by = gvar
+            ]
+            cohort_size_vec <- stats::setNames(
+              cohort_sizes$N,
+              as.character(cohort_sizes[[gvar]])
+            )
+            .aggregate_non_ra_cohorts_to_overall(
+              cohort_effects = cohort_effects,
+              cohort_sizes = cohort_size_vec,
+              alpha = 0.05
+            )
+          }
         )
         return(agg$att)
 
       } else if (target == "cohort") {
         if (!(target_cohort %in% valid_cohorts)) return(NA_real_)
         cohort_res <- suppressWarnings(
-          aggregate_to_cohort(
-            data_perm, y, ivar, tvar, gvar,
-            target_cohort, t_max, pre_stats, rolling,
-            vce = vce, cluster_var = cluster_var,
-            controls = controls
-          )
+          if (identical(estimator, "ra")) {
+            aggregate_to_cohort(
+              data_perm, y, ivar, tvar, gvar,
+              target_cohort, t_max, pre_stats, rolling,
+              vce = vce, cluster_var = cluster_var,
+              controls = controls
+            )
+          } else {
+            ct_effects <- estimate_staggered_effects(
+              data_perm, y, ivar, tvar, gvar,
+              rolling, "never_treated", controls,
+              vce, cluster_var, alpha = 0.05,
+              pre_stats,
+              estimator = estimator,
+              ps_controls = ps_controls,
+              trim_threshold = trim_threshold,
+              trim_method = trim_method,
+              n_neighbors = n_neighbors,
+              caliper = caliper,
+              caliper_scale = caliper_scale,
+              with_replacement = with_replacement,
+              match_order = match_order,
+              se_method = se_method,
+              boot_reps = boot_reps
+            )
+            .aggregate_gr_to_cohort(
+              ct_effects, target_cohort, alpha = 0.05
+            )
+          }
         )
         return(cohort_res[[1L]]$att)
 
@@ -405,7 +733,18 @@ ri_staggered <- function(data, y, ivar, tvar, gvar,
             data_perm, y, ivar, tvar, gvar,
             rolling, "never_treated", controls,
             vce, cluster_var, alpha = 0.05,
-            pre_stats
+            pre_stats,
+            estimator = estimator,
+            ps_controls = ps_controls,
+            trim_threshold = trim_threshold,
+            trim_method = trim_method,
+            n_neighbors = n_neighbors,
+            caliper = caliper,
+            caliper_scale = caliper_scale,
+            with_replacement = with_replacement,
+            match_order = match_order,
+            se_method = se_method,
+            boot_reps = boot_reps
           )
         )
         match_row <- ct_effects[

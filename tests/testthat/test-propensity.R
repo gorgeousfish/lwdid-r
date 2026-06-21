@@ -203,6 +203,26 @@ test_that("4.2: D with continuous values produces lwdid_invalid_param error", {
   )
 })
 
+test_that("4.2b: non-numeric controls fail before constant-column screening", {
+  df <- generate_ps_test_data(n = 200, seed = 42, n_covariates = 1)
+  df$X_factor <- factor(rep(c("a", "b"), length.out = nrow(df)))
+
+  expect_error(
+    estimate_propensity_score(df, "D", c("X1", "X_factor")),
+    class = "lwdid_invalid_parameter"
+  )
+})
+
+test_that("4.2c: infinite propensity controls fail before constant-column screening", {
+  df <- generate_ps_test_data(n = 200, seed = 42, n_covariates = 1)
+  df$X1[1] <- Inf
+
+  expect_error(
+    estimate_propensity_score(df, "D", "X1"),
+    class = "lwdid_invalid_data"
+  )
+})
+
 test_that("4.3: trim_threshold = 0 produces lwdid_invalid_param error", {
   df <- generate_ps_test_data(n = 200, seed = 42, n_covariates = 2)
 
@@ -1023,6 +1043,38 @@ test_that("20.3: missing control columns produces lwdid_invalid_param listing na
   )
   expect_true(inherits(err, "lwdid_invalid_param"))
   expect_true(grepl("X_missing", err$message, fixed = TRUE))
+})
+
+test_that("20.3b: non-numeric outcome-model controls fail before matrix algebra", {
+  df <- generate_om_test_data(n = 200, seed = 42)
+  df$X_factor <- factor(rep(c("a", "b"), length.out = nrow(df)))
+
+  expect_error(
+    estimate_outcome_model(df, "Y", "D", c("X1", "X_factor")),
+    class = "lwdid_invalid_parameter"
+  )
+})
+
+test_that("20.3c: infinite outcome values fail before outcome-model algebra", {
+  df <- generate_om_test_data(n = 200, seed = 42)
+  treated_idx <- which(df$D == 1)[1]
+  df$Y[treated_idx] <- Inf
+
+  expect_error(
+    estimate_outcome_model(df, "Y", "D", c("X1", "X2")),
+    class = "lwdid_invalid_data"
+  )
+})
+
+test_that("20.3d: infinite outcome-model controls fail before prediction algebra", {
+  df <- generate_om_test_data(n = 200, seed = 42)
+  control_idx <- which(df$D == 0)[1]
+  df$X1[control_idx] <- Inf
+
+  expect_error(
+    estimate_outcome_model(df, "Y", "D", c("X1", "X2")),
+    class = "lwdid_invalid_data"
+  )
 })
 
 test_that("20.4: sample_weights wrong length produces lwdid_invalid_param error", {

@@ -26,8 +26,9 @@ to sample sizes. Required when \code{method = "weighted"}.}
 One of \code{"conservative"}, \code{"weighted"}, or \code{"fallback"}.}
 }
 \value{
-A \code{data.frame} with columns: event_time, att, se, df_inference, n_cohorts,
-sorted by event_time ascending.
+A \code{data.frame} with columns: event_time, att, se,
+df_inference, n_cohorts, se_aggregation, covariance_assumption, sorted by
+event_time ascending.
 }
 \description{
 Aggregate cohort-level ATT estimates to event-time level

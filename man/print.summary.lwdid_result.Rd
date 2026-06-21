@@ -4,7 +4,7 @@
 \alias{print.summary.lwdid_result}
 \title{Print lwdid summary}
 \usage{
-\method{print}{summary.lwdid_result}(x, digits = 4L, signif.stars = TRUE, ...)
+\method{print}{summary.lwdid_result}(x, digits = 4L, signif.stars = TRUE, compact = FALSE, ...)
 }
 \arguments{
 \item{x}{summary.lwdid_result object}
@@ -13,13 +13,16 @@
 
 \item{signif.stars}{logical, show significance stars (default TRUE)}
 
+\item{compact}{logical, print shortened diagnostic and effect tables
+for inline display.}
+
 \item{...}{ignored}
 }
 \value{
 invisible(x)
 }
 \description{
-Full regression summary output with printCoefmat, cohort
-weights with N, pre-treatment dynamics with anchor marking, parallel
-trends reject/fail-to-reject conclusions, and RI details.
+Full regression summary with Stata-quality formatting,
+including concise skipped staggered \verb{(g,r)} and omitted event-time WATT
+diagnostics when present.
 }

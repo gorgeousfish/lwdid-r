@@ -1,0 +1,57 @@
+{
+  "story": "story-E8-04",
+  "layer": "layer_4_monte_carlo",
+  "status": "wild-bootstrap-path-passed",
+  "metric_family": "wild_cluster_bootstrap",
+  "contract_file": "/Users/cxy/Desktop/lwdid_r/_automation/test-artifacts/parity/e8_04_clustering_layer4_monte_carlo_contract.yaml",
+  "scenarios": [
+    {
+      "scenario_id": "wild_bootstrap_coverage_small_g",
+      "metric_name": "coverage_rate",
+      "metric_value": 0.96,
+      "n_simulations": 100,
+      "n_attempts": 100,
+      "requested_n_bootstrap": 199,
+      "actual_n_bootstrap": 1024,
+      "weight_type": "rademacher",
+      "impose_null": true,
+      "ci_method": "percentile_t",
+      "full_enumeration": true,
+      "acceptance_band": {
+        "lower_exclusive": 0.85
+      }
+    },
+    {
+      "scenario_id": "wild_bootstrap_relative_gap",
+      "metric_name": "coverage_rate_gap",
+      "metric_value": 0.05,
+      "n_simulations": 100,
+      "n_attempts": 100,
+      "requested_n_bootstrap": 199,
+      "actual_n_bootstrap": 1024,
+      "weight_type": "rademacher",
+      "impose_null": true,
+      "ci_method": "percentile_t",
+      "full_enumeration": true,
+      "metrics": {
+        "coverage_std_rate": 0.91,
+        "coverage_wild_rate": 0.96,
+        "coverage_rate_gap": 0.05
+      },
+      "acceptance_band": {
+        "metric": "coverage_wild_rate - coverage_std_rate",
+        "lower": -0.1
+      }
+    }
+  ],
+  "remaining_blockers": [],
+  "verification": {
+    "fresh_command": "Rscript -e \"devtools::test(pkg='/Users/cxy/Desktop/lwdid_r/lwdid-r', filter='clustering-diagnostics-parity', reporter='summary')\"",
+    "supporting_command": "Rscript -e \"devtools::test(pkg='/Users/cxy/Desktop/lwdid_r/lwdid-r', filter='clustering-diagnostics|clustering-diagnostics-parity', reporter='summary')\""
+  },
+  "notes": [
+    "Both remaining Layer 4 wild-bootstrap scenarios now pass under the Python default WCB contract.",
+    "The effective bootstrap path uses requested_n_bootstrap=199 but actual_n_bootstrap=1024 because G=10 with rademacher weights triggers full enumeration.",
+    "This artifact clears the final story-level parity blocker for story-E8-04."
+  ]
+}

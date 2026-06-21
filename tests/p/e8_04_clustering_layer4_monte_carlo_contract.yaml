@@ -1,0 +1,197 @@
+version: 1
+story: story-E8-04
+layer: layer_4_monte_carlo
+status: contract-only
+paper_anchor:
+  file: /Users/cxy/Desktop/lwdid_r/Docs/lw2026.md
+  lines: "641-643"
+  summary: >-
+    论文只固定“在更高层级分配处理时，可在该更高层级聚类”的横截面回归推断边界；
+    并未给出 clustering Monte Carlo 的 coverage / size / power 数值阈值。
+python_qa_anchor:
+  file: /Users/cxy/Desktop/lwdid_r/lwdid-py_v0.2.3/tests/_archived_dev_tests/test_clustering_monte_carlo.py
+  summary: >-
+    Layer 4 的 acceptance bands 来自 archived Python Monte Carlo tests，属于
+    Python-backed QA target，而不是论文定理阈值。
+shared_dgp:
+  intercept: 10.0
+  cluster_effect_distribution: normal(0, 2)
+  idiosyncratic_error_distribution: normal(0, 1)
+  treatment_assignment:
+    level: cluster
+    default_probability: 0.5
+scenarios:
+  - id: coverage_large_g
+    python_test: TestClusterRobustCoverage.test_coverage_large_g
+    source_lines: "29-64"
+    seed: 42
+    n_simulations: 200
+    true_tau: 2.0
+    G: 50
+    obs_per_cluster: 30
+    estimator: cluster_robust_t_ci
+    ci_df: G-1
+    acceptance:
+      coverage_rate:
+        lower: 0.90
+        upper: 0.99
+  - id: coverage_medium_g
+    python_test: TestClusterRobustCoverage.test_coverage_medium_g
+    source_lines: "66-97"
+    seed: 42
+    n_simulations: 200
+    true_tau: 2.0
+    G: 20
+    obs_per_cluster: 50
+    estimator: cluster_robust_t_ci
+    ci_df: G-1
+    acceptance:
+      coverage_rate:
+        lower: 0.88
+        upper: 0.99
+  - id: coverage_small_g
+    python_test: TestClusterRobustCoverage.test_coverage_small_g
+    source_lines: "99-134"
+    seed: 42
+    n_simulations: 200
+    true_tau: 2.0
+    G: 10
+    obs_per_cluster: 50
+    estimator: cluster_robust_t_ci
+    ci_df: G-1
+    acceptance:
+      coverage_rate:
+        lower_exclusive: 0.80
+  - id: wild_bootstrap_coverage_small_g
+    python_test: TestWildBootstrapCoverage.test_wild_bootstrap_coverage_small_g
+    source_lines: "140-177"
+    seed: 42
+    n_simulations: 100
+    true_tau: 2.0
+    G: 10
+    obs_per_cluster: 50
+    estimator: wild_cluster_bootstrap
+    n_bootstrap: 199
+    requested_n_bootstrap: 199
+    actual_n_bootstrap: 1024
+    weight_type: rademacher
+    alpha: 0.05
+    impose_null: true
+    ci_method: percentile_t
+    pvalue_rule: abs(t_star) >= abs(t_orig)
+    full_enumeration:
+      mode: auto
+      trigger: G <= 12 and weight_type == rademacher
+      reason: >-
+        Python `wild_cluster_bootstrap()` 在 `G=10` 时会忽略请求的
+        `n_bootstrap=199`，改为枚举全部 `2^G = 1024` 个 Rademacher 权重组合。
+    acceptance:
+      coverage_rate:
+        lower_exclusive: 0.85
+  - id: wild_bootstrap_relative_gap
+    python_test: TestWildBootstrapCoverage.test_wild_bootstrap_improves_coverage
+    source_lines: "179-230"
+    seed: 42
+    n_simulations: 100
+    true_tau: 2.0
+    G: 10
+    obs_per_cluster: 50
+    estimators:
+      standard:
+        type: cluster_robust_t_ci
+        ci_df: G-1
+      wild:
+        type: wild_cluster_bootstrap
+        n_bootstrap: 199
+        requested_n_bootstrap: 199
+        actual_n_bootstrap: 1024
+        weight_type: rademacher
+        impose_null: true
+        ci_method: percentile_t
+        pvalue_rule: abs(t_star) >= abs(t_orig)
+        full_enumeration:
+          mode: auto
+          trigger: G <= 12 and weight_type == rademacher
+          reason: >-
+            Python `wild_cluster_bootstrap()` 在 `G=10` 时会忽略请求的
+            `n_bootstrap=199`，改为枚举全部 `2^G = 1024` 个 Rademacher 权重组合。
+    acceptance:
+      min_relative_difference:
+        metric: coverage_wild_rate - coverage_std_rate
+        lower: -0.10
+  - id: size_under_null
+    python_test: TestSizeDistortion.test_size_under_null
+    source_lines: "240-274"
+    seed: 42
+    n_simulations: 200
+    true_tau: 0.0
+    G: 30
+    obs_per_cluster: 40
+    alpha: 0.05
+    estimator: cluster_robust_t_test
+    pvalue_df: G-1
+    acceptance:
+      rejection_rate:
+        lower: 0.02
+        upper: 0.10
+  - id: power_under_alternative
+    python_test: TestSizeDistortion.test_power_under_alternative
+    source_lines: "276-310"
+    seed: 42
+    n_simulations: 200
+    true_tau: 2.0
+    G: 30
+    obs_per_cluster: 40
+    alpha: 0.05
+    estimator: cluster_robust_t_test
+    pvalue_df: G-1
+    acceptance:
+      power:
+        lower_exclusive: 0.50
+  - id: unbalanced_treatment_coverage
+    python_test: TestDifferentDesigns.test_unbalanced_treatment
+    source_lines: "320-352"
+    seed: 42
+    n_simulations: 100
+    true_tau: 2.0
+    G: 30
+    obs_per_cluster: 40
+    treatment_probability: 0.2
+    estimator: cluster_robust_t_ci
+    ci_df: G-1
+    acceptance:
+      coverage_rate:
+        lower_exclusive: 0.85
+  - id: heterogeneous_cluster_sizes_coverage
+    python_test: TestDifferentDesigns.test_heterogeneous_cluster_sizes
+    source_lines: "354-402"
+    seed: 42
+    n_simulations: 100
+    true_tau: 2.0
+    G: 20
+    cluster_size_draw: randint(10, 101)
+    estimator: cluster_robust_t_ci
+    ci_df: G-1
+    acceptance:
+      coverage_rate:
+        lower_exclusive: 0.85
+non_claims:
+  - >-
+    不得把上述 bands 写成论文结论；它们只是在 clustering Monte Carlo parity 中要
+    复现的 Python QA contract。
+  - >-
+    不得把 Layer 4 写成 exact-number oracle；应固定 seed / simulation counts /
+    bootstrap counts，然后对 coverage / rejection / power 做区间断言。
+  - >-
+    对剩余两个 wild-bootstrap scenario，`requested_n_bootstrap=199` 不是最终执行
+    次数；Python 在 `G=10` + 默认 Rademacher 权重下会自动转成 full enumeration，
+    实际枚举 `2^10 = 1024` 个权重组合。
+next_role_hint:
+  qa_parity: >-
+    直接按本文件生成 R 侧 Monte Carlo comparator，优先保留与 Python 相同的
+    seed、n_simulations、obs_per_cluster、requested/actual bootstrap-count、
+    G / tau，以及 `impose_null = TRUE` / `percentile_t` 的 WCB 设定。
+  story_worker: >-
+    若需要在 testthat 中补 Layer 4 regression，应读取本文件的 scenario matrix，
+    而不是另造 acceptance thresholds；尤其不要把剩余 blocker 简化成
+    “199 次随机 bootstrap”。

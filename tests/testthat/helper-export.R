@@ -8,6 +8,7 @@
     nobs = 500L, n_treated = 200L, n_control = 300L,
     estimator = "DR", vce_type = "HC1", rolling = TRUE,
     ri_pvalue = NULL, ri_seed = NULL, rireps = NULL,
+    ri_observed_stat = NULL, ri_estimator = NULL,
     diagnostics = NULL, att_by_period = NULL,
     is_staggered = FALSE, att_by_cohort = NULL,
     cohort_weights = NULL, att_by_cohort_time = NULL
@@ -18,6 +19,7 @@
     nobs = nobs, n_treated = n_treated, n_control = n_control,
     estimator = estimator, vce_type = vce_type, rolling = rolling,
     ri_pvalue = ri_pvalue, ri_seed = ri_seed, rireps = rireps,
+    ri_observed_stat = ri_observed_stat, ri_estimator = ri_estimator,
     diagnostics = diagnostics, att_by_period = att_by_period,
     is_staggered = is_staggered, att_by_cohort = att_by_cohort,
     cohort_weights = cohort_weights, att_by_cohort_time = att_by_cohort_time

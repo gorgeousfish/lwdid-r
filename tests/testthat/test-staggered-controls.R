@@ -235,9 +235,11 @@ test_that("single non-NA value column treated as constant", {
 })
 
 test_that("tiny but nonzero variance column preserved", {
+  # Use 1e-5 perturbation so variance (~8.3e-11) exceeds .is_nearly_zero() tolerance
+  # (previously 1e-15 gave variance ~2.5e-31, below float tolerance threshold)
   sub <- make_controls_test_sub(
     n = 4L,
-    controls_data = list(x1 = c(1.0, 1.0, 1.0, 1.0 + 1e-15))
+    controls_data = list(x1 = c(1.0, 1.0, 1.0, 1.0 + 1e-5))
   )
   result <- prepare_staggered_controls(sub, "x1", "id")
   expect_true(is.matrix(result))

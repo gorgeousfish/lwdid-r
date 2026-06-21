@@ -22,17 +22,28 @@ create_mock_staggered_result <- function(cohort_data,
                                          att_pre_treatment = NULL,
                                          include_pretreatment = FALSE) {
   cohort_weights <- cohort_sizes / sum(cohort_sizes)
+  att_value <- if ("att" %in% names(cohort_data) && length(cohort_data$att) > 0L) {
+    mean(cohort_data$att, na.rm = TRUE)
+  } else {
+    NA_real_
+  }
+  df_inference <- if ("df_inference" %in% names(cohort_data) &&
+      any(!is.na(cohort_data$df_inference))) {
+    min(cohort_data$df_inference, na.rm = TRUE)
+  } else {
+    NA_integer_
+  }
 
   obj <- list(
     # Core estimates
-    att              = mean(cohort_data$att),
+    att              = att_value,
     se_att           = 0.1,
     t_stat           = NA_real_,
     pvalue           = NA_real_,
     ci_lower         = NA_real_,
     ci_upper         = NA_real_,
     df_resid         = NA_integer_,
-    df_inference     = min(cohort_data$df_inference, na.rm = TRUE),
+    df_inference     = df_inference,
     nobs             = as.integer(sum(cohort_sizes)),
     n_treated        = NA_integer_,
     n_control        = NA_integer_,

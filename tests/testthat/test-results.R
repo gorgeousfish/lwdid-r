@@ -32,6 +32,7 @@
     alpha = 0.05, is_staggered = TRUE,
     aggregate = "cohort",
     cohorts = c(2005L, 2007L),
+    cohort_sizes = c("2005" = 100L, "2007" = 150L),
     n_never_treated = 600L
   )
   args <- modifyList(defaults, list(...))
@@ -151,7 +152,107 @@ test_that("full Staggered construction", {
   expect_identical(obj$method, "staggered")
   expect_true(obj$is_staggered)
   expect_equal(obj$aggregate, "cohort")
+  expect_identical(obj$cohort_sample_sizes, obj$cohort_sizes)
   expect_equal(obj$att_overall, 1.2)
+})
+
+test_that("summary preserves call field", {
+  call_expr <- quote(lwdid(y ~ x))
+  obj <- new_lwdid_result(call = call_expr)
+  s <- summary(obj)
+  expect_identical(s$call, call_expr)
+})
+
+test_that("summary exposes skipped staggered pair diagnostics", {
+  skipped_pairs <- list(
+    list(cohort = 2005L, period = 2007L, reason = "insufficient_control"),
+    list(cohort = 2005L, period = 2008L, reason = "insufficient_control"),
+    list(cohort = 2007L, period = 2009L, reason = "empty_estimation_sample")
+  )
+  skipped_summary <- data.frame(
+    reason = c("insufficient_control", "empty_estimation_sample"),
+    n = c(2L, 1L),
+    stringsAsFactors = FALSE
+  )
+  obj <- .make_stag_obj(
+    aggregate = "none",
+    skipped_pairs = skipped_pairs,
+    skipped_summary = skipped_summary
+  )
+
+  s <- summary(obj)
+
+  expect_equal(s$n_skipped_pairs, 3L)
+  expect_identical(s$skipped_summary, skipped_summary)
+  expect_identical(s$skipped_pairs, skipped_pairs)
+})
+
+test_that("summary validates skipped staggered pair diagnostic counts", {
+  obj <- .make_stag_obj(
+    aggregate = "none",
+    skipped_pairs = list(
+      list(cohort = 2005L, period = 2007L, reason = "insufficient_control")
+    ),
+    skipped_summary = data.frame(
+      reason = "insufficient_control",
+      n = 2L,
+      stringsAsFactors = FALSE
+    )
+  )
+
+  expect_error(
+    summary(obj),
+    "skipped_summary counts must match skipped_pairs length"
+  )
+})
+
+test_that("summary requires skipped summary when skipped pairs are present", {
+  obj <- .make_stag_obj(
+    aggregate = "none",
+    skipped_pairs = list(
+      list(cohort = 2005L, period = 2007L, reason = "insufficient_control")
+    )
+  )
+
+  expect_error(
+    summary(obj),
+    "skipped_summary is required when skipped_pairs is non-empty"
+  )
+})
+
+test_that("summary validates skipped staggered pair count type", {
+  obj <- .make_stag_obj(
+    aggregate = "none",
+    skipped_summary = data.frame(
+      reason = "insufficient_control",
+      n = 1.5,
+      stringsAsFactors = FALSE
+    )
+  )
+
+  expect_error(
+    summary(obj),
+    "skipped_summary\\$n must contain non-negative integer counts"
+  )
+})
+
+test_that("summary validates omitted event-time diagnostic counts", {
+  obj <- .make_stag_obj(
+    aggregate = "event_time",
+    event_time_omissions = list(
+      list(event_time = 0L, reason = "non_finite_att_or_se")
+    ),
+    event_time_omission_summary = data.frame(
+      reason = "non_finite_att_or_se",
+      n = 2L,
+      stringsAsFactors = FALSE
+    )
+  )
+
+  expect_error(
+    summary(obj),
+    "event_time_omission_summary counts must match event_time_omissions length"
+  )
 })
 
 # ============================================================================
@@ -537,7 +638,7 @@ test_that("summary CT: returns object invisibly, prints output", {
   result <- summary(.make_ct_obj())
   expect_s3_class(result, "summary.lwdid_result")
   out <- capture.output(print(result))
-  expect_true(any(grepl("Local Wald DID Estimation Summary", out)))
+  expect_true(any(grepl("Lee-Wooldridge DiD Estimation", out)))
 })
 
 test_that("summary CT: shows coefficient table when params present", {
@@ -578,6 +679,45 @@ test_that("summary Staggered: contains cohort info", {
 
 test_that("plot.lwdid_result: empty result errors without event-study data", {
   expect_error(plot(new_lwdid_result()), "att_by_period")
+})
+
+test_that("plot.lwdid_result: trajectory and diagnostics errors are publication-facing", {
+  skip_if_not_installed("ggplot2")
+
+  empty <- new_lwdid_result()
+
+  expect_error(
+    plot(empty, type = "trajectories"),
+    "No plotting data are available"
+  )
+  expect_error(
+    plot(empty, type = "diagnostics"),
+    "No diagnostics are available"
+  )
+  expect_error(
+    plot(empty, type = "sensitivity"),
+    "No sensitivity-analysis results are available"
+  )
+})
+
+test_that("plot.lwdid_result: non-staggered gid warning is publication-facing", {
+  skip_if_not_installed("ggplot2")
+
+  obj <- new_lwdid_result()
+  obj$metadata <- list(
+    plot_data = list(
+      time = c(1, 2),
+      control_mean = c(0, 0.1),
+      treated_mean = c(0.2, 0.4),
+      intervention_point = 2
+    )
+  )
+
+  expect_warning(
+    p <- plot(obj, type = "trajectories", gid = 1),
+    "The gid argument only applies in staggered mode"
+  )
+  expect_s3_class(p, "ggplot")
 })
 
 test_that("plot.lwdid_result: signature exposes type dispatch", {
@@ -631,12 +771,21 @@ test_that("data attribute: set and accessible", {
   expect_equal(nrow(obj$data), 5L)
 })
 
-test_that("ri_error/ri_target: default NULL, settable via constructor", {
+test_that("RI metadata defaults NULL and is settable via constructor", {
   expect_null(new_lwdid_result()$ri_error)
   expect_null(new_lwdid_result()$ri_target)
-  obj <- new_lwdid_result(ri_error = "err", ri_target = "att")
+  expect_null(new_lwdid_result()$ri_observed_stat)
+  expect_null(new_lwdid_result()$ri_estimator)
+  obj <- new_lwdid_result(
+    ri_error = "err",
+    ri_target = "att",
+    ri_observed_stat = 0.25,
+    ri_estimator = "ipw"
+  )
   expect_equal(obj$ri_error, "err")
   expect_equal(obj$ri_target, "att")
+  expect_equal(obj$ri_observed_stat, 0.25)
+  expect_equal(obj$ri_estimator, "ipw")
 })
 
 test_that("ivar, tvar, is_quarterly correctly stored", {
@@ -805,6 +954,25 @@ test_that("new_lwdid_result: control_group_used defaults to control_group", {
   expect_equal(result$control_group_used, "not_yet_treated")
 })
 
+test_that("new_lwdid_result: inferred cohort count excludes never-treated markers", {
+  result <- new_lwdid_result(
+    data = data.frame(
+      id = rep(1:5, each = 2L),
+      year = rep(2001:2002, times = 5L),
+      g = rep(c(2005, 2007, NA, Inf, 0), each = 2L)
+    ),
+    ivar = "id",
+    tvar = "year",
+    cohorts = c(2005, 2007, NA, Inf, 0, 2005),
+    is_staggered = TRUE,
+    aggregate = "cohort"
+  )
+
+  expect_equal(result$n_units, 5L)
+  expect_equal(result$n_periods, 2L)
+  expect_equal(result$n_cohorts, 2L)
+})
+
 test_that("extract_effects: non-lwdid_result raises error", {
   expect_error(
     extract_effects(list(att = 0.1)),
@@ -897,6 +1065,254 @@ test_that("extract_effects: type=event_time converts list to data.frame", {
   expect_true("weight_sum" %in% names(df))
   expect_equal(df$event_time, c(0L, 1L))
   expect_equal(df$att, c(0.1, 0.2))
+  expect_equal(unique(df$se_aggregation), "diagonal_weighted_cohort_se")
+  expect_equal(unique(df$covariance_assumption), "zero_cross_cohort_covariance")
+
+  V <- vcov(result, type = "event_time")
+  expect_equal(attr(V, "se_aggregation"), "diagonal_weighted_cohort_se")
+  expect_equal(attr(V, "covariance_assumption"), "zero_cross_cohort_covariance")
+  expect_equal(unname(diag(V)), c(0.01^2, 0.02^2), tolerance = 1e-12)
+  expect_true(all(V[row(V) != col(V)] == 0))
+})
+
+test_that("extract_effects: type=event_time accepts data.frame effects", {
+  et_effects <- data.frame(
+    event_time = c(0L, 1L),
+    att = c(0.1, 0.2),
+    se = c(0.01, 0.02),
+    ci_lower = c(0.08, 0.16),
+    ci_upper = c(0.12, 0.24),
+    t_stat = c(10.0, 10.0),
+    pvalue = c(0.001, 0.001),
+    df_inference = c(8L, 8L),
+    n_cohorts = c(2L, 2L),
+    weight_sum = c(1.0, 1.0)
+  )
+  result <- new_lwdid_result(
+    event_time_effects = et_effects,
+    is_staggered = TRUE, aggregate = "event_time"
+  )
+
+  expect_equal(result$n_event_time_effects, 2L)
+
+  df <- extract_effects(result, type = "event_time")
+  s <- summary(result)
+  V <- vcov(result, type = "event_time")
+
+  expect_equal(df$event_time, c(0L, 1L))
+  expect_equal(df$att, c(0.1, 0.2))
+  expect_equal(unique(df$se_aggregation), "diagonal_weighted_cohort_se")
+  expect_equal(unique(df$covariance_assumption), "zero_cross_cohort_covariance")
+  expect_equal(
+    unique(s$event_time_effects$se_aggregation),
+    "diagonal_weighted_cohort_se"
+  )
+  expect_equal(
+    unique(s$event_time_effects$covariance_assumption),
+    "zero_cross_cohort_covariance"
+  )
+  expect_equal(attr(V, "se_aggregation"), "diagonal_weighted_cohort_se")
+  expect_equal(attr(V, "covariance_assumption"), "zero_cross_cohort_covariance")
+})
+
+test_that("summary stores event-time overlap and support extremes", {
+  et_effects <- list(
+    list(
+      event_time = 0L, att = 0.1, se = 0.01, ci_lower = 0.08,
+      ci_upper = 0.12, t_stat = 10.0, pvalue = 0.001,
+      df_inference = 8L, n_cohorts = 2L, weight_sum = 1.0,
+      max_weight_cv = 1.4, weighted_weight_cv = 1.1,
+      min_n_treated = 6L, max_n_treated = 8L,
+      min_n_control = 22L, max_n_control = 30L
+    ),
+    list(
+      event_time = 1L, att = 0.2, se = 0.02, ci_lower = 0.16,
+      ci_upper = 0.24, t_stat = 10.0, pvalue = 0.001,
+      df_inference = 8L, n_cohorts = 2L, weight_sum = 1.0,
+      max_weight_cv = 2.7, weighted_weight_cv = 1.9,
+      min_n_treated = 1L, max_n_treated = 7L,
+      min_n_control = 18L, max_n_control = 28L
+    )
+  )
+  result <- new_lwdid_result(
+    event_time_effects = et_effects,
+    is_staggered = TRUE,
+    aggregate = "event_time"
+  )
+
+  s <- summary(result)
+
+  expect_equal(s$event_time_support_summary$n_event_time_rows, 2L)
+  expect_equal(s$event_time_support_summary$max_weight_cv, 2.7)
+  expect_equal(s$event_time_support_summary$max_weight_cv_event_time, 1L)
+  expect_equal(s$event_time_support_summary$min_n_treated, 1L)
+  expect_equal(s$event_time_support_summary$min_n_treated_event_time, 1L)
+  expect_equal(s$event_time_support_summary$min_n_control, 18L)
+  expect_match(s$event_time_support_summary$cue, "max weight CV=2.70")
+  expect_match(s$event_time_support_summary$cue, "min treated cell N=1")
+})
+
+test_that("summary stores event-time bootstrap replicate extremes", {
+  et_effects <- list(
+    list(
+      event_time = 0L, att = 0.1, se = 0.01, ci_lower = 0.08,
+      ci_upper = 0.12, t_stat = 10.0, pvalue = 0.001,
+      df_inference = 8L, n_cohorts = 2L, weight_sum = 1.0,
+      min_bootstrap_success_rate = 0.95,
+      min_bootstrap_reps_valid = 38L,
+      max_bootstrap_reps_failed = 2L
+    ),
+    list(
+      event_time = 1L, att = 0.2, se = 0.02, ci_lower = 0.16,
+      ci_upper = 0.24, t_stat = 10.0, pvalue = 0.001,
+      df_inference = 8L, n_cohorts = 2L, weight_sum = 1.0,
+      min_bootstrap_success_rate = 0.85,
+      min_bootstrap_reps_valid = 34L,
+      max_bootstrap_reps_failed = 6L
+    )
+  )
+  result <- new_lwdid_result(
+    event_time_effects = et_effects,
+    is_staggered = TRUE,
+    aggregate = "event_time"
+  )
+
+  s <- summary(result)
+
+  expect_equal(s$event_time_bootstrap_summary$n_event_time_rows, 2L)
+  expect_equal(
+    s$event_time_bootstrap_summary$min_bootstrap_success_rate,
+    0.85
+  )
+  expect_equal(
+    s$event_time_bootstrap_summary$min_bootstrap_success_rate_event_time,
+    1L
+  )
+  expect_equal(s$event_time_bootstrap_summary$min_bootstrap_reps_valid, 34L)
+  expect_equal(
+    s$event_time_bootstrap_summary$min_bootstrap_reps_valid_event_time,
+    1L
+  )
+  expect_equal(s$event_time_bootstrap_summary$max_bootstrap_reps_failed, 6L)
+  expect_equal(
+    s$event_time_bootstrap_summary$max_bootstrap_reps_failed_event_time,
+    1L
+  )
+  expect_match(
+    s$event_time_bootstrap_summary$cue,
+    "min bootstrap success=0.85"
+  )
+  expect_match(s$event_time_bootstrap_summary$cue, "min valid reps=34")
+  expect_match(s$event_time_bootstrap_summary$cue, "max failed reps=6")
+})
+
+test_that("extract_effects: type=event_time_contributions flattens weights", {
+  et_effects <- list(
+    list(
+      event_time = 0L, att = 0.16, se = 0.01,
+      ci_lower = 0.14, ci_upper = 0.18, t_stat = 16.0, pvalue = 0.001,
+      df_inference = 8L, n_cohorts = 2L, weight_sum = 1.0,
+      se_aggregation = "diagonal_weighted_cohort_se",
+      covariance_assumption = "zero_cross_cohort_covariance",
+      cohort_contributions = list(
+        list(cohort = 3L, weight = 0.25, att = 0.1, se = 0.01),
+        list(cohort = 5L, weight = 0.75, att = 0.18, se = 0.02)
+      )
+    )
+  )
+  result <- new_lwdid_result(
+    event_time_effects = et_effects,
+    is_staggered = TRUE, aggregate = "event_time"
+  )
+
+  df <- extract_effects(result, type = "event_time_contributions")
+
+  expect_equal(nrow(df), 2L)
+  expect_equal(
+    names(df),
+    c(
+      "event_time", "event_att", "event_se", "n_cohorts", "weight_sum",
+      "cohort", "weight", "contribution_att", "contribution_se",
+      "se_aggregation", "covariance_assumption"
+    )
+  )
+  expect_equal(df$cohort, c(3L, 5L))
+  expect_equal(df$weight, c(0.25, 0.75))
+  expect_equal(sum(df$weight), 1, tolerance = 1e-12)
+  expect_equal(df$event_att, c(0.16, 0.16))
+  expect_equal(
+    unique(df$se_aggregation),
+    "diagonal_weighted_cohort_se"
+  )
+  expect_equal(
+    unique(df$covariance_assumption),
+    "zero_cross_cohort_covariance"
+  )
+})
+
+test_that("extract_effects: event_time_contributions uses supplied event VCE", {
+  et_effects <- list(
+    list(
+      event_time = 0L, att = 0.16, se = 0.01,
+      ci_lower = 0.14, ci_upper = 0.18, t_stat = 16.0, pvalue = 0.001,
+      df_inference = 8L, n_cohorts = 2L, weight_sum = 1.0,
+      se_aggregation = "diagonal_weighted_cohort_se",
+      covariance_assumption = "zero_cross_cohort_covariance",
+      cohort_contributions = list(
+        list(cohort = 3L, weight = 0.25, att = 0.1, se = 0.01),
+        list(cohort = 5L, weight = 0.75, att = 0.18, se = 0.02)
+      )
+    ),
+    list(
+      event_time = 1L, att = 0.30, se = 0.02,
+      ci_lower = 0.26, ci_upper = 0.34, t_stat = 15.0, pvalue = 0.001,
+      df_inference = 8L, n_cohorts = 1L, weight_sum = 1.0,
+      se_aggregation = "diagonal_weighted_cohort_se",
+      covariance_assumption = "zero_cross_cohort_covariance",
+      cohort_contributions = list(
+        list(cohort = 5L, weight = 1.00, att = 0.30, se = 0.02)
+      )
+    )
+  )
+  result <- new_lwdid_result(
+    event_time_effects = et_effects,
+    is_staggered = TRUE, aggregate = "event_time"
+  )
+  joint_v <- matrix(c(0.04, 0.01, 0.01, 0.09), nrow = 2L)
+  attr(joint_v, "covariance_assumption") <- "provided_by_joint_bootstrap"
+  result$vcov_att_event_time <- joint_v
+
+  df <- extract_effects(result, type = "event_time_contributions")
+
+  expect_equal(df$event_se, c(0.20, 0.20, 0.30), tolerance = 1e-12)
+  expect_equal(
+    unique(df$se_aggregation),
+    "provided_event_time_vcov_diagonal"
+  )
+  expect_equal(
+    unique(df$covariance_assumption),
+    "provided_by_joint_bootstrap"
+  )
+  expect_equal(
+    names(df),
+    c(
+      "event_time", "event_att", "event_se", "n_cohorts", "weight_sum",
+      "cohort", "weight", "contribution_att", "contribution_se",
+      "se_aggregation", "covariance_assumption"
+    )
+  )
+})
+
+test_that("extract_effects: event_time_contributions requires contribution metadata", {
+  result <- new_lwdid_result(
+    event_time_effects = data.frame(event_time = 0L, att = 0.1),
+    is_staggered = TRUE, aggregate = "event_time"
+  )
+
+  expect_error(
+    extract_effects(result, type = "event_time_contributions"),
+    class = "lwdid_invalid_input"
+  )
 })
 
 test_that("extract_effects: missing effects warns and returns empty df", {
@@ -937,9 +1353,9 @@ test_that("print.lwdid_result: staggered displays header and metadata", {
   )
   output <- capture.output(print(result))
   combined <- paste(output, collapse = "\n")
-  expect_true(grepl("Local Wald DID Estimation", combined))
+  expect_true(grepl("Lee-Wooldridge DiD Estimation", combined))
   expect_true(grepl("Staggered DID", combined))
-  expect_true(grepl("Aggregate: none", combined))
+  expect_true(grepl("Aggregate:[[:space:]]+none", combined))
   expect_true(grepl("Units: 7", combined))
   expect_true(grepl("Periods: 6", combined))
   expect_true(grepl("Cohorts: 2", combined))
@@ -958,7 +1374,7 @@ test_that("print.lwdid_result: displays top-level ATT summary", {
   combined <- paste(output, collapse = "\n")
   expect_true(grepl("ATT", combined))
   expect_true(grepl("0.0920", combined))
-  expect_true(grepl("SE", combined))
+  expect_true(grepl("Std. Err.", combined, fixed = TRUE))
   expect_true(grepl("0.0250", combined))
   # Should have CI since att, se, df are all valid
   expect_true(grepl("CI", combined))
@@ -987,6 +1403,33 @@ test_that("print.lwdid_result: shows control group auto-switch info", {
   combined <- paste(output, collapse = "\n")
   expect_true(grepl("never_treated", combined))
   expect_true(grepl("auto-switched from not_yet_treated", combined))
+})
+
+test_that("print.lwdid_result: staggered displays skipped pair diagnostics", {
+  result <- new_lwdid_result(
+    att = 0.12, se_att = 0.03,
+    df_inference = 40L, alpha = 0.05,
+    is_staggered = TRUE, aggregate = "none",
+    method = "staggered", estimator = "ipw",
+    rolling = "demean", depvar = "y", vce_type = "ols",
+    skipped_pairs = list(
+      list(cohort = 2005L, period = 2007L, reason = "insufficient_control"),
+      list(cohort = 2005L, period = 2008L, reason = "insufficient_control"),
+      list(cohort = 2007L, period = 2009L, reason = "empty_estimation_sample")
+    ),
+    skipped_summary = data.frame(
+      reason = c("insufficient_control", "empty_estimation_sample"),
+      n = c(2L, 1L),
+      stringsAsFactors = FALSE
+    )
+  )
+
+  output <- capture.output(print(result))
+  combined <- paste(output, collapse = "\n")
+
+  expect_true(grepl("Skipped \\(g,r\\):[[:space:]]+3", combined))
+  expect_true(grepl("insufficient_control: 2", combined, fixed = TRUE))
+  expect_true(grepl("empty_estimation_sample: 1", combined, fixed = TRUE))
 })
 
 test_that("print.lwdid_result: cohort aggregate shows cohort table", {
@@ -1056,4 +1499,46 @@ test_that("print.lwdid_result: event_time aggregate shows event time table", {
   output <- capture.output(print(result))
   combined <- paste(output, collapse = "\n")
   expect_true(grepl("Event-Time Effects", combined))
+  expect_true(grepl("Cohort-period ATT summary", combined))
+  expect_true(grepl("event-time WATT\\(e\\) rows are below", combined))
+  expect_true(grepl("cross-cohort covariance is not modeled", combined))
+  expect_false(grepl("Overall ATT \\(tau_omega\\)", combined))
+})
+
+test_that("print.lwdid_result: event_time aggregate does not promise absent WATT rows", {
+  result <- new_lwdid_result(
+    att = 0.1, se_att = 0.02,
+    aggregate = "event_time",
+    is_staggered = TRUE,
+    method = "staggered", estimator = "ra",
+    rolling = "demean", depvar = "y", vce_type = "ols",
+    event_time_omissions = list(
+      list(
+        event_time = 0L,
+        reason = "non_finite_att_or_se",
+        n_rows = 1L,
+        cohorts = 3L
+      )
+    ),
+    event_time_omission_summary = data.frame(
+      reason = "non_finite_att_or_se",
+      n = 1L,
+      stringsAsFactors = FALSE
+    )
+  )
+
+  output <- capture.output(print(result))
+  combined <- paste(output, collapse = "\n")
+
+  s <- summary(result)
+  expect_equal(s$n_omitted_event_times, 1L)
+  expect_identical(s$event_time_omissions, result$event_time_omissions)
+  expect_identical(
+    s$event_time_omission_summary,
+    result$event_time_omission_summary
+  )
+  expect_true(grepl("Omitted WATT\\(e\\):[[:space:]]+1", combined))
+  expect_true(grepl("non_finite_att_or_se: 1", combined, fixed = TRUE))
+  expect_true(grepl("no finite event-time WATT\\(e\\) rows are available", combined))
+  expect_false(grepl("event-time WATT\\(e\\) rows are below", combined))
 })

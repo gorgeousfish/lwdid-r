@@ -148,7 +148,7 @@ test_that("Staggered: df fields are populated integers", {
 # ============================================================================
 # Group 3: Stub attribute completeness (5 tests)
 # ============================================================================
-test_that("stub CT: all 74 fields present", {
+test_that("stub CT: core result fields present", {
   df <- make_ct_data()
   result <- suppressWarnings(suppressMessages(
     lwdid(data = df, y = "y", ivar = "id", tvar = "year", d = "d", post = "post")))
@@ -163,12 +163,13 @@ test_that("stub CT: all 74 fields present", {
     "att_overall","se_overall","ci_overall_lower","ci_overall_upper",
     "t_stat_overall","pvalue_overall","event_time_effects","cohort_weights",
     "ri_pvalue","ri_distribution","ri_seed","rireps","ri_method","ri_valid",
-    "ri_failed","ri_error","ri_target","diagnostics","warning_diagnostics",
+    "ri_failed","ri_error","ri_target","ri_observed_stat","ri_estimator",
+    "diagnostics","warning_diagnostics",
     "propensity_scores","matched_data","n_matched","match_rate","weights_cv",
     "warnings_log","call","lwdid_version","ivar","tvar","is_quarterly")
   expect_true(all(ef %in% names(result)))
 })
-test_that("stub Staggered: all 74 fields present", {
+test_that("stub Staggered: core result fields present", {
   df <- make_stag_data()
   result <- suppressWarnings(suppressMessages(
     lwdid(data = df, y = "y", ivar = "id", tvar = "year", gvar = "gvar")))
@@ -183,7 +184,8 @@ test_that("stub Staggered: all 74 fields present", {
     "att_overall","se_overall","ci_overall_lower","ci_overall_upper",
     "t_stat_overall","pvalue_overall","event_time_effects","cohort_weights",
     "ri_pvalue","ri_distribution","ri_seed","rireps","ri_method","ri_valid",
-    "ri_failed","ri_error","ri_target","diagnostics","warning_diagnostics",
+    "ri_failed","ri_error","ri_target","ri_observed_stat","ri_estimator",
+    "diagnostics","warning_diagnostics",
     "propensity_scores","matched_data","n_matched","match_rate","weights_cv",
     "warnings_log","call","lwdid_version","ivar","tvar","is_quarterly")
   expect_true(all(ef %in% names(result)))
@@ -224,6 +226,8 @@ test_that("stub CT: RI fields are all NULL", {
   expect_null(result$ri_failed)
   expect_null(result$ri_error)
   expect_null(result$ri_target)
+  expect_null(result$ri_observed_stat)
+  expect_null(result$ri_estimator)
 })
 
 # ============================================================================
@@ -552,6 +556,27 @@ make_staggered_panel <- function(
   data.table::rbindlist(units)
 }
 
+capture_lwdid_warnings <- function(expr) {
+  warnings_caught <- list()
+  result <- NULL
+  utils::capture.output(
+    result <- withCallingHandlers(
+      expr,
+      warning = function(w) {
+        warnings_caught[[length(warnings_caught) + 1L]] <<- w
+        invokeRestart("muffleWarning")
+      },
+      message = function(m) invokeRestart("muffleMessage")
+    ),
+    type = "output"
+  )
+  list(result = result, warnings = warnings_caught)
+}
+
+has_lwdid_warning <- function(warnings, class) {
+  any(vapply(warnings, inherits, logical(1), what = class))
+}
+
 # ---------------------------------------------------------------------------
 # Group 13: Parameter validation (4 tests)
 # ---------------------------------------------------------------------------
@@ -598,6 +623,22 @@ test_that("lwdid: invalid event_time_range raises error", {
     )),
     class = "lwdid_invalid_input"
   )
+  expect_error(
+    suppressWarnings(suppressMessages(
+      lwdid(data = dt, y = "Y", ivar = "id", tvar = "time",
+            gvar = "gvar", event_time_range = c(0, Inf),
+            control_group = "never_treated")
+    )),
+    class = "lwdid_invalid_input"
+  )
+  expect_error(
+    suppressWarnings(suppressMessages(
+      lwdid(data = dt, y = "Y", ivar = "id", tvar = "time",
+            gvar = "gvar", event_time_range = c(NA_real_, 2),
+            control_group = "never_treated")
+    )),
+    class = "lwdid_invalid_input"
+  )
 })
 
 test_that("lwdid: invalid df_strategy raises error", {
@@ -618,27 +659,27 @@ test_that("lwdid: invalid df_strategy raises error", {
 
 test_that("lwdid: cohort aggregate auto-switches NYT to NT", {
   dt <- make_staggered_panel()
-  expect_warning(
-    result <- suppressMessages(
-      lwdid(data = dt, y = "Y", ivar = "id", tvar = "time",
-            gvar = "gvar", control_group = "not_yet_treated",
-            aggregate = "cohort")
-    ),
-    class = "lwdid_control_group_switch"
+  captured <- capture_lwdid_warnings(
+    lwdid(data = dt, y = "Y", ivar = "id", tvar = "time",
+          gvar = "gvar", control_group = "not_yet_treated",
+          aggregate = "cohort")
   )
+  result <- captured$result
+  expect_true(has_lwdid_warning(captured$warnings,
+                                "lwdid_control_group_switch"))
   expect_equal(result$control_group_used, "never_treated")
 })
 
 test_that("lwdid: overall aggregate auto-switches NYT to NT", {
   dt <- make_staggered_panel()
-  expect_warning(
-    result <- suppressMessages(
-      lwdid(data = dt, y = "Y", ivar = "id", tvar = "time",
-            gvar = "gvar", control_group = "not_yet_treated",
-            aggregate = "overall")
-    ),
-    class = "lwdid_control_group_switch"
+  captured <- capture_lwdid_warnings(
+    lwdid(data = dt, y = "Y", ivar = "id", tvar = "time",
+          gvar = "gvar", control_group = "not_yet_treated",
+          aggregate = "overall")
   )
+  result <- captured$result
+  expect_true(has_lwdid_warning(captured$warnings,
+                                "lwdid_control_group_switch"))
   expect_equal(result$control_group_used, "never_treated")
 })
 
@@ -659,14 +700,12 @@ test_that("lwdid: n_nt < 2 warns lwdid_small_sample", {
   # With n_nt=1 and aggregate="cohort" (default), the FATAL-004 check
 
   # in .estimate_staggered() emits lwdid_small_sample warning
-  expect_warning(
-    suppressMessages(
-      lwdid(data = dt, y = "Y", ivar = "id", tvar = "time",
-            gvar = "gvar", control_group = "never_treated",
-            aggregate = "cohort")
-    ),
-    class = "lwdid_small_sample"
+  captured <- capture_lwdid_warnings(
+    lwdid(data = dt, y = "Y", ivar = "id", tvar = "time",
+          gvar = "gvar", control_group = "never_treated",
+          aggregate = "cohort")
   )
+  expect_true(has_lwdid_warning(captured$warnings, "lwdid_small_sample"))
 })
 
 test_that("lwdid: event_time does NOT trigger control switch", {
@@ -682,14 +721,14 @@ test_that("lwdid: event_time does NOT trigger control switch", {
 
 test_that("lwdid: all_others + cohort aggregate auto-switches to NT", {
   dt <- make_staggered_panel()
-  expect_warning(
-    result <- suppressMessages(
-      lwdid(data = dt, y = "Y", ivar = "id", tvar = "time",
-            gvar = "gvar", control_group = "all_others",
-            aggregate = "cohort")
-    ),
-    class = "lwdid_control_group_switch"
+  captured <- capture_lwdid_warnings(
+    lwdid(data = dt, y = "Y", ivar = "id", tvar = "time",
+          gvar = "gvar", control_group = "all_others",
+          aggregate = "cohort")
   )
+  result <- captured$result
+  expect_true(has_lwdid_warning(captured$warnings,
+                                "lwdid_control_group_switch"))
   expect_equal(result$control_group_used, "never_treated")
 })
 
@@ -743,4 +782,30 @@ test_that("lwdid: aggregate=event_time populates event_time_effects", {
   ))
   expect_false(is.null(result$event_time_effects))
   expect_null(result$att_overall)
+})
+
+test_that("lwdid: event_time aggregation respects quiet verbosity", {
+  dt <- make_staggered_panel()
+
+  quiet_messages <- capture.output(
+    invisible(suppressWarnings(
+      lwdid(data = dt, y = "Y", ivar = "id", tvar = "time",
+            gvar = "gvar", aggregate = "event_time",
+            control_group = "never_treated", verbose = "quiet")
+    )),
+    type = "message"
+  )
+
+  expect_false(any(grepl("\\[aggregate_to_event_time\\] Summary", quiet_messages)))
+
+  verbose_messages <- capture.output(
+    invisible(suppressWarnings(
+      lwdid(data = dt, y = "Y", ivar = "id", tvar = "time",
+            gvar = "gvar", aggregate = "event_time",
+            control_group = "never_treated", verbose = "verbose")
+    )),
+    type = "message"
+  )
+
+  expect_true(any(grepl("\\[aggregate_to_event_time\\] Summary", verbose_messages)))
 })

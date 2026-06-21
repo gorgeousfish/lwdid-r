@@ -367,6 +367,86 @@ test_that("skip summary warning contains correct detail and skipped_pairs", {
   expect_true(grepl("skipped", w_captured$message, ignore.case = TRUE))
 })
 
+test_that("skipped pairs remain inspectable when warnings are suppressed", {
+  set.seed(77707)
+  units <- 1:20
+  periods <- 1:7
+  gvar_map <- c(rep(3L, 10), rep(5L, 10))
+  dt <- data.table::CJ(id = units, time = periods)
+  dt[, gvar := gvar_map[id]]
+  dt[, treated := data.table::fifelse(time >= gvar, 1L, 0L)]
+  dt[, Y := as.numeric(id) + 5.0 * treated + rnorm(.N, 0, 0.01)]
+  dt[, treated := NULL]
+
+  cohorts <- c(3L, 5L)
+  pre_stats <- precompute_transforms(
+    dt, "Y", "id", "time", cohorts = cohorts, rolling = "demean"
+  )
+
+  result <- suppressWarnings(estimate_staggered_effects(
+    dt = dt, y = "Y", ivar = "id", tvar = "time",
+    gvar = "gvar", rolling = "demean",
+    control_group = "not_yet_treated",
+    controls = NULL, vce = NULL,
+    cluster_var = NULL, alpha = 0.05,
+    pre_stats = pre_stats
+  ))
+
+  skipped_pairs <- attr(result, "skipped_pairs", exact = TRUE)
+  skipped_summary <- attr(result, "skipped_summary", exact = TRUE)
+
+  expect_true(is.list(skipped_pairs))
+  expect_true(length(skipped_pairs) > 0L)
+  expect_s3_class(skipped_summary, "data.frame")
+  expect_equal(names(skipped_summary), c("reason", "n"))
+  expect_true("no_control" %in% skipped_summary$reason)
+  expect_equal(
+    skipped_summary$n[skipped_summary$reason == "no_control"],
+    sum(vapply(skipped_pairs, function(p) p$reason, character(1)) == "no_control")
+  )
+})
+
+test_that("lwdid_result retains skipped pair diagnostics", {
+  set.seed(77708)
+  units <- 1:20
+  periods <- 1:7
+  gvar_map <- c(rep(3L, 10), rep(5L, 10))
+  dt <- data.table::CJ(id = units, time = periods)
+  dt[, gvar := gvar_map[id]]
+  dt[, treated := data.table::fifelse(time >= gvar, 1L, 0L)]
+  dt[, Y := as.numeric(id) + 5.0 * treated + rnorm(.N, 0, 0.01)]
+  dt[, treated := NULL]
+
+  fit <- suppressWarnings(lwdid(
+    data = dt,
+    y = "Y",
+    ivar = "id",
+    tvar = "time",
+    gvar = "gvar",
+    rolling = "demean",
+    control_group = "not_yet_treated",
+    aggregate = "none",
+    verbose = "quiet"
+  ))
+
+  expect_s3_class(fit, "lwdid_result")
+  expect_true(is.list(fit$skipped_pairs))
+  expect_true(length(fit$skipped_pairs) > 0L)
+  expect_s3_class(fit$skipped_summary, "data.frame")
+  expect_true("no_control" %in% fit$skipped_summary$reason)
+  expect_equal(fit$skipped_pairs,
+               attr(fit$att_by_cohort_time, "skipped_pairs", exact = TRUE))
+
+  fit_summary <- summary(fit)
+  expect_equal(fit_summary$n_skipped_pairs, length(fit$skipped_pairs))
+  expect_identical(fit_summary$skipped_summary, fit$skipped_summary)
+  expect_identical(fit_summary$skipped_pairs, fit$skipped_pairs)
+
+  printed <- paste(capture.output(print(fit)), collapse = "\n")
+  expect_true(grepl("Skipped \\(g,r\\):", printed))
+  expect_true(grepl("no_control:", printed, fixed = TRUE))
+})
+
 
 # --- Test 10: No valid results throws lwdid_insufficient_data ---
 test_that("no valid results throws lwdid_insufficient_data", {

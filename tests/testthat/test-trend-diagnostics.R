@@ -1,5 +1,21 @@
 library(testthat)
 
+capture_warnings <- function(expr) {
+  warnings_caught <- list()
+  result <- withCallingHandlers(
+    expr,
+    warning = function(w) {
+      warnings_caught[[length(warnings_caught) + 1L]] <<- w
+      invokeRestart("muffleWarning")
+    }
+  )
+  list(result = result, warnings = warnings_caught)
+}
+
+has_warning_class <- function(warnings, class) {
+  any(vapply(warnings, inherits, logical(1), what = class))
+}
+
 make_trend_helper_panel <- function() {
   data.frame(
     firm = rep(1:6, each = 3),
@@ -397,7 +413,7 @@ test_that("E8-06.2: lwdid_test_parallel_trends recommends detrend when placebo e
 })
 
 test_that("E8-06.2: lwdid_test_parallel_trends keeps no-estimate contract when rolling placebo estimates are unavailable", {
-  result <- lwdid_test_parallel_trends(
+  warning_capture <- capture_warnings(lwdid_test_parallel_trends(
     make_parallel_trends_staggered_fallback_panel(),
     y = "y",
     ivar = "firm",
@@ -407,7 +423,10 @@ test_that("E8-06.2: lwdid_test_parallel_trends keeps no-estimate contract when r
     rolling = "demean",
     alpha = 0.05,
     verbose = FALSE
-  )
+  ))
+  result <- warning_capture$result
+
+  expect_true(has_warning_class(warning_capture$warnings, "lwdid_numerical"))
 
   expect_length(result$pre_trend_estimates, 0L)
   expect_match(
@@ -827,9 +846,16 @@ test_that("E8-06.4: summary methods preserve trend diagnostic objects", {
     verbose = FALSE
   )
 
-  expect_identical(summary(parallel_result), parallel_result)
-  expect_identical(summary(heterogeneity_result), heterogeneity_result)
-  expect_identical(summary(recommendation_result), recommendation_result)
+  parallel_summary <- NULL
+  heterogeneity_summary <- NULL
+  recommendation_summary <- NULL
+  capture.output(parallel_summary <- summary(parallel_result))
+  capture.output(heterogeneity_summary <- summary(heterogeneity_result))
+  capture.output(recommendation_summary <- summary(recommendation_result))
+
+  expect_identical(parallel_summary, parallel_result)
+  expect_identical(heterogeneity_summary, heterogeneity_result)
+  expect_identical(recommendation_summary, recommendation_result)
 })
 
 test_that("E8-06.4: plot surface returns ggplot objects for trend diagnostics", {

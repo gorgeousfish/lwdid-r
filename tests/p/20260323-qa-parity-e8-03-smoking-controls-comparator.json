@@ -1,0 +1,318 @@
+{
+  "story": "story-E8-03",
+  "generated_at_utc": "2026-03-23T15:54:36.165720+00:00",
+  "dataset": {
+    "name": "smoking",
+    "path": "/Users/cxy/Desktop/lwdid_r/lwdid-py_v0.2.3/data/smoking.csv",
+    "controls": [
+      "lnincome",
+      "beer",
+      "age15to24",
+      "lretprice"
+    ],
+    "controls_type": "shared frozen pre-treatment unit-level X_i"
+  },
+  "fixture": {
+    "artifact": "/Users/cxy/Desktop/lwdid_r/_automation/test-artifacts/parity/e8_03_smoking_frozen_controls_fixture.csv",
+    "rule": "state-level pre-treatment mean over observed rows with post == 0",
+    "pretreatment_window": {
+      "start_year": 1970,
+      "end_year": 1988
+    },
+    "state_count": 39,
+    "per_state_non_missing_counts": {
+      "lnincome": 17,
+      "beer": 5,
+      "age15to24": 19,
+      "lretprice": 19
+    }
+  },
+  "paper_reference": {
+    "documents": [
+      "/Users/cxy/Desktop/lwdid_r/Docs/lw2025.md",
+      "/Users/cxy/Desktop/lwdid_r/Docs/lw2026.md"
+    ],
+    "equation": "eq. 2.18 simple-controls OLS fallback",
+    "summary": "For common timing, controls must be time-invariant X_i; with N > K + 2, simple-controls OLS remains paper-backed."
+  },
+  "python_reference": {
+    "implementation": "/Users/cxy/Desktop/lwdid_r/lwdid-py_v0.2.3/src/lwdid/sensitivity.py",
+    "bug_ledger_id": "PY-EST-002"
+  },
+  "theory_evidence": {
+    "contract_audit": "/Users/cxy/Desktop/lwdid_r/_automation/test-artifacts/parity/20260323-theory-parity-e8-03-smoking-controls-fixture-contract.md",
+    "fixture_evidence": "/Users/cxy/Desktop/lwdid_r/_automation/test-artifacts/parity/20260323-qa-parity-e8-03-smoking-frozen-controls-fixture.md",
+    "bug_ledger": "/Users/cxy/Desktop/lwdid_r/Docs/Python包bug列表.md"
+  },
+  "r_result": {
+    "warnings": [
+      "Only 1 treated unit (N_treated=1). Results may be unreliable.",
+      "Insufficient sample for full interaction model (need N_1>5 and N_0>5, got N_1=1, N_0=38), degraded to simple controls (lw2026 eq. 2.18)",
+      "glm.fit: algorithm did not converge",
+      "glm.fit: fitted probabilities numerically 0 or 1 occurred",
+      "glm did not converge. PS coefficients may be unreliable."
+    ],
+    "error": null,
+    "result": {
+      "overall_assessment": "多项问题：前期敏感性、变换方法敏感性、估计器敏感性，需谨慎解读",
+      "recommendations": [
+        "前期敏感性检测到(SR=29.8%)，建议使用 detrend 或检查数据质量",
+        "demean 与 detrend 差异显著(50.4%)，可能存在异质性趋势",
+        "估计器间差异显著(32.1%)，需检查模型设定"
+      ],
+      "pre_period": {
+        "sensitivity_ratio": 0.29843296084370635,
+        "is_robust": false,
+        "robustness_level": "sensitive"
+      },
+      "anticipation": {
+        "anticipation_detected": false,
+        "recommended_exclusion": 0
+      },
+      "transformation": {
+        "demean_att": -0.31957385285073947,
+        "demean_se": 0.10712724001620723,
+        "detrend_att": -0.15844723764379143,
+        "detrend_se": 0.08475420512979119,
+        "difference": 0.16112661520694804,
+        "rel_diff": 0.504192110116731
+      },
+      "estimator": {
+        "ra": -0.31957385285073947,
+        "ipw": -0.42217460085410885,
+        "range": 0.10260074800336938,
+        "rel_range": 0.321054889466474,
+        "baseline_att": -0.31957385285073947
+      }
+    },
+    "stderr": ""
+  },
+  "python_bug_result": {
+    "warnings": [
+      "Only 1 treated unit found (N_treated=1). Estimation with a single treated unit is technically feasible but highly unstable. Results are extremely sensitive to this single unit and may not be reliable. Consider: (1) checking treatment variable 'd' for coding errors, (2) verifying sample selection, (3) using alternative methods (e.g., synthetic control).",
+      "Controls not applied: sample does not satisfy N_1 > K+1 and N_0 > K+1\n  (where K=4 is the number of control variables)\n  Found: N_1=1, K+1=5, condition N_1 > K+1: False\n         N_0=38, K+1=5, condition N_0 > K+1: True\n  Controls will be ignored in the regression."
+    ],
+    "result": {
+      "overall_assessment": "Multiple concerns: pre-period sensitivity, transformation sensitivity. Interpret with caution.",
+      "recommendations": [
+        "Pre-period sensitivity detected (ratio=27.3%). Consider using detrend method or investigating data quality.",
+        "Substantial difference between demean and detrend (46.2%). This suggests heterogeneous trends may be present."
+      ],
+      "pre_period": {
+        "sensitivity_ratio": 0.27337455234702557,
+        "is_robust": false,
+        "robustness_level": "RobustnessLevel.SENSITIVE"
+      },
+      "anticipation": {
+        "anticipation_detected": false,
+        "recommended_exclusion": 0
+      },
+      "transformation": {
+        "demean_att": -0.4221746008541101,
+        "demean_se": 0.12079952595673699,
+        "detrend_att": -0.22698869173130326,
+        "detrend_se": 0.09406889491004852,
+        "difference": 0.19518590912280687
+      },
+      "estimator": {
+        "ra": -0.4221746008541101,
+        "ipw": -0.4221746008541096,
+        "range": 4.996003610813204e-16
+      }
+    }
+  },
+  "no_controls_reference": {
+    "artifact": "/Users/cxy/Desktop/lwdid_r/_automation/test-artifacts/parity/20260323-qa-parity-e8-03-smoking-comparator.json",
+    "r_result": {
+      "warnings": [
+        "Only 1 treated unit (N_treated=1). Results may be unreliable.",
+        "Only 1 treated unit (N_treated=1). Results may be unreliable.",
+        "Only 1 treated unit (N_treated=1). Results may be unreliable.",
+        "Only 1 treated unit (N_treated=1). Results may be unreliable.",
+        "Only 1 treated unit (N_treated=1). Results may be unreliable.",
+        "Only 1 treated unit (N_treated=1). Results may be unreliable.",
+        "Only 1 treated unit (N_treated=1). Results may be unreliable.",
+        "Only 1 treated unit (N_treated=1). Results may be unreliable.",
+        "Only 1 treated unit (N_treated=1). Results may be unreliable.",
+        "Only 1 treated unit (N_treated=1). Results may be unreliable.",
+        "Only 1 treated unit (N_treated=1). Results may be unreliable.",
+        "Only 1 treated unit (N_treated=1). Results may be unreliable.",
+        "Only 1 treated unit (N_treated=1). Results may be unreliable.",
+        "Only 1 treated unit (N_treated=1). Results may be unreliable.",
+        "Only 1 treated unit (N_treated=1). Results may be unreliable.",
+        "Only 1 treated unit (N_treated=1). Results may be unreliable.",
+        "Only 1 treated unit (N_treated=1). Results may be unreliable.",
+        "Only 1 treated unit (N_treated=1). Results may be unreliable.",
+        "Only 1 treated unit (N_treated=1). Results may be unreliable.",
+        "Only 1 treated unit (N_treated=1). Results may be unreliable.",
+        "Only 1 treated unit (N_treated=1). Results may be unreliable.",
+        "Only 1 treated unit (N_treated=1). Results may be unreliable.",
+        "Only 1 treated unit (N_treated=1). Results may be unreliable.",
+        "Only 1 treated unit (N_treated=1). Results may be unreliable.",
+        "Only 1 treated unit (N_treated=1). Results may be unreliable."
+      ],
+      "error": null,
+      "result": {
+        "overall_assessment": "多项问题：前期敏感性、变换方法敏感性，需谨慎解读",
+        "recommendations": [
+          "前期敏感性检测到(SR=27.3%)，建议使用 detrend 或检查数据质量",
+          "demean 与 detrend 差异显著(46.2%)，可能存在异质性趋势"
+        ],
+        "pre_period": {
+          "sensitivity_ratio": 0.27337455234702435,
+          "is_robust": false,
+          "robustness_level": "sensitive"
+        },
+        "anticipation": {
+          "anticipation_detected": false,
+          "recommended_exclusion": 0
+        },
+        "transformation": {
+          "demean_att": -0.42217460085410935,
+          "demean_se": 0.12079952595673714,
+          "detrend_att": -0.2269886917313018,
+          "detrend_se": 0.09406889491004874,
+          "difference": 0.19518590912280756,
+          "rel_diff": 0.4623345618801398
+        },
+        "estimator": null
+      },
+      "stderr": ""
+    },
+    "comparison": {
+      "status": "passed",
+      "exact_status": "passed",
+      "numeric_status": "passed",
+      "exact_findings": [
+        {
+          "name": "pre_period.is_robust",
+          "status": "pass",
+          "expected": false,
+          "actual": false
+        },
+        {
+          "name": "pre_period.robustness_level",
+          "status": "pass",
+          "expected": "sensitive",
+          "actual": "sensitive"
+        },
+        {
+          "name": "anticipation.anticipation_detected",
+          "status": "pass",
+          "expected": false,
+          "actual": false
+        },
+        {
+          "name": "anticipation.recommended_exclusion",
+          "status": "pass",
+          "expected": 0,
+          "actual": 0
+        },
+        {
+          "name": "estimator.is_null",
+          "status": "pass",
+          "expected": true,
+          "actual": true
+        }
+      ],
+      "numeric_findings": [
+        {
+          "name": "pre_period.sensitivity_ratio",
+          "status": "pass",
+          "expected": 0.27337455234702557,
+          "actual": 0.27337455234702435,
+          "abs_diff": 1.2212453270876722e-15,
+          "tolerance": 1e-06
+        },
+        {
+          "name": "transformation.demean_att",
+          "status": "pass",
+          "expected": -0.4221746008541101,
+          "actual": -0.42217460085410935,
+          "abs_diff": 7.771561172376096e-16,
+          "tolerance": 1e-06
+        },
+        {
+          "name": "transformation.detrend_att",
+          "status": "pass",
+          "expected": -0.22698869173130326,
+          "actual": -0.2269886917313018,
+          "abs_diff": 1.4710455076283324e-15,
+          "tolerance": 1e-06
+        },
+        {
+          "name": "transformation.difference",
+          "status": "pass",
+          "expected": 0.19518590912280687,
+          "actual": 0.19518590912280756,
+          "abs_diff": 6.938893903907228e-16,
+          "tolerance": 1e-06
+        },
+        {
+          "name": "transformation.demean_se",
+          "status": "pass",
+          "expected": 0.12079952595673699,
+          "actual": 0.12079952595673714,
+          "abs_diff": 1.5265566588595902e-16,
+          "tolerance": 0.0001
+        },
+        {
+          "name": "transformation.detrend_se",
+          "status": "pass",
+          "expected": 0.09406889491004852,
+          "actual": 0.09406889491004874,
+          "abs_diff": 2.220446049250313e-16,
+          "tolerance": 0.0001
+        }
+      ],
+      "blockers": []
+    }
+  },
+  "comparison": {
+    "status": "drift-confirmed",
+    "paper_backed_r_status": "passed",
+    "python_status": "bugged-no-controls-fallback",
+    "exact_status": "waived-for-python-bug",
+    "numeric_status": "waived-for-python-bug",
+    "exact_findings": [
+      {
+        "name": "python.controls_demean_att_matches_no_controls",
+        "status": "pass",
+        "actual": -0.4221746008541101,
+        "expected": -0.42217460085410935
+      },
+      {
+        "name": "python.controls_estimator_ra_matches_no_controls",
+        "status": "pass",
+        "actual": -0.4221746008541101,
+        "expected": -0.42217460085410935
+      }
+    ],
+    "numeric_findings": [
+      {
+        "name": "r.controls_vs_no_controls.demean_att_abs_diff",
+        "status": "pass",
+        "actual": 0.10260074800336988
+      },
+      {
+        "name": "r.controls_vs_no_controls.range_abs_diff",
+        "status": "pass",
+        "actual": 0.10260074800336938
+      },
+      {
+        "name": "r.controls_vs_python_bug_path.demean_att_abs_diff",
+        "status": "pass",
+        "actual": 0.10260074800337066
+      }
+    ],
+    "blockers": []
+  },
+  "paper_alignment": {
+    "controls_are_time_invariant": true,
+    "shared_fixture_written": true,
+    "simple_controls_eq_2_18_supported": true,
+    "r_demean_att_abs_diff_vs_no_controls": 0.10260074800336988,
+    "r_detrend_att_abs_diff_vs_no_controls": 0.06854145408751036,
+    "r_estimator_ra_abs_diff_vs_python_bug_path": 0.10260074800337066
+  }
+}

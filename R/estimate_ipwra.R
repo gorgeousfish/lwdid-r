@@ -26,7 +26,9 @@
 #' @param boot_reps integer, bootstrap replications (default 200)
 #' @param seed integer or NULL, random seed for bootstrap
 #'
-#' @return list with 15 fields (see design doc)
+#' @return list with ATT, uncertainty, propensity/outcome model metadata, sample
+#'   diagnostics, and estimator metadata. Bootstrap fits also include requested,
+#'   valid, and failed replicate counts plus the bootstrap success rate.
 #' @keywords internal
 estimate_ipwra <- function(data, y, d, controls,
                            propensity_controls = NULL,
@@ -59,6 +61,7 @@ estimate_ipwra <- function(data, y, d, controls,
   complete_mask <- stats::complete.cases(data[, all_vars, drop = FALSE])
   data_clean <- data[complete_mask, , drop = FALSE]
   n_excluded <- sum(!complete_mask)
+  .validate_no_infinite_numeric_values(data_clean, all_vars, "IPWRA")
 
   # ---- Step 4: Sample size checks ----
   D_all <- as.integer(data_clean[[d]])
@@ -149,6 +152,7 @@ estimate_ipwra <- function(data, y, d, controls,
   att <- treat_term - ctrl_term
 
   # ---- Step 10: Weight CV diagnostic ----
+  weights_cv <- NA_real_
   if (length(w_ctrl) > 1L && mean(w_ctrl) > 0) {
     weights_cv <- sd(w_ctrl) / mean(w_ctrl)
     if (weights_cv > 2.0) {
@@ -207,13 +211,13 @@ estimate_ipwra <- function(data, y, d, controls,
   X_out <- as.matrix(data_valid[, controls, drop = FALSE])
   df_resid <- as.integer(n - (2L + ncol(X_out)))
 
-  # ---- Step 15: Return value assembly (15 fields) ----
+  # ---- Step 15: Return value assembly ----
   # Full-sample weight vector
   weights_all <- numeric(n)
   weights_all[which(treat_mask)] <- 1.0
   weights_all[which(control_mask)] <- w_ctrl
 
-  list(
+  result <- list(
     att                   = att,
     se                    = se,
     ci_lower              = ci_lower,
@@ -227,9 +231,17 @@ estimate_ipwra <- function(data, y, d, controls,
     n_treated             = as.integer(n1),
     n_control             = as.integer(n0),
     n_trimmed             = as.integer(n_trimmed),
+    weights_cv            = weights_cv,
     df_resid              = df_resid,
     estimator             = "ipwra"
   )
+  if (identical(vce_method, "bootstrap")) {
+    result$bootstrap_reps_requested <- boot_result$bootstrap_reps_requested
+    result$bootstrap_reps_valid <- boot_result$bootstrap_reps_valid
+    result$bootstrap_reps_failed <- boot_result$bootstrap_reps_failed
+    result$bootstrap_success_rate <- boot_result$bootstrap_success_rate
+  }
+  result
 }
 
 
@@ -412,7 +424,7 @@ estimate_ipwra <- function(data, y, d, controls,
   }
 
   # Success rate check
-  n_valid <- sum(!is.na(att_boot))
+  n_valid <- sum(is.finite(att_boot))
   success_rate <- n_valid / n_bootstrap
 
   if (success_rate < 0.5) {
@@ -427,12 +439,20 @@ estimate_ipwra <- function(data, y, d, controls,
       class = "lwdid_estimation_failed")
   }
 
-  att_valid <- att_boot[!is.na(att_boot)]
+  att_valid <- att_boot[is.finite(att_boot)]
   se <- sd(att_valid)
   ci <- as.numeric(stats::quantile(att_valid,
                                     probs = c(alpha / 2, 1 - alpha / 2)))
 
-  list(se = se, ci_lower = ci[1], ci_upper = ci[2])
+  list(
+    se = se,
+    ci_lower = ci[1],
+    ci_upper = ci[2],
+    bootstrap_reps_requested = as.integer(n_bootstrap),
+    bootstrap_reps_valid = as.integer(n_valid),
+    bootstrap_reps_failed = as.integer(n_bootstrap - n_valid),
+    bootstrap_success_rate = as.numeric(success_rate)
+  )
 }
 
 

@@ -74,6 +74,13 @@ result_event <- lwdid(
 
 plot(result_event)
 
+## ----staggered-event-study-options, eval=requireNamespace("ggplot2", quietly=TRUE)----
+# Post-treatment path only
+plot(result_event, show_pre_treatment = FALSE)
+
+# Normalize to the treatment period without relabeling it as an anchor
+plot(result_event, ref_period = 0)
+
 ## ----controls, eval=FALSE-----------------------------------------------------
 # result_ctrl <- lwdid(
 #   data = castle,

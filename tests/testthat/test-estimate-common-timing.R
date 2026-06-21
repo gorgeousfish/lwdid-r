@@ -48,7 +48,8 @@ test_that("T-02 rolling='detrend' dispatches correctly", {
   )
   result <- withCallingHandlers(
     transform_common(dt, "y", "id", "t", g = 4L, rolling = "detrend"),
-    lwdid_small_sample = function(w) invokeRestart("muffleWarning")
+    lwdid_small_sample = function(w) invokeRestart("muffleWarning"),
+    message = function(m) invokeRestart("muffleMessage")
   )
   expect_true("y_trans" %in% names(result))
   expect_true("slope" %in% names(result))
@@ -148,7 +149,7 @@ test_that("T-11 print() outputs ATT and SE", {
   )
   out <- paste(capture.output(print(result)), collapse = "\n")
   expect_true(grepl("ATT", out))
-  expect_true(grepl("SE", out, ignore.case = TRUE))
+  expect_true(grepl("Std[.] Err[.]|\\bSE\\b", out, ignore.case = TRUE))
 })
 
 test_that("T-12 coef() returns named ATT", {
@@ -272,14 +273,19 @@ test_that("T-18 all units NA throws lwdid_insufficient_data", {
 test_that("T-19 partial NA units emit warning", {
   dt <- make_panel(N = 6L, TT = 6L, S = 4L, n_treated = 4L)
   dt <- dt[!(id == 1L & time < 4L)]
-  # Should warn about excluded units
-  expect_warning(
-    suppressMessages(
-      lwdid(data = dt, y = "y", ivar = "id", tvar = "time",
-            d = "d", post = "post", rolling = "demean")
-    ),
-    class = "lwdid_data"
+  warnings_caught <- list()
+  result <- withCallingHandlers(
+    lwdid(data = dt, y = "y", ivar = "id", tvar = "time",
+          d = "d", post = "post", rolling = "demean"),
+    warning = function(w) {
+      warnings_caught[[length(warnings_caught) + 1L]] <<- w
+      invokeRestart("muffleWarning")
+    },
+    message = function(m) invokeRestart("muffleMessage")
   )
+  expect_s3_class(result, "lwdid_result")
+  expect_true(any(vapply(warnings_caught, inherits, logical(1),
+                         what = "lwdid_data")))
 })
 
 # =============================================================================
@@ -475,7 +481,7 @@ test_that("B-06 print() output format", {
   output <- capture.output(print(demean_result_i))
   output_text <- paste(output, collapse = "\n")
   expect_true(grepl("ATT", output_text))
-  expect_true(grepl("SE", output_text, ignore.case = TRUE))
+  expect_true(grepl("Std[.] Err[.]|\\bSE\\b", output_text, ignore.case = TRUE))
 })
 
 test_that("B-07 coef() method", {
@@ -765,7 +771,7 @@ test_that("C-01 pre-period insufficient unit excluded, others unaffected", {
   result <- withCallingHandlers(
     lwdid(data = df, y = "y", ivar = "id", tvar = "time",
           d = "d", post = "post", rolling = "demean"),
-    lwdid_data = function(w) {
+    warning = function(w) {
       warnings_caught[[length(warnings_caught) + 1L]] <<- w
       invokeRestart("muffleWarning")
     },
@@ -868,10 +874,9 @@ test_that("C-04 defensive copy: validated$data not modified", {
   expect_identical(dt_original, dt_copy_before)
 })
 
-test_that("C-05 time-varying controls rejected by validation", {
-  # Controls that vary over time within units are caught by
-  # .validate_time_invariant_controls() as lwdid_invalid_parameter.
-  # This is the correct behavior: validation is strict.
+test_that("C-05 time-varying controls warn and use pre-period means", {
+  # Time-varying controls are converted to pre-period means with an explicit
+  # lwdid_data warning so the estimator still uses unit-level controls.
   df_tv <- data.frame(
     id = rep(1:5, each = 6), time = rep(1:6, 5),
     y = c(10, 12, 11, 18, 20, 22,
@@ -888,14 +893,23 @@ test_that("C-05 time-varying controls rejected by validation", {
            2, 2, 2, 3, 3, 3)
   )
 
-  expect_warning(
-    suppressMessages(
-      lwdid(data = df_tv, y = "y", ivar = "id", tvar = "time",
-            d = "d", post = "post", rolling = "demean",
-            controls = "x1")
-    ),
-    class = "lwdid_data"
+  warnings_caught <- list()
+  result_tv <- withCallingHandlers(
+    lwdid(data = df_tv, y = "y", ivar = "id", tvar = "time",
+          d = "d", post = "post", rolling = "demean",
+          controls = "x1"),
+    warning = function(w) {
+      warnings_caught[[length(warnings_caught) + 1L]] <<- w
+      invokeRestart("muffleWarning")
+    },
+    message = function(m) invokeRestart("muffleMessage")
   )
+  expect_s3_class(result_tv, "lwdid_result")
+  expect_true(any(vapply(warnings_caught, inherits, logical(1),
+                         what = "lwdid_data")))
+  expect_true(any(grepl("pre-period means", vapply(
+    warnings_caught, conditionMessage, character(1)
+  ))))
 
   # Time-invariant controls should work fine
   df_ti <- df_tv

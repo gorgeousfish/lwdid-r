@@ -3,6 +3,11 @@
 # Integration tests for lwdid() RI and pretreatment paths (Story E7-06)
 # ===========================================================================
 
+testthat::skip_if_not(
+  identical(Sys.getenv("LWDID_RUN_EVIDENCE_TESTS"), "true"),
+  "Set LWDID_RUN_EVIDENCE_TESTS=true to run long RI/pretreatment evidence tests."
+)
+
 # --- Helper: Common Timing DGP with treatment effect ---
 .make_ct_panel <- function(n_treated = 10L, n_control = 10L,
                            n_periods = 8L, K = 4L,
@@ -809,9 +814,10 @@ test_that("TC-7.7.29: result object field completeness", {
           ri = TRUE, rireps = 200L, seed = 7702L,
           include_pretreatment = TRUE)
   ))
-  # 7 RI fields that are always present (non-NULL values)
+  # RI fields that are always present (non-NULL values)
   ri_fields_present <- c("ri_pvalue", "ri_distribution", "ri_seed",
-                          "ri_method", "rireps", "ri_valid", "ri_failed")
+                          "ri_method", "rireps", "ri_valid", "ri_failed",
+                          "ri_observed_stat", "ri_estimator")
   for (f in ri_fields_present) {
     expect_true(f %in% names(result),
                 info = paste0("Missing RI field: ", f))

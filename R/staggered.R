@@ -91,7 +91,7 @@ prepare_staggered_controls <- function(sub, controls, ivar) {
     if (length(vals) < 2L) return(0)
     var(vals)
   })
-  col_const <- col_var == 0
+  col_const <- .is_nearly_zero(col_var)
   if (any(col_const)) {
     const_vars <- colnames(x)[col_const]
     warn_lwdid(
@@ -191,7 +191,9 @@ estimate_staggered_effects <- function(
     r <- pair$r
 
     # ── Step 1: Extract period r cross-section ──
-    period_data <- dt[get(tvar) == r]
+    # Force integer comparison to avoid IEEE 754 float mismatch
+    # (tvar column may be stored as double after data.table operations)
+    period_data <- dt[as.integer(get(tvar)) == as.integer(r)]
 
     if (nrow(period_data) == 0L) {
       return(list(type = "skip",
@@ -254,10 +256,19 @@ estimate_staggered_effects <- function(
     valid_trans <- !is.na(y_trans)
 
     # ── Step 6: Controls + two-step filter + min_obs ──
+    estimator_controls <- if (identical(estimator, "ra")) {
+      controls %||% character(0)
+    } else if (identical(estimator, "ipwra")) {
+      unique(c(controls %||% character(0),
+               ps_controls %||% controls %||% character(0)))
+    } else {
+      ps_controls %||% controls %||% character(0)
+    }
+
     x_sub <- NULL
-    if (!is.null(controls) && length(controls) > 0L) {
+    if (length(estimator_controls) > 0L) {
       x_sub <- prepare_staggered_controls(
-        sub, controls, ivar
+        sub, estimator_controls, ivar
       )
     }
 
@@ -304,15 +315,30 @@ estimate_staggered_effects <- function(
           .y_outcome = y_trans,
           .d_treat = d_sub
         )
+        actual_controls <- NULL
+        actual_ps_controls <- NULL
         if (!is.null(x_sub)) {
           est_df <- cbind(est_df, as.data.frame(x_sub))
+          available_controls <- colnames(x_sub)
+          if (identical(estimator, "ipwra")) {
+            actual_controls <- intersect(controls %||% character(0),
+                                         available_controls)
+          } else if (is.null(ps_controls)) {
+            actual_controls <- intersect(controls %||% character(0),
+                                         available_controls)
+          }
+          if (!is.null(ps_controls)) {
+            actual_ps_controls <- intersect(ps_controls, available_controls)
+          }
+          if (length(actual_controls) == 0L) actual_controls <- NULL
+          if (length(actual_ps_controls) == 0L) actual_ps_controls <- NULL
         }
         dispatch_estimator(
           data = est_df,
           y = ".y_outcome",
           d = ".d_treat",
-          controls = controls,
-          ps_controls = ps_controls,
+          controls = actual_controls,
+          ps_controls = actual_ps_controls,
           estimator = estimator,
           vce = vce,
           cluster_var = NULL,
@@ -332,13 +358,16 @@ estimate_staggered_effects <- function(
       }
     },
       error = function(e) {
-        NULL
+        e
       }
     )
-    if (is.null(est)) {
+    if (inherits(est, "condition")) {
       return(list(type = "skip",
                   value = list(g = g, r = r,
-                               reason = "estimation_error")))
+                               reason = "estimation_error",
+                               error_message = conditionMessage(est),
+                               error_class = paste(class(est),
+                                                   collapse = "|"))))
     }
 
     # ── Step 8: Store results ──
@@ -349,7 +378,11 @@ estimate_staggered_effects <- function(
     } else {
       NA_real_
     }
-    vce_actual <- if (is.null(vce)) "homoskedastic" else vce
+    vce_actual <- if (identical(estimator, "ra")) {
+      if (is.null(vce)) "homoskedastic" else vce
+    } else {
+      est$vce_type %||% .resolve_estimator_vce_type(estimator, vce, se_method)
+    }
 
     est_df <- if (!is.null(est$df)) est$df else {
       if (!is.null(est$df_resid)) est$df_resid else NA_real_
@@ -368,7 +401,7 @@ estimate_staggered_effects <- function(
       NA_character_
     }
 
-    list(type = "result", value = data.frame(
+    result_row <- data.frame(
       cohort = g,
       period = r,
       event_time = r - g,
@@ -387,7 +420,34 @@ estimate_staggered_effects <- function(
       controls_tier = est_tier,
       vce_type = vce_actual,
       stringsAsFactors = FALSE
-    ))
+    )
+
+    if (isTRUE(return_diagnostics) && !identical(estimator, "ra")) {
+      ps <- est$propensity_scores
+      ps_finite <- ps[is.finite(ps)]
+      result_row$ps_min <- if (length(ps_finite) > 0L) min(ps_finite) else NA_real_
+      result_row$ps_max <- if (length(ps_finite) > 0L) max(ps_finite) else NA_real_
+      result_row$ps_mean <- if (length(ps_finite) > 0L) mean(ps_finite) else NA_real_
+      result_row$n_trimmed <- as.integer(est$n_trimmed %||% NA_integer_)
+      result_row$weights_cv <- as.numeric(est$weights_cv %||% NA_real_)
+      result_row$n_matched <- as.integer(est$n_matched %||% NA_integer_)
+      result_row$match_rate <- as.numeric(est$match_success_rate %||% NA_real_)
+      result_row$n_dropped <- as.integer(est$n_dropped %||% NA_integer_)
+      result_row$bootstrap_reps_requested <- as.integer(
+        est$bootstrap_reps_requested %||% NA_integer_
+      )
+      result_row$bootstrap_reps_valid <- as.integer(
+        est$bootstrap_reps_valid %||% NA_integer_
+      )
+      result_row$bootstrap_reps_failed <- as.integer(
+        est$bootstrap_reps_failed %||% NA_integer_
+      )
+      result_row$bootstrap_success_rate <- as.numeric(
+        est$bootstrap_success_rate %||% NA_real_
+      )
+    }
+
+    list(type = "result", value = result_row)
   }
 
   # Execute: use run_parallel for unified parallel/sequential dispatch
@@ -414,6 +474,11 @@ estimate_staggered_effects <- function(
   }
 
   # ── Report skipped (g,r) pairs ──
+  skipped_summary <- data.frame(
+    reason = character(0),
+    n = integer(0),
+    stringsAsFactors = FALSE
+  )
   if (length(skipped) > 0L) {
     n_skipped <- length(skipped)
     n_total_pairs <- length(gr_pairs)
@@ -421,6 +486,11 @@ estimate_staggered_effects <- function(
       skipped, function(x) x$reason, character(1)
     )
     reason_counts <- table(reasons)
+    skipped_summary <- data.frame(
+      reason = names(reason_counts),
+      n = as.integer(reason_counts),
+      stringsAsFactors = FALSE
+    )
     reason_summary <- paste(
       sprintf("%s: %d", names(reason_counts),
               as.integer(reason_counts)),
@@ -448,5 +518,27 @@ estimate_staggered_effects <- function(
     )
   }
 
-  do.call(rbind, results)
+  result_df <- do.call(rbind, results)
+  attr(result_df, "skipped_pairs") <- skipped
+  attr(result_df, "skipped_summary") <- skipped_summary
+  if (isTRUE(return_diagnostics) &&
+      estimator %in% c("ipw", "ipwra") &&
+      "weights_cv" %in% names(result_df)) {
+    finite_cv <- result_df$weights_cv[is.finite(result_df$weights_cv)]
+    if (length(finite_cv) > 0L) {
+      max_cv <- max(finite_cv)
+      if (max_cv > 2.0) {
+        warn_lwdid(
+          sprintf(
+            "%s max weight CV = %.2f across %d (g,r) cell(s). Possible overlap violation.",
+            toupper(estimator), max_cv, sum(finite_cv > 2.0)
+          ),
+          class = "lwdid_overlap",
+          detail = sprintf("%s_staggered_extreme_weights", estimator)
+        )
+      }
+    }
+  }
+
+  result_df
 }

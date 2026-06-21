@@ -1,0 +1,40 @@
+{
+  "story": "story-E8-03",
+  "task": "8.5",
+  "role": "qa-parity",
+  "generated_at": "2026-03-24 03:11:05 CST",
+  "audit_seed": 42,
+  "tolerance": 1e-10,
+  "strict_mask_case": {
+    "wrapper_baseline_att": 3.4980540427941018,
+    "direct_not_yet_treated_att": 3.4980540427941018,
+    "direct_never_treated_att": 3.6501485096251658,
+    "abs_diff_vs_direct_nyt": 0,
+    "abs_diff_vs_direct_nt": 0.15209446683106398,
+    "wrapper_matches_direct_nyt": true,
+    "wrapper_differs_from_direct_nt": true
+  },
+  "aggregation_case": {
+    "switch_warning_detected": true,
+    "warning_messages": ["Small sample (N=30). Consider checking normality assumptions.", "aggregate='overall' with control_group='not_yet_treated': auto-switching to control_group='never_treated' for aggregation. Cross-cohort aggregation requires a common control group (NT units).", "Small sample (N=30). Consider checking normality assumptions.", "aggregate='overall' with control_group='not_yet_treated': auto-switching to control_group='never_treated' for aggregation. Cross-cohort aggregation requires a common control group (NT units)."],
+    "warning_classes": [
+      ["lwdid_small_sample", "lwdid_warning", "warning", "condition"],
+      ["lwdid_control_group_switch", "lwdid_warning", "warning", "condition"],
+      ["lwdid_small_sample", "lwdid_warning", "warning", "condition"],
+      ["lwdid_control_group_switch", "lwdid_warning", "warning", "condition"]
+    ],
+    "wrapper_demean_att": 3.6816110758339486,
+    "wrapper_demean_se": 0.70620682432367943,
+    "wrapper_detrend_att": 2.7613563492169235,
+    "wrapper_detrend_se": 0.46986577703316845,
+    "direct_never_treated_demean_att": 3.6816110758339486,
+    "direct_never_treated_demean_se": 0.70620682432367943,
+    "direct_never_treated_detrend_att": 2.7613563492169235,
+    "direct_never_treated_detrend_se": 0.46986577703316845,
+    "wrapper_matches_direct_nt": true
+  },
+  "exact_status": "passed",
+  "numeric_status": "passed",
+  "blocker_boundary": "narrowed",
+  "remaining_gap": "FATAL-003 story-level RI regression"
+}

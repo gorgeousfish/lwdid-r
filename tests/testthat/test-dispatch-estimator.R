@@ -136,6 +136,16 @@ test_that("TC-6.5.18: se_method='invalid' (IPW) errors", {
     controls = c("x1", "x2"), estimator = "ipw",
     se_method = "invalid"), class = "lwdid_invalid_parameter")
 })
+test_that("TC-6.5.18b: non-RA vce errors instead of being ignored", {
+  df <- make_test_data(n = 20)
+  for (estimator in c("ipw", "ipwra", "psm")) {
+    expect_error(dispatch_estimator(df, "y", "d",
+      controls = c("x1", "x2"), estimator = estimator,
+      vce = "cluster", cluster_var = "id"),
+      regexp = "vce is only supported when estimator='ra'",
+      class = "lwdid_invalid_parameter")
+  }
+})
 # === Group 3: match.arg validation (TC-6.5.24 to TC-6.5.25) ===
 test_that("TC-6.5.24: match_order='invalid' errors", {
   df <- make_test_data(n = 20)
@@ -157,6 +167,8 @@ test_that("TC-6.5.26: se_method='analytical' for IPW works", {
     se_method = "analytical")
   expect_true(is.numeric(res$att))
   expect_true(res$se > 0)
+  expect_identical(res$vce_type, "analytical")
+  expect_true(is.finite(res$weights_cv))
 })
 test_that("TC-6.5.27: se_method='analytical' for IPWRA works", {
   df <- make_test_data()
@@ -165,6 +177,8 @@ test_that("TC-6.5.27: se_method='analytical' for IPWRA works", {
     se_method = "analytical")
   expect_true(is.numeric(res$att))
   expect_true(res$se > 0)
+  expect_identical(res$vce_type, "analytical")
+  expect_true(is.finite(res$weights_cv))
 })
 test_that("TC-6.5.28: se_method='abadie_imbens' for PSM works", {
   df <- make_test_data()
@@ -173,6 +187,7 @@ test_that("TC-6.5.28: se_method='abadie_imbens' for PSM works", {
     se_method = "abadie_imbens")
   expect_true(is.numeric(res$att))
   expect_true(res$se > 0)
+  expect_identical(res$vce_type, "abadie_imbens")
 })
 test_that("TC-6.5.29: se_method='bootstrap' for IPW works", {
   df <- make_test_data()
@@ -181,6 +196,7 @@ test_that("TC-6.5.29: se_method='bootstrap' for IPW works", {
     se_method = "bootstrap", boot_reps = 10L, seed = 42)
   expect_true(is.numeric(res$att))
   expect_true(res$se > 0)
+  expect_identical(res$vce_type, "bootstrap")
 })
 # === Group 5: Alpha validation (TC-6.5.39 to TC-6.5.40) ===
 test_that("TC-6.5.39: alpha=0 errors", {

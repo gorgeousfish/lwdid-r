@@ -1069,7 +1069,10 @@ test_that("plot.lwdid_sensitivity returns empty ggplot with no converged specs",
     baseline_spec = list(att = NA_real_, n_pre_periods = 3L),
     sensitivity_ratio = 0.0, robustness_level = "highly_robust"
   ), class = c("lwdid_sensitivity", "list"))
-  p <- plot(obj)
+  expect_warning(
+    p <- plot(obj),
+    "All specifications failed to converge"
+  )
   expect_s3_class(p, "ggplot")
   expect_equal(length(p$layers), 0L)
 })

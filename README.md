@@ -3,24 +3,22 @@
 **Lee-Wooldridge Difference-in-Differences Estimation for R**
 
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](LICENSE.md)
-[![Version: 0.1.0](https://img.shields.io/badge/Version-0.1.0-green.svg)]()
-
-![lwdid](image/image.png)
+[![Version: 0.1.0](https://img.shields.io/badge/Version-0.1.0-green.svg)](NEWS.md)
 
 ## Overview
 
-`lwdid` implements the **Rolling Difference-in-Differences Estimator** proposed by Lee and Wooldridge ([2025](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4516518), [2026](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=5325686)) for R. Through unit-specific time-series transformations (demeaning or detrending), the package converts panel DiD estimation into standard cross-sectional treatment effect problems, enabling application of multiple estimators and exact small-sample inference.
+`lwdid` implements the **Rolling Difference-in-Differences Estimator** proposed by Lee and Wooldridge ([2025](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4516518), [2026](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=5325686)) for R. Through unit-specific time-series transformations (demeaning or detrending), the package converts panel DiD estimation into standard cross-sectional treatment effect problems, enabling several treatment-effect estimators and the package's supported inference options.
 
-The package provides fast and flexible estimation for both common timing and staggered adoption treatment settings in panel data, and covers standard large-*N* asymptotic inference as well as small-*N* settings where conventional inference may not be reliable.
+The package supports common timing and staggered adoption treatment settings in panel data. It keeps estimation, diagnostics, plots, exports, and replication-oriented metadata attached to fitted R objects so users can inspect the analysis path rather than copy results across disconnected scripts.
 
 **Features**:
 
 - **Two designs**: Common Timing (simultaneous treatment) and Staggered Adoption (cohort-specific timing)
 - **Four estimators**: RA (Regression Adjustment), IPW (Inverse Probability Weighting), IPWRA (Doubly Robust), PSM (Propensity Score Matching)
-- **Complete inference**: Homoskedastic / HC0–HC4 / cluster-robust standard errors, Fisher Randomization Inference, Wild Cluster Bootstrap
+- **Inference options**: Homoskedastic / HC0-HC4 / cluster-robust standard errors, Fisher Randomization Inference, Wild Cluster Bootstrap
 - **Rich diagnostics**: Parallel trends tests, clustering diagnostics, selection mechanism diagnostics, sensitivity analysis
 - **Data preprocessing**: Individual-level data aggregation to panel format via `aggregate_to_panel()`
-- **High performance**: Vectorized `data.table`-based computation with optional parallel processing via `future`
+- **Implementation**: `data.table`-oriented computation with optional parallel processing via `future`
 - **Export**: LaTeX tables (`to_latex()`, `to_latex_comparison()`), CSV (`to_csv()`), event study plots
 
 ## Contents
@@ -34,7 +32,6 @@ The package provides fast and flexible estimation for both common timing and sta
 - [Diagnostics](#diagnostics)
 - [Inference](#inference)
 - [Built-in Datasets](#built-in-datasets)
-- [Vignettes](#vignettes)
 - [Citation](#citation)
 - [Authors](#authors)
 - [See Also](#see-also)
@@ -119,6 +116,11 @@ result <- lwdid(
 summary(result)
 ```
 
+For `aggregate = "overall"`, the reported ATT is a cohort-size weighted
+average of the cohort-time effects. The result object and exports retain
+`cohort_weights`; `effective_weights` record the weights after any rows dropped
+from the regression sample.
+
 ### Example 3: Event Study
 
 ```r
@@ -136,6 +138,42 @@ summary(result_es)
 plot(result_es)
 ```
 
+For `aggregate = "event_time"`, the printed scalar ATT summarizes valid
+cohort-period `(g, r)` effects. The event-study table and plot report WATT(e)
+rows by relative time, with cohort-size weights renormalized over the cohorts
+available at each event time. WATT(e) standard errors use the stored
+cohort-specific standard errors with diagonal aggregation; cross-cohort
+covariance is not modeled unless a future joint covariance representation is
+added.
+
+Use `extract_effects(result_es, type = "event_time_contributions")` to inspect
+the cohort weights and cohort-specific contributions behind each WATT(e) row.
+The same contribution table can be written with
+`to_csv(result_es, file = "event-time-contributions.csv", what = "event_time_contributions")`
+or read from `to_dict(result_es)$event_time_contributions`.
+Use `to_latex(result_es, include_event_time = TRUE)` to export the WATT(e)
+rows with standard errors, confidence intervals, contributing-cohort counts,
+and compact support/overlap metadata.
+Plot data returned by `plot_event_study(result_es, return_data = TRUE)`
+carries the same standard-error metadata for the plotted event-time rows,
+including `se_aggregation` and `covariance_assumption`. For non-RA
+event-time results, the returned plot data also preserves available overlap
+and support-count summaries, such as propensity-score ranges, weight
+dispersion, and treated/control counts.
+
+```r
+# Hide pre-treatment periods; the default -1 anchor is omitted as well.
+plot(result_es, show_pre_treatment = FALSE)
+
+# Normalize to an observed event time; this does not relabel the observed reference row as a visual anchor.
+plot(result_es, ref_period = 0)
+```
+
+When `ref_period` is used, returned plot data suppresses pointwise p-values
+and significance flags. The plotted values are shifted contrasts relative to
+the reference period, and those contrasts require event-time contrast
+covariance rather than the original pointwise standard errors.
+
 ### Example 4: Using Controls and IPW Estimator
 
 ```r
@@ -147,7 +185,7 @@ result_ipw <- lwdid(
   gvar = "gvar",
   rolling = "demean",
   estimator = "ipw",
-  controls = c("police", "unemployrt", "income"),
+  ps_controls = c("police", "unemployrt", "income"),
   aggregate = "overall"
 )
 
@@ -172,6 +210,13 @@ summary(result_ipw)
 | `"ipwra"`     | Doubly Robust (IPW + RA)      |        Yes        |      Yes      |
 | `"psm"`       | Propensity Score Matching     |        Yes        |      No      |
 
+Use `controls` for RA outcome-regression controls. For IPW and PSM, prefer
+`ps_controls` to state the propensity-score specification directly; if
+`ps_controls` is `NULL`, they fall back to `controls`. IPWRA uses `controls`
+for the outcome model and `ps_controls` for the propensity-score model, again
+the propensity model will fall back to `controls` when `ps_controls` is
+omitted.
+
 ## Aggregation
 
 For staggered adoption designs, treatment effects are first estimated for each cohort-time pair and then aggregated:
@@ -179,8 +224,8 @@ For staggered adoption designs, treatment effects are first estimated for each c
 | `aggregate =`     | Description                                                |
 | ------------------- | ---------------------------------------------------------- |
 | `"cohort"`        | Group-time ATT by treatment cohort (default)               |
-| `"overall"`       | Single weighted average ATT across all cohorts and periods |
-| `"event_time"`    | ATT by relative time to treatment (for event study plots)  |
+| `"overall"`       | Single ATT weighted by treated-unit cohort sizes           |
+| `"event_time"`    | WATT(e) by relative time; scalar ATT remains a `(g,r)` summary |
 | `"calendar_time"` | ATT by calendar time period                                |
 | `"att_gt"`        | Return all individual group-time ATT(g,t) estimates        |
 
@@ -231,7 +276,7 @@ summary(diag)
 
 ### Randomization Inference
 
-Randomization inference (RI) provides exact p-values without relying on asymptotic normality, which is particularly useful in small-*N* settings:
+Randomization inference (RI) provides randomization-based p-values without relying on asymptotic normality, which is particularly useful in small-*N* settings:
 
 ```r
 result_ri <- lwdid(
@@ -243,6 +288,7 @@ result_ri <- lwdid(
   post = "post",
   rolling = "demean",
   ri = TRUE,
+  ri_method = "permutation",
   rireps = 1000,
   seed = 42
 )
@@ -250,25 +296,39 @@ result_ri <- lwdid(
 summary(result_ri)
 ```
 
+RI output reports both `ri_pvalue` and `ri_observed_stat`. The p-value is
+computed against `ri_observed_stat`, not necessarily the scalar `att` printed at
+the top of a staggered result. For common-timing designs these coincide. For
+staggered designs, inspect `ri_target`: `aggregate = "overall"` targets the
+overall ATT, `aggregate = "cohort"` targets the selected cohort ATT, and
+`aggregate = "none"` targets the first finite cohort-time ATT.
+
 ### Wild Cluster Bootstrap
 
-Wild Cluster Bootstrap (WCB) is automatically applied when `vce = "cluster"` is specified, providing asymptotic refinement for cluster-robust inference:
+Use `vce = "bootstrap"` to request Wild Cluster Bootstrap (WCB) inference directly. When `vce = "cluster"` is used, `lwdid` automatically upgrades to WCB only for fewer than 20 clusters.
 
 ```r
 result_wcb <- lwdid(
-  data = castle,
-  y = "lhomicide",
-  ivar = "sid",
+  data = smoking,
+  y = "lcigsale",
+  ivar = "state",
   tvar = "year",
-  gvar = "gvar",
+  d = "d",
+  post = "post",
   rolling = "demean",
-  vce = "cluster",
-  cluster_var = "sid",
-  aggregate = "overall"
+  vce = "bootstrap",
+  cluster_var = "state",
+  wcb_reps = 999,
+  wcb_seed = 42,
+  use_fwildclusterboot = FALSE
 )
 
 summary(result_wcb)
 ```
+
+WCB output reports both requested and actual bootstrap draws. With
+Rademacher weights and at most 12 clusters, `lwdid` uses full sign-pattern
+enumeration, so the actual draw count can differ from `wcb_reps`.
 
 ## Built-in Datasets
 
@@ -276,13 +336,7 @@ summary(result_wcb)
 | ----------- | ------------- | ----------------------------------------------------------- | ------ | -------------- |
 | `smoking` | Common Timing | California Proposition 99 tobacco control (1970–2000)      | 1,209  | 39 states      |
 | `castle`  | Staggered     | Castle Doctrine / Stand Your Ground laws (2000–2010)       | 550    | 50 states      |
-| `walmart` | Staggered     | Walmart store openings and local labor markets (1977–1999) | 29,440 | 1,280 counties |
-
-## Vignettes
-
-- `vignette("getting-started")`: Data format, transformations, common timing and staggered examples
-- `vignette("advanced-usage")`: Multiple estimators, sensitivity, diagnostics, WCB, RI, parallel computation, export
-- `vignette("methodology")`: Mathematical framework, identification, and comparison with Callaway & Sant'Anna (2021)
+| `walmart` | Staggered     | Walmart store openings and county labor markets (1977–1999) | 29,440 | 1,280 counties |
 
 ## Citation
 

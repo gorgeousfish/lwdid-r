@@ -49,6 +49,22 @@ make_panel_data <- function(n_per = 60, n1_per = 20, periods = 1:3,
   rbindlist(dt_list)
 }
 
+capture_warnings <- function(expr) {
+  warnings_caught <- list()
+  result <- withCallingHandlers(
+    expr,
+    warning = function(w) {
+      warnings_caught[[length(warnings_caught) + 1L]] <<- w
+      invokeRestart("muffleWarning")
+    }
+  )
+  list(result = result, warnings = warnings_caught)
+}
+
+has_warning_class <- function(warnings, class) {
+  any(vapply(warnings, inherits, logical(1), what = class))
+}
+
 
 # ============================================================================
 # T8-01: estimate_ra_common() returns complete lm object
@@ -80,8 +96,11 @@ test_that("T8-01d: fit is lm class — cluster VCE", {
   d <- c(rep(1L, 20), rep(0L, 40))
   y <- rnorm(n) + 2.0 * d
   cl <- rep(1:10, each = 6)
-  result <- estimate_ra_common(y, d, x = NULL,
-                               vce = "cluster", cluster = cl)
+  captured <- capture_warnings(
+    estimate_ra_common(y, d, x = NULL, vce = "cluster", cluster = cl)
+  )
+  result <- captured$result
+  expect_true(has_warning_class(captured$warnings, "lwdid_small_sample"))
   expect_s3_class(result$fit, "lm")
 })
 
@@ -354,8 +373,11 @@ test_that("T8-03g: vcov dims match with cluster VCE", {
   y <- rnorm(n) + 2.0 * d
   x <- matrix(rnorm(n * K), nrow = n, ncol = K)
   cl <- rep(1:10, each = 6)
-  result <- estimate_ra_common(y, d, x = x,
-                               vce = "cluster", cluster = cl)
+  captured <- capture_warnings(
+    estimate_ra_common(y, d, x = x, vce = "cluster", cluster = cl)
+  )
+  result <- captured$result
+  expect_true(has_warning_class(captured$warnings, "lwdid_small_sample"))
   expect_equal(result$controls_tier, "full_interaction")
   p <- 2L + 2L * K
   expect_equal(nrow(result$vcov), p)
@@ -406,8 +428,11 @@ test_that("T8-04d: vce='cluster' → n_clusters is integer > 0", {
   d <- c(rep(1L, 20), rep(0L, 40))
   y <- rnorm(n) + 2.0 * d
   cl <- rep(1:10, each = 6)
-  result <- estimate_ra_common(y, d, x = NULL,
-                               vce = "cluster", cluster = cl)
+  captured <- capture_warnings(
+    estimate_ra_common(y, d, x = NULL, vce = "cluster", cluster = cl)
+  )
+  result <- captured$result
+  expect_true(has_warning_class(captured$warnings, "lwdid_small_sample"))
   expect_false(is.null(result$n_clusters))
   expect_true(is.integer(result$n_clusters) ||
               is.numeric(result$n_clusters))
@@ -541,8 +566,11 @@ test_that("T8-05d: vce='cluster' → 'cluster'", {
   d <- c(rep(1L, 20), rep(0L, 40))
   y <- rnorm(n) + 2.0 * d
   cl <- rep(1:10, each = 6)
-  result <- estimate_ra_common(y, d, x = NULL,
-                               vce = "cluster", cluster = cl)
+  captured <- capture_warnings(
+    estimate_ra_common(y, d, x = NULL, vce = "cluster", cluster = cl)
+  )
+  result <- captured$result
+  expect_true(has_warning_class(captured$warnings, "lwdid_small_sample"))
   expect_equal(result$vce_type, "cluster")
 })
 
@@ -647,8 +675,11 @@ test_that("T8-04d: vce='cluster' → n_clusters is integer > 0", {
   d <- c(rep(1L, 20), rep(0L, 40))
   y <- rnorm(n) + 2.0 * d
   cl <- rep(1:10, each = 6)
-  result <- estimate_ra_common(y, d, x = NULL,
-                               vce = "cluster", cluster = cl)
+  captured <- capture_warnings(
+    estimate_ra_common(y, d, x = NULL, vce = "cluster", cluster = cl)
+  )
+  result <- captured$result
+  expect_true(has_warning_class(captured$warnings, "lwdid_small_sample"))
   expect_false(is.null(result$n_clusters))
   expect_equal(result$n_clusters, 10L)
 })
@@ -779,8 +810,11 @@ test_that("T8-05d: vce='cluster' → 'cluster'", {
   d <- c(rep(1L, 20), rep(0L, 40))
   y <- rnorm(n) + 2.0 * d
   cl <- rep(1:10, each = 6)
-  result <- estimate_ra_common(y, d, x = NULL,
-                               vce = "cluster", cluster = cl)
+  captured <- capture_warnings(
+    estimate_ra_common(y, d, x = NULL, vce = "cluster", cluster = cl)
+  )
+  result <- captured$result
+  expect_true(has_warning_class(captured$warnings, "lwdid_small_sample"))
   expect_equal(result$vce_type, "cluster")
 })
 

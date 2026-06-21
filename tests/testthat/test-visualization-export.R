@@ -330,6 +330,11 @@ test_that("TC-10.6.10: Trends plot coefficients type returns ggplot", {
   # Trajectories type should also work
   p2 <- plot(obj, type = "trajectories")
   expect_s3_class(p2, "ggplot")
+  expect_match(p2$labels$subtitle, "Joint F-test")
+  expect_match(p2$labels$subtitle, "p = 0.720")
+  expect_match(p2$labels$subtitle, "smoother: lm")
+  expect_false(grepl("smooth=", p2$labels$subtitle, fixed = TRUE))
+  expect_false(grepl("|", p2$labels$subtitle, fixed = TRUE))
 })
 
 test_that("TC-10.6.11: Diagnostic panel is patchwork object", {
@@ -338,6 +343,30 @@ test_that("TC-10.6.11: Diagnostic panel is patchwork object", {
   obj <- .mock_result_with_diagnostics()
   p <- plot(obj, type = "diagnostics")
   expect_true(inherits(p, "patchwork") || inherits(p, "ggplot"))
+})
+
+test_that("diagnostics panel plots integrated trend recommendation objects", {
+  skip_if_not_installed("ggplot2")
+  obj <- .mock_common_timing_result()
+  obj$diagnostics <- list(
+    parallel_trends = structure(list(
+      scores = c(demean = 0.70, detrend = 0.85),
+      recommended_method = "detrend",
+      confidence_level = "High",
+      sub_scores = NULL,
+      method_labels = NULL
+    ), class = "lwdid_transformation_recommendation")
+  )
+
+  p_parallel <- plot(obj, type = "diagnostics", which = "parallel_trends")
+  p_trends <- plot(obj, type = "diagnostics", which = "trends")
+
+  expect_s3_class(p_parallel, "ggplot")
+  expect_identical(
+    p_parallel$labels$title,
+    "Transformation Method Recommendation Scores"
+  )
+  expect_identical(p_trends$labels$title, p_parallel$labels$title)
 })
 
 # ============================================================================
@@ -710,9 +739,12 @@ test_that("TC-10.6.46: to_latex include_periods=TRUE shows period table", {
 
 test_that("TC-10.6.47: to_latex include_staggered=TRUE shows cohort table", {
   obj <- .mock_staggered_result()
+  obj$cohort_sample_sizes <- NULL
   tex <- to_latex(obj, include_staggered = TRUE)
   expect_true(grepl("Cohort", tex))
   expect_true(grepl("Weight", tex))
+  expect_true(grepl("& 30 &", tex, fixed = TRUE))
+  expect_true(grepl("& 20 &", tex, fixed = TRUE))
   expect_true(grepl("Overall.*weighted", tex, ignore.case = TRUE))
 })
 
@@ -765,16 +797,52 @@ test_that("TC-10.6.51: plot_event_study aggregation produces different ATT", {
   }
 })
 
-test_that("TC-10.6.52: plot_event_study ref_period=0 normalizes anchor", {
+test_that("TC-10.6.52: plot_event_study ref_period=0 normalizes observed row", {
   skip_if_not_installed("ggplot2")
   obj <- .mock_staggered_result()
   res <- plot_event_study(obj, ref_period = 0L, return_data = TRUE)
   pd <- res$data
-  # Find the anchor row (event_time closest to 0 or is_anchor=TRUE)
-  anchor_rows <- pd[pd$is_anchor == TRUE, ]
-  if (nrow(anchor_rows) > 0) {
-    expect_equal(anchor_rows$att[1], 0, tolerance = 1e-12)
-  }
+  ref_rows <- pd[pd$event_time == 0L, ]
+  expect_true(nrow(ref_rows) > 0L)
+  expect_equal(ref_rows$att, rep(0, nrow(ref_rows)), tolerance = 1e-12)
+  expect_false(any(ref_rows$is_anchor))
+})
+
+test_that("plot_event_study keeps cohort identifiers for faceted staggered plots", {
+  skip_if_not_installed("ggplot2")
+  obj <- .mock_staggered_result()
+  obj$include_pretreatment <- TRUE
+  obj$att_pre_treatment <- data.frame(
+    cohort = c(5L, 5L, 7L, 7L),
+    period = c(3L, 4L, 5L, 6L),
+    event_time = c(-2L, -1L, -2L, -1L),
+    att = c(-0.01, 0, 0.02, 0),
+    se = c(0.05, 0, 0.06, 0),
+    df_inference = c(28L, 28L, 18L, 18L)
+  )
+
+  res <- plot_event_study(obj, facet_by_cohort = TRUE, return_data = TRUE)
+
+  expect_true("cohort" %in% names(res$data))
+  expect_setequal(unique(res$data$cohort), unique(obj$att_by_cohort_time$cohort))
+  expect_s3_class(res$plot$facet, "FacetWrap")
+  expect_match(res$plot$labels$subtitle, "Cohort-specific estimates")
+  expect_false(
+    grepl("Simple cohort average", res$plot$labels$subtitle, fixed = TRUE)
+  )
+
+  bridge_layers <- Filter(function(layer) {
+    inherits(layer$geom, "GeomLine") &&
+      is.data.frame(layer$data) &&
+      "cohort" %in% names(layer$data)
+  }, res$plot$layers)
+  expect_length(bridge_layers, 1L)
+  expect_true("cohort" %in% names(bridge_layers[[1L]]$data))
+  expect_equal(nrow(bridge_layers[[1L]]$data), 4L)
+  expect_equal(
+    as.integer(table(bridge_layers[[1L]]$data$cohort)),
+    c(2L, 2L)
+  )
 })
 
 # --- Sub-category D: End-to-End & Advanced (10.6.53—10.6.62) ---

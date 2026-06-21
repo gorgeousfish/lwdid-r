@@ -56,6 +56,22 @@ generate_clustered_data <- function(g = 10, obs_per_cluster = 6,
   list(y = y, d = d, x = NULL, cluster = cluster, n = n, g = g)
 }
 
+capture_warnings <- function(expr) {
+  warnings_caught <- list()
+  result <- withCallingHandlers(
+    expr,
+    warning = function(w) {
+      warnings_caught[[length(warnings_caught) + 1L]] <<- w
+      invokeRestart("muffleWarning")
+    }
+  )
+  list(result = result, warnings = warnings_caught)
+}
+
+has_warning_class <- function(warnings, class) {
+  any(vapply(warnings, inherits, logical(1), what = class))
+}
+
 # ============================================================================
 # Layer 1: Sandwich Package Consistency (HC0-HC4 + Cluster)
 # ============================================================================
@@ -266,10 +282,8 @@ test_that("L8-01: near-zero SE triggers lwdid_numerical warning", {
   y <- c(3, 3, 3, 1, 1, 1)
   D <- c(1, 1, 1, 0, 0, 0)
   fit <- lm(y ~ D)
-  expect_warning(
-    compute_vce(fit, vce = NULL),
-    class = "lwdid_numerical"
-  )
+  captured <- capture_warnings(compute_vce(fit, vce = NULL))
+  expect_true(has_warning_class(captured$warnings, "lwdid_numerical"))
 })
 
 # ============================================================================
@@ -592,16 +606,15 @@ test_that("L12-02: HC1/HC3 small sample warns; HC0 does not", {
   y <- c(5, rnorm(9, mean = 2))
   fit <- lm(y ~ D)
   # HC1 should warn
-  expect_warning(compute_hc_vce(fit, type = "HC1"),
-                 class = "lwdid_small_sample")
+  hc1 <- capture_warnings(compute_hc_vce(fit, type = "HC1"))
+  expect_true(has_warning_class(hc1$warnings, "lwdid_small_sample"))
   # HC3 should warn
-  expect_warning(compute_hc_vce(fit, type = "HC3"),
-                 class = "lwdid_small_sample")
+  hc3 <- capture_warnings(compute_hc_vce(fit, type = "HC3"))
+  expect_true(has_warning_class(hc3$warnings, "lwdid_small_sample"))
   # HC0 should NOT warn about small sample
-  expect_no_warning(
-    result_hc0 <- compute_hc_vce(fit, type = "HC0"),
-    class = "lwdid_small_sample"
-  )
+  hc0 <- capture_warnings(compute_hc_vce(fit, type = "HC0"))
+  result_hc0 <- hc0$result
+  expect_false(has_warning_class(hc0$warnings, "lwdid_small_sample"))
   expect_true(!is.null(result_hc0$vcov))
 })
 
@@ -616,12 +629,12 @@ test_that("L12-03: HC2-HC4 high leverage warns lwdid_numerical", {
   fit <- lm(y ~ d + x)
   h <- hatvalues(fit)
   expect_true(max(h) > 0.99)
-  expect_warning(compute_hc_vce(fit, type = "HC2"),
-                 class = "lwdid_numerical")
-  expect_warning(compute_hc_vce(fit, type = "HC3"),
-                 class = "lwdid_numerical")
-  expect_warning(compute_hc_vce(fit, type = "HC4"),
-                 class = "lwdid_numerical")
+  hc2 <- capture_warnings(compute_hc_vce(fit, type = "HC2"))
+  hc3 <- capture_warnings(compute_hc_vce(fit, type = "HC3"))
+  hc4 <- capture_warnings(compute_hc_vce(fit, type = "HC4"))
+  expect_true(has_warning_class(hc2$warnings, "lwdid_numerical"))
+  expect_true(has_warning_class(hc3$warnings, "lwdid_numerical"))
+  expect_true(has_warning_class(hc4$warnings, "lwdid_numerical"))
 })
 
 # L12-04: HC4 d_i values: high leverage > 3.5, normal < 1.5

@@ -32,9 +32,9 @@ ATT point estimate, variance-covariance matrix, and degrees of freedom.
 }
 \details{
 Uses the t-distribution, rather than the normal distribution,
-for p-values and confidence intervals, following lw2026 Equation 2.10.
-This is a pure computation helper with no dependency on the sandwich
-package.
+for p-values and confidence intervals under transformed cross-sectional
+regression assumptions. This is a pure computation helper with no
+dependency on the sandwich package.
 }
 \section{Validation Order}{
 
@@ -44,16 +44,16 @@ var_att, SE. This ensures the most informative error is thrown first.
 
 \section{Distribution Choice}{
 
-Uses \code{pt()}/\code{qt()} (t-distribution), NOT
+Uses \code{pt()}/\code{qt()} (t-distribution), not
 \code{pnorm()}/\code{qnorm()} (normal distribution). Under the
-normality assumption (lw2026 Eq. 2.9/2.19), the t-statistic follows
-an exact t-distribution. For small samples, the t-distribution has
-heavier tails than the normal, yielding wider confidence intervals
-and larger p-values.
+relevant transformed-regression assumptions, the t-distribution has
+heavier tails than the normal in small samples, yielding wider
+confidence intervals and larger p-values.
 }
 
 \references{
-Lee, S. and Wooldridge, J. M. (2025, 2026). A simple approach to
-difference-in-differences estimation. Equation 2.10.
+Lee, S. and Wooldridge, J. M. (2026). Simple approaches to inference
+with difference-in-differences estimators with small cross-sectional
+sample sizes.
 }
 \keyword{internal}

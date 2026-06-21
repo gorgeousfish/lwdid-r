@@ -10,7 +10,12 @@ diagnostic attributes.
 }
 \seealso{
 Other lwdid-results: 
+\code{\link{compare}()},
 \code{\link{extract_effects}()},
-\code{\link{new_lwdid_result}()}
+\code{\link{glance.lwdid_result}()},
+\code{\link{new_lwdid_result}()},
+\code{\link{print.lwdid_comparison}()},
+\code{\link{tidy.lwdid_result}()},
+\code{\link{tidy_glance}}
 }
 \concept{lwdid-results}

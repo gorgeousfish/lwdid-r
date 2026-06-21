@@ -42,14 +42,19 @@ cross-sectional data:
 | Doubly Robust | `"ipwra"` | Yes | Yes |
 | Propensity Score Matching | `"psm"` | Yes | No |
 
+Use `controls` for RA and IPWRA outcome-regression controls. Use
+`ps_controls` for the IPW, IPWRA, and PSM propensity-score model. When
+`ps_controls` is omitted, the propensity-score estimators fall back to
+`controls`.
+
 ### IPW
 
 ```{r ipw, eval=FALSE}
 result_ipw <- lwdid(
   data = castle, y = "lhomicide", ivar = "sid", tvar = "year",
   gvar = "gvar", rolling = "demean", estimator = "ipw",
-  controls = c("police", "income", "poverty"),
-  aggregate = "cohort"
+  ps_controls = c("police", "income", "poverty"),
+  aggregate = "cohort", control_group = "never_treated"
 )
 ```
 
@@ -60,7 +65,8 @@ result_ipwra <- lwdid(
   data = castle, y = "lhomicide", ivar = "sid", tvar = "year",
   gvar = "gvar", rolling = "demean", estimator = "ipwra",
   controls = c("police", "income", "poverty"),
-  aggregate = "cohort"
+  ps_controls = c("police", "income", "poverty"),
+  aggregate = "cohort", control_group = "never_treated"
 )
 ```
 
@@ -70,8 +76,8 @@ result_ipwra <- lwdid(
 result_psm <- lwdid(
   data = castle, y = "lhomicide", ivar = "sid", tvar = "year",
   gvar = "gvar", rolling = "demean", estimator = "psm",
-  controls = c("police", "income", "poverty"),
-  aggregate = "cohort"
+  ps_controls = c("police", "income", "poverty"),
+  aggregate = "cohort", control_group = "never_treated"
 )
 ```
 
@@ -111,6 +117,78 @@ result_hc1 <- suppressWarnings(lwdid(
   d = "d", post = "post", vce = "hc1"
 ))
 summary(result_hc1)
+```
+
+## Comparing Multiple Specifications
+
+The `compare()` function provides a structured way to compare results from
+multiple specifications (different estimators, transformations, or control
+variables). This is essential for robustness analysis in the Lee & Wooldridge
+(2025) framework, where four estimators exhibit different consistency and
+efficiency properties under varying assumptions:
+
+- **RA** (Regression Adjustment): BLUE under correct outcome model
+- **IPW** (Inverse Probability Weighting): consistent when propensity score
+  model is correct
+- **IPWRA** (Doubly Robust): consistent if either model is correct
+- **PSM** (Propensity Score Matching): nonparametric kernel matching
+
+If all specifications yield similar point estimates, results are robust to
+model specification.
+
+### Basic Usage: Comparing Estimators
+
+```{r compare-basic, eval=FALSE}
+# Estimate with different estimators
+res_ra <- lwdid(data = castle, y = "lhomicide", ivar = "sid", tvar = "year",
+                gvar = "gvar", rolling = "demean", estimator = "ra",
+                aggregate = "overall")
+res_ipw <- lwdid(data = castle, y = "lhomicide", ivar = "sid", tvar = "year",
+                 gvar = "gvar", rolling = "demean", estimator = "ipw",
+                 ps_controls = c("police", "income", "poverty"),
+                 aggregate = "overall")
+res_ipwra <- lwdid(data = castle, y = "lhomicide", ivar = "sid", tvar = "year",
+                   gvar = "gvar", rolling = "demean", estimator = "ipwra",
+                   controls = c("police", "income", "poverty"),
+                   ps_controls = c("police", "income", "poverty"),
+                   aggregate = "overall")
+
+# Compare specifications side by side
+# Output: table with ATT, SE, CI, significance stars, model metadata
+compare(RA = res_ra, IPW = res_ipw, IPWRA = res_ipwra)
+```
+
+### Advanced Usage: Comparing Transformations
+
+```{r compare-transform, eval=FALSE}
+# Demean vs Detrend comparison
+res_demean <- lwdid(data = castle, y = "lhomicide", ivar = "sid", tvar = "year",
+                    gvar = "gvar", rolling = "demean", estimator = "ra",
+                    aggregate = "overall")
+res_detrend <- lwdid(data = castle, y = "lhomicide", ivar = "sid", tvar = "year",
+                     gvar = "gvar", rolling = "detrend", estimator = "ra",
+                     aggregate = "overall")
+
+# Similar estimates suggest robustness to trend specification
+compare(Demean = res_demean, Detrend = res_detrend)
+```
+
+### Type Parameter: Overall vs Effects
+
+The `type` argument controls how comparison results are reported:
+
+- `type = "overall"` (default): compares the scalar ATT from each specification
+- `type = "effects"`: compares cohort-level or period-level effects
+
+```{r compare-effects, eval=FALSE}
+# Effects-level comparison shows cohort-by-cohort differences
+compare(RA = res_ra, IPWRA = res_ipwra, type = "effects")
+
+# Output columns include:
+# - Model name, ATT estimate, standard error
+# - 95% confidence interval [ci_lower, ci_upper]
+# - Significance stars (*** p<0.01, ** p<0.05, * p<0.1)
+# - Model metadata: estimator, transformation, N observations
 ```
 
 ## Sensitivity Analysis
@@ -191,10 +269,15 @@ result_wcb <- lwdid(
   data = smoking, y = "lcigsale", ivar = "state", tvar = "year",
   d = "d", post = "post", rolling = "demean",
   vce = "bootstrap", cluster_var = "state",
-  wcb_reps = 999
+  wcb_reps = 999, wcb_seed = 42,
+  use_fwildclusterboot = FALSE
 )
 summary(result_wcb)
 ```
+
+WCB output reports both requested and actual bootstrap draws. With
+Rademacher weights and at most 12 clusters, `lwdid` uses full sign-pattern
+enumeration, so the actual draw count can differ from `wcb_reps`.
 
 When `vce = "cluster"` is specified and the number of clusters is below
 20, lwdid automatically upgrades to the Wild Cluster Bootstrap
@@ -202,15 +285,22 @@ When `vce = "cluster"` is specified and the number of clusters is below
 
 ## Randomization Inference
 
-Exact p-values without distributional assumptions:
+Randomization-based p-values without asymptotic normality:
 
 ```{r ri, eval=FALSE}
 result_ri <- lwdid(
   data = smoking, y = "lcigsale", ivar = "state", tvar = "year",
-  d = "d", post = "post", ri = TRUE, rireps = 500
+  d = "d", post = "post", ri = TRUE, ri_method = "permutation",
+  rireps = 500, seed = 42
 )
 cat("RI p-value:", result_ri$ri_pvalue, "\n")
 ```
+
+RI output includes `ri_observed_stat`, the observed statistic used for the
+randomization tail comparison. In common-timing designs it is the top-level ATT.
+In staggered designs, `ri_target` records the target: `aggregate = "overall"`
+uses the overall ATT, `aggregate = "cohort"` uses the selected cohort ATT, and
+`aggregate = "none"` uses the first finite cohort-time ATT.
 
 ## Parallel Computation
 
@@ -220,7 +310,7 @@ Enable parallel processing for staggered designs:
 result_par <- lwdid(
   data = castle, y = "lhomicide", ivar = "sid", tvar = "year",
   gvar = "gvar", rolling = "demean", aggregate = "cohort",
-  parallel = TRUE, n_cores = 4
+  control_group = "never_treated", parallel = TRUE, n_cores = 4
 )
 ```
 
@@ -232,6 +322,94 @@ setup_parallel(n_workers = 4, strategy = "multisession")
 result <- lwdid(...)
 # Reset when done
 setup_parallel(strategy = "sequential")
+```
+
+## Integration with Broom and modelsummary
+
+lwdid provides `tidy()` and `glance()` S3 methods (compatible with the
+**broom** package interface), as well as fixest-style accessor functions.
+These enable seamless integration with **modelsummary** and other tidyverse
+workflows.
+
+### tidy(): Tidy Coefficient Tables
+
+The `tidy()` method extracts results in a standardized data.frame format.
+The `type` argument selects which estimates to report:
+
+```{r tidy-example, eval=FALSE}
+library(lwdid)
+result <- lwdid(data = castle, y = "lhomicide", ivar = "sid", tvar = "year",
+                gvar = "gvar", rolling = "demean", estimator = "ra",
+                aggregate = "overall")
+
+# Overall ATT (default)
+# Returns: data.frame with columns term, estimate, std.error, statistic,
+#          p.value, conf.low, conf.high
+tidy(result)
+
+# Cohort-level effects
+# Returns one row per cohort with cohort-specific ATT
+tidy(result, type = "effects")
+
+# Event-time aggregation
+# Returns one row per relative event-time period
+tidy(result, type = "event_time")
+```
+
+### glance(): Model-Level Statistics
+
+`glance()` returns a one-row data.frame of model-level summary statistics:
+
+```{r glance-example, eval=FALSE}
+# Returns: nobs, n_treated, n_control, n_cohorts, n_periods,
+#          estimator, transformation, vce_type, r.squared (if applicable)
+glance(result)
+```
+
+### Fixest-Style Accessors
+
+For users familiar with the **fixest** package interface:
+
+```{r fixest-style, eval=FALSE}
+# Standard errors
+se(result)
+
+# t-statistics
+tstat(result)
+
+# p-values
+pvalue(result)
+
+# Full coefficient table (estimate, se, t-stat, p-value)
+coeftable(result)
+```
+
+### modelsummary Integration
+
+With **modelsummary** installed, lwdid results can be directly passed to
+`modelsummary()` for publication-quality tables:
+
+```{r modelsummary-example, eval=FALSE}
+library(modelsummary)
+
+# Compare multiple specifications in one table
+res_ra <- lwdid(data = castle, y = "lhomicide", ivar = "sid", tvar = "year",
+                gvar = "gvar", rolling = "demean", estimator = "ra",
+                aggregate = "overall")
+res_ipwra <- lwdid(data = castle, y = "lhomicide", ivar = "sid", tvar = "year",
+                   gvar = "gvar", rolling = "demean", estimator = "ipwra",
+                   controls = c("police", "income", "poverty"),
+                   ps_controls = c("police", "income", "poverty"),
+                   aggregate = "overall")
+
+# Produces a formatted comparison table with estimates, SEs, and fit stats
+modelsummary(list(RA = res_ra, IPWRA = res_ipwra))
+
+# Export to LaTeX or Word
+modelsummary(list(RA = res_ra, IPWRA = res_ipwra),
+             output = "results.tex")
+modelsummary(list(RA = res_ra, IPWRA = res_ipwra),
+             output = "results.docx")
 ```
 
 ## Exporting Results

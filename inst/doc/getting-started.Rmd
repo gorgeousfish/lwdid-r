@@ -131,7 +131,19 @@ result_stag <- lwdid(
 print(result_stag)
 ```
 
+For a single `aggregate = "overall"` summary, lwdid weights cohort-time
+effects by treated-unit cohort sizes. Exports keep those `cohort_weights`;
+`effective_weights` report the post-estimation sample weights if observations
+are dropped from the regression sample.
+
 ### Event Study
+
+Event-study plots use relative event time. By default, the plot adds a visual
+anchor at event time `-1` when pre-treatment periods are displayed and no
+observed `-1` row is already in the plotted data. If you hide pre-treatment
+periods, the anchor is also omitted. A `ref_period` normalizes estimates to an
+observed event time, must be present in the plotted data, and does not relabel
+that observed row as a visual anchor.
 
 ```{r staggered-event-study, eval=requireNamespace("ggplot2", quietly=TRUE)}
 result_event <- lwdid(
@@ -146,6 +158,38 @@ result_event <- lwdid(
 )
 
 plot(result_event)
+```
+
+For `aggregate = "event_time"`, the printed scalar ATT summarizes valid
+cohort-period `(g, r)` effects. The event-study table and plot report WATT(e)
+rows by relative time, with cohort-size weights renormalized over the cohorts
+available at each event time. WATT(e) standard errors use the stored
+cohort-specific standard errors with diagonal aggregation; cross-cohort
+covariance is not modeled unless a future joint covariance representation is
+added.
+
+Use `extract_effects(result_event, type = "event_time_contributions")` to
+inspect the cohort weights and cohort-specific contributions behind each
+WATT(e) row.
+The same contribution table can be written with
+`to_csv(result_event, file = "event-time-contributions.csv", what = "event_time_contributions")`
+or read from `to_dict(result_event)$event_time_contributions`.
+Use `to_latex(result_event, include_event_time = TRUE)` to export the WATT(e)
+rows with standard errors, confidence intervals, contributing-cohort counts,
+and compact support/overlap metadata.
+Plot data returned by `plot_event_study(result_event, return_data = TRUE)`
+carries the same standard-error metadata for the plotted event-time rows,
+including `se_aggregation` and `covariance_assumption`. For non-RA
+event-time results, the returned plot data also preserves available overlap
+and support-count summaries, such as propensity-score ranges, weight
+dispersion, and treated/control counts.
+
+```{r staggered-event-study-options, eval=requireNamespace("ggplot2", quietly=TRUE)}
+# Post-treatment path only
+plot(result_event, show_pre_treatment = FALSE)
+
+# Normalize to the treatment period without relabeling it as an anchor
+plot(result_event, ref_period = 0)
 ```
 
 ## Control Variables

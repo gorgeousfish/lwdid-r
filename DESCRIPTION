@@ -2,9 +2,12 @@ Package: lwdid
 Title: Lee-Wooldridge Difference-in-Differences Estimation
 Version: 0.1.0
 Authors@R: c(
-    person("Xuanyu", "Cai", , "xuanyuCAI@outlook.com", role = c("aut", "cre")),
-    person("Wenli", "Xu", , "wlxu@cityu.edu.mo", role = "aut")
+    person("Xuanyu", "Cai", , "xuanyuCAI@outlook.com", role = c("aut", "cre"),
+           comment = "City University of Macau"),
+    person("Wenli", "Xu", , "wlxu@cityu.edu.mo", role = "aut",
+           comment = "City University of Macau")
     )
+Date: 2026-06-20
 Description: Implements the Lee and Wooldridge (2025, 2026) simple
     transformation approach for difference-in-differences estimation
     with panel data. Supports both common timing and staggered
@@ -19,6 +22,7 @@ Depends:
     R (>= 4.0.0)
 Imports:
     data.table (>= 1.14.0),
+    generics (>= 0.1.0),
     MASS,
     sandwich (>= 3.0-0),
     stats,
@@ -26,7 +30,6 @@ Imports:
 Suggests:
     devtools,
     ggplot2 (>= 3.4.0),
-    fwildclusterboot,
     future (>= 1.21.0),
     future.apply (>= 1.9.0),
     gridExtra,
@@ -40,10 +43,11 @@ Suggests:
     testthat (>= 3.0.0),
     yaml,
     haven (>= 2.5.0)
-Additional_repositories: https://s3alfisc.r-universe.dev
 VignetteBuilder: knitr
 Encoding: UTF-8
+Language: en-US
 LazyData: true
+LazyDataCompression: xz
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
 Config/testthat/edition: 3

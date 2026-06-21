@@ -38,7 +38,7 @@ test_that("TC-6.3.1: Doubly-correct DGP — ATT close to true", {
   result <- estimate_ipwra(df, "Y", "D", c("X1", "X2"))
   expect_true(abs(result$att - 3.0) < 0.5)
   expect_true(result$se > 0 && result$se < 1.0)
-  expect_length(result, 15L)
+  expect_length(result, 16L)
   expect_identical(result$estimator, "ipwra")
 })
 
@@ -451,6 +451,10 @@ test_that("TC-6.3.21: Bootstrap full pipeline (clip + drop)", {
 })
 
 test_that("TC-6.3.22: Bootstrap SE within 20% of analytical", {
+  skip_if_not(
+    identical(Sys.getenv("LWDID_RUN_EVIDENCE_TESTS"), "true"),
+    "Large-sample bootstrap calibration is run as evidence, not CRAN smoke."
+  )
   df <- generate_ipwra_test_data(n = 2000, seed = 42)
   r_ana <- estimate_ipwra(df, "Y", "D", c("X1", "X2"))
   r_boot <- estimate_ipwra(df, "Y", "D", c("X1", "X2"),
@@ -482,6 +486,32 @@ test_that("TC-6.3.24: Bootstrap CI uses percentile method", {
   # Bootstrap CI may differ from analytical (percentile method)
   expect_true(r_boot$ci_lower < r_boot$att)
   expect_true(r_boot$ci_upper > r_boot$att)
+})
+
+test_that("IPWRA bootstrap rejects non-finite replicate estimates", {
+  df <- data.frame(
+    Y = c(Inf, Inf, 1, 2, 3, 4, 5, 6),
+    D = c(1L, 1L, 0L, 0L, 0L, 0L, 0L, 0L),
+    X1 = c(2, 3, 0, 1, -1, 0.5, -0.5, 1.5)
+  )
+
+  expect_error(
+    suppressWarnings(
+      .compute_ipwra_se_bootstrap(
+        data = df,
+        y = "Y",
+        d = "D",
+        controls = "X1",
+        propensity_controls = "X1",
+        trim_threshold = 0.01,
+        trim_method = "clip",
+        n_bootstrap = 20L,
+        seed = 1L,
+        alpha = 0.05
+      )
+    ),
+    class = "lwdid_estimation_failed"
+  )
 })
 
 # ============================================================================
@@ -556,6 +586,17 @@ test_that("TC-6.3.29: Missing values excluded via complete.cases", {
   expect_true(is.finite(result$att))
 })
 
+test_that("IPWRA rejects infinite numeric inputs after NA exclusion", {
+  df <- generate_ipwra_test_data(n = 300, seed = 2929)
+  df$X1[1:5] <- NA
+  df$Y[6] <- Inf
+
+  expect_error(
+    estimate_ipwra(df, "Y", "D", c("X1", "X2")),
+    class = "lwdid_invalid_data"
+  )
+})
+
 test_that("TC-6.3.30: Bootstrap trim_method consistency", {
   df <- generate_ipwra_test_data(n = 300, seed = 30)
   # clip mode bootstrap
@@ -587,17 +628,18 @@ test_that("TC-6.3.31: Weight sum non-positive — lwdid_estimation_failed", {
 # Structural Tests
 # ============================================================================
 
-test_that("Structural: Return list has 15 fields with correct names", {
+test_that("Structural: Return list has 16 fields with correct names", {
   df <- generate_ipwra_test_data(n = 300, seed = 50)
   result <- estimate_ipwra(df, "Y", "D", c("X1", "X2"))
   expected_names <- c("att", "se", "ci_lower", "ci_upper",
     "t_stat", "pvalue", "propensity_scores", "weights",
     "outcome_model_coef", "propensity_model_coef",
-    "n_treated", "n_control", "n_trimmed", "df_resid",
+    "n_treated", "n_control", "n_trimmed", "weights_cv", "df_resid",
     "estimator")
-  expect_length(result, 15L)
+  expect_length(result, 16L)
   expect_setequal(names(result), expected_names)
   expect_identical(result$estimator, "ipwra")
+  expect_true(is.numeric(result$weights_cv))
 })
 
 test_that("Structural: PS/weights length = n, vce_method absent", {

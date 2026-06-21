@@ -30,11 +30,11 @@ NULL
 
   # Empty data guard
   if (length(specs) == 0L) {
-    warning("\u6240\u6709\u89c4\u683c\u5747\u672a\u6536\u655b\uff0c\u65e0\u6cd5\u7ed8\u5236\u6709\u6548\u56fe\u5f62")
+    warning("All specifications failed to converge; no valid plot can be drawn.")
     p <- ggplot2::ggplot() +
       ggplot2::labs(
-        title = "\u524d\u671f\u7a33\u5065\u6027\u89c4\u683c\u66f2\u7ebf",
-        subtitle = "\u65e0\u6536\u655b\u89c4\u683c"
+        title = "Pre-Period Robustness Specification Curve",
+        subtitle = "No converged specifications"
       ) +
       ggplot2::theme_minimal() +
       ggplot2::theme(
@@ -90,14 +90,14 @@ NULL
     ggplot2::geom_point(ggplot2::aes(color = significant), size = 3) +
     ggplot2::scale_color_manual(
       values = c("TRUE" = "#2166AC", "FALSE" = "#B2182B"),
-      labels = c("TRUE" = "\u663e\u8457", "FALSE" = "\u4e0d\u663e\u8457"),
-      name   = "\u7edf\u8ba1\u663e\u8457\u6027"
+      labels = c("TRUE" = "Significant", "FALSE" = "Not significant"),
+      name   = "Statistical significance"
     ) +
     ggplot2::scale_x_continuous(breaks = plot_data$n_pre) +
     ggplot2::labs(
-      x        = "\u524d\u5904\u7406\u65f6\u671f\u6570\u91cf",
-      y        = "ATT\u4f30\u8ba1",
-      title    = "\u524d\u671f\u7a33\u5065\u6027\u89c4\u683c\u66f2\u7ebf",
+      x        = "Number of pre-treatment periods",
+      y        = "ATT estimate",
+      title    = "Pre-Period Robustness Specification Curve",
       subtitle = sprintf("SR=%.1f%% (%s)", x$sensitivity_ratio * 100, x$robustness_level)
     ) +
     ggplot2::theme_minimal()
@@ -117,11 +117,11 @@ NULL
 
   # Empty data guard
   if (length(estimates) == 0L) {
-    warning("\u6240\u6709\u4f30\u8ba1\u5747\u672a\u6536\u655b\uff0c\u65e0\u6cd5\u7ed8\u5236\u6709\u6548\u56fe\u5f62")
+    warning("All anticipation estimates failed to converge; no valid plot can be drawn.")
     p <- ggplot2::ggplot() +
       ggplot2::labs(
-        title    = "\u65e0\u9884\u671f\u6548\u5e94\u654f\u611f\u6027\u5206\u6790",
-        subtitle = "\u65e0\u6536\u655b\u4f30\u8ba1"
+        title    = "No-Anticipation Sensitivity Analysis",
+        subtitle = "No converged estimates"
       ) +
       ggplot2::theme_minimal() +
       ggplot2::theme(
@@ -180,7 +180,7 @@ NULL
         "text",
         x     = x$recommended_exclusion + 0.2,
         y     = text_y,
-        label = sprintf("\u63a8\u8350\u6392\u9664=%d", x$recommended_exclusion),
+        label = sprintf("Recommended exclusion = %d", x$recommended_exclusion),
         color = "red",
         hjust = 0,
         size  = 3.5
@@ -189,16 +189,16 @@ NULL
 
   # --- 4. Labels ---
   subtitle <- if (isTRUE(x$anticipation_detected)) {
-    "\u68c0\u6d4b\u5230\u9884\u671f\u6548\u5e94"
+    "Anticipation effects detected"
   } else {
-    "\u672a\u68c0\u6d4b\u5230\u9884\u671f\u6548\u5e94"
+    "No anticipation effects detected"
   }
 
   p <- p +
     ggplot2::labs(
-      x        = "\u6392\u9664\u7684\u5904\u7406\u524d\u65f6\u671f\u6570",
-      y        = "ATT\u4f30\u8ba1",
-      title    = "\u65e0\u9884\u671f\u6548\u5e94\u654f\u611f\u6027\u5206\u6790",
+      x        = "Number of excluded pre-treatment periods",
+      y        = "ATT estimate",
+      title    = "No-Anticipation Sensitivity Analysis",
       subtitle = subtitle
     ) +
     ggplot2::theme_minimal()
@@ -226,7 +226,7 @@ plot.lwdid_sensitivity <- function(x, type = NULL, ci_level = 0.95,
                                                    show_ci = show_ci, ...),
     "no_anticipation" = .plot_anticipation_sensitivity(x, ci_level = ci_level,
                                                        show_ci = show_ci, ...),
-    stop(sprintf("\u672a\u77e5\u7684\u654f\u611f\u6027\u5206\u6790\u7c7b\u578b: '%s'", type))
+    stop(sprintf("Unknown sensitivity-analysis type: '%s'", type))
   )
 }
 
@@ -237,10 +237,10 @@ plot.lwdid_sensitivity_comprehensive <- function(x, show_ci = TRUE, ...) {
 
   # Check ggplot2 and patchwork availability
   if (!requireNamespace("ggplot2", quietly = TRUE)) {
-    stop("\u9700\u8981\u5b89\u88c5 ggplot2 \u5305: install.packages('ggplot2')")
+    stop("The ggplot2 package is required for plotting. Run install.packages('ggplot2').")
   }
   if (!requireNamespace("patchwork", quietly = TRUE)) {
-    stop("\u9700\u8981\u5b89\u88c5 patchwork \u5305: install.packages('patchwork')")
+    stop("The patchwork package is required for comprehensive sensitivity plots. Run install.packages('patchwork').")
   }
 
   # Generate sub-plots
@@ -296,16 +296,25 @@ plot.lwdid_parallel_trends <- function(x, show_ci = TRUE, ...) {
     )
   }))
 
-  subtitle <- if (length(x$joint_df %||% integer(0)) == 2L) {
+  joint_df <- as.integer(x$joint_df %||% integer(0))
+  joint_f_stat <- as.numeric(x$joint_f_stat %||% NA_real_)
+  joint_pvalue <- as.numeric(x$joint_pvalue %||% NA_real_)
+  has_joint_test <- length(joint_df) == 2L &&
+    all(is.finite(joint_df)) &&
+    all(joint_df > 0L) &&
+    is.finite(joint_f_stat) &&
+    is.finite(joint_pvalue)
+
+  subtitle <- if (has_joint_test) {
     sprintf(
       "Joint F(%d, %d) = %s, p = %s",
-      as.integer(x$joint_df[[1L]]),
-      as.integer(x$joint_df[[2L]]),
-      .format_trend_numeric(x$joint_f_stat),
-      .format_pvalue(x$joint_pvalue, 4L)
+      joint_df[[1L]],
+      joint_df[[2L]],
+      .format_trend_numeric(joint_f_stat),
+      .format_pvalue(joint_pvalue, 4L)
     )
   } else {
-    "Joint F-test unavailable"
+    "Joint pre-trend test not available"
   }
 
   p <- ggplot2::ggplot(
@@ -617,7 +626,7 @@ plot.lwdid_heterogeneous_trends <- function(x, show_control = TRUE,
       time = all_times, fitted = fitted_ctrl,
       ci_lower = fitted_ctrl - t_crit_ctrl * se_fitted_ctrl,
       ci_upper = fitted_ctrl + t_crit_ctrl * se_fitted_ctrl,
-      cohort = as.factor("\u5bf9\u7167\u7ec4"),
+      cohort = as.factor("Control group"),
       treatment_time = NA, is_control = TRUE
     )
     plot_data <- rbind(plot_data, ctrl_df)
@@ -710,10 +719,10 @@ plot.lwdid_heterogeneous_trends <- function(x, show_control = TRUE,
   # --- 9. Labels and theme ---
   p <- p +
     ggplot2::labs(
-      x = "\u65f6\u671f", y = "\u62df\u5408\u7ed3\u679c\u53d8\u91cf",
-      title = "\u961f\u5217\u5f02\u8d28\u6027\u8d8b\u52bf\u8bca\u65ad\u56fe",
+      x = "Time period", y = "Fitted outcome",
+      title = "Cohort Heterogeneous Trend Diagnostics",
       subtitle = het_label,
-      color = "\u961f\u5217", fill = "\u961f\u5217"
+      color = "Cohort", fill = "Cohort"
     ) +
     ggplot2::theme_minimal() +
     ggplot2::theme(legend.position = "bottom")
@@ -801,7 +810,7 @@ plot.lwdid_transformation_recommendation <- function(x, ...) {
       ) +
       ggplot2::scale_fill_brewer(
         palette = "Set2",
-        name = "\u8bc4\u5206\u7ef4\u5ea6"
+        name = "Score dimension"
       )
   } else {
     # Mode B: simple bar chart (no sub_scores)
@@ -842,10 +851,10 @@ plot.lwdid_transformation_recommendation <- function(x, ...) {
   p <- p +
     ggplot2::labs(
       x = NULL,
-      y = "\u7efc\u5408\u8bc4\u5206",
-      title = "\u53d8\u6362\u65b9\u6cd5\u63a8\u8350\u8bc4\u5206",
+      y = "Composite score",
+      title = "Transformation Method Recommendation Scores",
       subtitle = sprintf(
-        "\u63a8\u8350\u65b9\u6cd5: %s\uff08\u7f6e\u4fe1\u5ea6: %s\uff09",
+        "Recommended method: %s (confidence: %s)",
         x$recommended_method, x$confidence_level
       )
     ) +

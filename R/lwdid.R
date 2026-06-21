@@ -42,9 +42,12 @@
 #' @param aggregate character(1). Aggregation type for Staggered mode.
 #'   One of \code{"none"}, \code{"cohort"}, \code{"overall"}.
 #'   Default \code{"cohort"}.
-#' @param event_time_range Numeric vector of length 2 or NULL. Used when
-#'   \code{aggregate = "event_time"} to keep only event times in
-#'   \code{c(min_e, max_e)}.
+#' @param event_time_range Finite numeric vector of length 2 or NULL. Used when
+#'   \code{aggregate = "event_time"} to keep only post-treatment WATT(e) rows
+#'   with event times in \code{c(min_e, max_e)}, where
+#'   \code{min_e <= max_e}. Pre-treatment display rows are controlled
+#'   separately by \code{include_pretreatment} in fitting and
+#'   \code{show_pre_treatment} in plotting.
 #' @param df_strategy Character(1). Degrees-of-freedom aggregation strategy for
 #'   event-time summaries. One of \code{"conservative"}, \code{"weighted"}, or
 #'   \code{"fallback"}. Default \code{"conservative"}.
@@ -54,12 +57,24 @@
 
 #' @param estimator character(1). Estimator type. One of \code{"ra"},
 #'   \code{"ipw"}, \code{"ipwra"}, \code{"psm"}. Default \code{"ra"}.
-#' @param controls character vector or NULL. Names of control variable columns.
-#' @param ps_controls character vector or NULL. Names of propensity score
-#'   model control variable columns.
+#' @param controls character vector or NULL. Names of outcome-regression
+#'   control variable columns. For \code{estimator = "ra"}, these controls
+#'   enter the regression adjustment model. For \code{estimator = "ipwra"},
+#'   they enter the outcome model; propensity-score controls are taken from
+#'   \code{ps_controls} when supplied, otherwise from \code{controls}. For
+#'   \code{estimator = "ipw"} or \code{"psm"}, \code{controls} are used as
+#'   propensity-score controls only when \code{ps_controls = NULL}.
+#' @param ps_controls character vector or NULL. Names of propensity-score
+#'   model control variable columns for \code{estimator = "ipw"},
+#'   \code{"ipwra"}, or \code{"psm"}. If NULL, those estimators fall back to
+#'   \code{controls}. When supplied for IPW or PSM, unused \code{controls}
+#'   do not enter the estimator frame or complete-case filtering.
 #' @param vce character(1) or NULL. Variance-covariance estimator type.
 #'   One of \code{NULL}, \code{"hc0"}-\code{"hc4"}, \code{"robust"},
-#'   \code{"cluster"}, \code{"bootstrap"}.
+#'   \code{"cluster"}, \code{"bootstrap"}. Supported for
+#'   \code{estimator = "ra"} only; IPW, IPWRA, and PSM use
+#'   \code{se_method} for estimator-specific analytical or bootstrap
+#'   uncertainty estimation and require \code{vce = NULL}.
 #' @param cluster_var character(1) or NULL. Name of the cluster variable
 #'   column. Required when \code{vce} is \code{"cluster"} or
 #'   \code{"bootstrap"}.
@@ -145,8 +160,9 @@
 #'   estimation results, diagnostics, and metadata.
 #'
 #' @details
-#' When \code{estimator = "ra"} (default), inference uses the exact
-#' t-distribution (Lee & Wooldridge 2026, Equation 2.10). For
+#' When \code{estimator = "ra"} (default), inference uses
+#' t-distribution critical values under the transformed cross-sectional
+#' regression assumptions discussed by Lee and Wooldridge (2026). For
 #' \code{estimator = "ipw"}, \code{"ipwra"}, or \code{"psm"}, inference
 #' uses the asymptotic normal distribution based on:
 #' \itemize{
@@ -157,6 +173,18 @@
 #' This distinction affects confidence interval construction: RA uses
 #' \code{qt(1 - alpha/2, df)} critical values, while IPW/IPWRA/PSM
 #' use \code{qnorm(1 - alpha/2)}.
+#' In staggered designs with \code{aggregate = "overall"}, RA uses the
+#' aggregated-outcome regression representation, while IPW/IPWRA/PSM
+#' aggregate their estimator-specific cohort effects with treated-unit
+#' cohort-size weights.
+#'
+#' When \code{ri = TRUE}, \code{ri_pvalue} is computed against
+#' \code{ri_observed_stat}, the observed statistic selected for the RI target.
+#' For common-timing designs this is the top-level ATT. For staggered designs,
+#' \code{ri_target} records whether RI targeted the overall, cohort, or
+#' cohort-time estimand. In particular, \code{aggregate = "none"} uses the
+#' first finite cohort-time ATT as the RI target, so \code{ri_observed_stat}
+#' can differ from the scalar \code{att} summary.
 #'
 #' @examples
 #' \dontrun{
@@ -457,6 +485,7 @@ lwdid <- function(
           tpost1 = tpost1_orig,
           rolling = rolling,
           controls = controls,
+          ps_controls = vp$ps_controls,
           estimator = vp$estimator %||% "ra",
           vce = vce,
           cluster_var = cluster_var,
@@ -472,6 +501,7 @@ lwdid <- function(
           rolling = rolling,
           estimator = vp$estimator %||% "ra",
           controls = controls,
+          ps_controls = vp$ps_controls,
           control_group = vp$control_group %||% "not_yet_treated",
           vce = vce,
           cluster_var = cluster_var,
@@ -562,8 +592,8 @@ lwdid <- function(
       if (use_fwildclusterboot_actual && !.fwildclusterboot_available()) {
         message(
           paste0(
-            "fwildclusterboot not installed, using pure R implementation. Install via: ",
-            "install.packages('fwildclusterboot', repos='https://s3alfisc.r-universe.dev')"
+            "fwildclusterboot adapter is not available in the current release path; ",
+            "using pure R implementation."
           )
         )
         use_fwildclusterboot_actual <- FALSE
@@ -628,6 +658,8 @@ lwdid <- function(
     ri_failed <- NULL
     ri_error <- NULL
     ri_target <- NULL
+    ri_observed_stat <- NULL
+    ri_estimator <- validated$validated_params$estimator %||% "ra"
 
     if (!is_staggered) {
       # --- E7-06.2.2: Common Timing RI ---
@@ -637,16 +669,42 @@ lwdid <- function(
       x_ri <- result$.ri_x
 
       tryCatch({
-        ri_result <- randomization_inference(
-          y_trans = y_trans_ri,
-          d = d_ri,
-          x = x_ri,
-          reps = rireps,
-          seed = actual_seed,
-          method = ri_method
-        )
+        estimator_ri <- ri_estimator
+        ri_result <- if (identical(estimator_ri, "ra")) {
+          randomization_inference(
+            y_trans = y_trans_ri,
+            d = d_ri,
+            x = x_ri,
+            reps = rireps,
+            seed = actual_seed,
+            method = ri_method
+          )
+        } else {
+          .common_timing_randomization_inference(
+            data = result$.wcb_data,
+            y = result$.wcb_y_transformed %||% "y_trans_summary",
+            d = result$.wcb_d %||% "d",
+            controls = validated$validated_params$controls,
+            ps_controls = validated$validated_params$ps_controls,
+            estimator = estimator_ri,
+            reps = rireps,
+            seed = actual_seed,
+            method = ri_method,
+            trim_threshold = validated$validated_params$trim_threshold %||% 0.01,
+            trim_method = validated$validated_params$trim_method %||% "clip",
+            n_neighbors = validated$validated_params$n_neighbors %||% 1L,
+            caliper = validated$validated_params$caliper,
+            caliper_scale = validated$validated_params$caliper_scale %||% "sd",
+            with_replacement = validated$validated_params$with_replacement %||% TRUE,
+            match_order = validated$validated_params$match_order %||% "data",
+            se_method = validated$validated_params$se_method,
+            boot_reps = validated$validated_params$boot_reps %||% 200L,
+            return_diagnostics = validated$validated_params$return_diagnostics %||% FALSE
+          )
+        }
         ri_pvalue <- ri_result$ri_pvalue
         ri_distribution <- ri_result$ri_distribution
+        ri_observed_stat <- ri_result$obs_att
         ri_valid <- ri_result$n_valid
         ri_failed <- ri_result$n_failed
       }, error = function(e) {
@@ -734,6 +792,7 @@ lwdid <- function(
 
       # --- E7-06.2.8: Execute Staggered RI (only if ri_observed determined) ---
       if (!is.null(ri_observed)) {
+        ri_observed_stat <- ri_observed
         tryCatch({
           ri_result <- ri_staggered(
             data = validated$data,
@@ -746,15 +805,27 @@ lwdid <- function(
             target_cohort = target_cohort_ri,
             target_period = target_period_ri,
             rolling = validated$validated_params$rolling,
+            estimator = validated$validated_params$estimator %||% "ra",
             controls = validated$validated_params$controls,
+            ps_controls = validated$validated_params$ps_controls,
             vce = validated$validated_params$vce,
             cluster_var = validated$validated_params$cluster_var,
             reps = rireps,
             seed = actual_seed,
-            method = ri_method
+            method = ri_method,
+            trim_threshold = validated$validated_params$trim_threshold %||% 0.01,
+            trim_method = validated$validated_params$trim_method %||% "clip",
+            n_neighbors = validated$validated_params$n_neighbors %||% 1L,
+            caliper = validated$validated_params$caliper,
+            caliper_scale = validated$validated_params$caliper_scale %||% "sd",
+            with_replacement = validated$validated_params$with_replacement %||% TRUE,
+            match_order = validated$validated_params$match_order %||% "data",
+            se_method = validated$validated_params$se_method,
+            boot_reps = validated$validated_params$boot_reps %||% 200L
           )
           ri_pvalue <- ri_result$ri_pvalue
           ri_distribution <- ri_result$ri_distribution
+          ri_observed_stat <- ri_result$obs_att
           ri_valid <- ri_result$n_valid
           ri_failed <- ri_result$n_failed
         }, error = function(e) {
@@ -782,6 +853,8 @@ lwdid <- function(
     result$ri_failed <- ri_failed
     result$ri_error <- ri_error
     result$ri_target <- ri_target
+    result$ri_observed_stat <- ri_observed_stat
+    result$ri_estimator <- ri_estimator
   }
 
   # Clean up internal RI data fields (not part of public API)
@@ -1303,6 +1376,7 @@ lwdid <- function(
     ri_seed = NULL, rireps = NULL, ri_method = NULL,
     ri_valid = NULL, ri_failed = NULL,
     ri_error = NULL, ri_target = NULL,
+    ri_observed_stat = NULL, ri_estimator = NULL,
     # --- Diagnostics ---
     diagnostics = list(
       controls_tier = att_result$controls_tier
@@ -1318,6 +1392,18 @@ lwdid <- function(
     tvar = tvar,
     is_quarterly = validated$is_quarterly %||% FALSE
   )
+
+  if (isTRUE(vp$return_diagnostics) && !identical(estimator, "ra")) {
+    result$propensity_scores <- att_result$propensity_scores %||% NULL
+    result$weights_cv <- att_result$weights_cv %||% NULL
+    result$n_matched <- att_result$n_matched %||% NULL
+    result$match_rate <- att_result$match_success_rate %||% NULL
+    result$diagnostics$propensity <- .summarize_non_ra_propensity_diagnostics(
+      estimator = estimator,
+      result = att_result,
+      scope = "common_timing"
+    )
+  }
 
   # Store RI data for CT RI integration (Task E7-06.2)
   result$.ri_data <- list(
@@ -1488,6 +1574,85 @@ lwdid <- function(
   results
 }
 
+.aggregate_non_ra_cohorts_to_overall <- function(cohort_effects,
+                                                 cohort_sizes,
+                                                 alpha = 0.05) {
+  if (is.list(cohort_sizes)) {
+    cohort_sizes <- unlist(cohort_sizes, use.names = TRUE)
+  }
+
+  valid_ce <- Filter(function(e) {
+    !is.null(e$cohort) && is.finite(e$att) && is.finite(e$se)
+  }, cohort_effects)
+
+  if (length(valid_ce) == 0L) {
+    return(NULL)
+  }
+
+  cohort_ids <- vapply(valid_ce, function(e) as.character(e$cohort), character(1))
+  size_vec <- as.numeric(cohort_sizes[cohort_ids])
+  fallback_sizes <- vapply(valid_ce, function(e) {
+    as.numeric(e$n_units %||% NA_real_)
+  }, numeric(1))
+  use_fallback <- !is.finite(size_vec) | size_vec <= 0
+  size_vec[use_fallback] <- fallback_sizes[use_fallback]
+
+  if (any(!is.finite(size_vec) | size_vec <= 0)) {
+    stop_lwdid(
+      "Cannot aggregate non-RA cohort effects to overall ATT: cohort sizes are missing or non-positive.",
+      class = "lwdid_invalid_input"
+    )
+  }
+
+  weights <- size_vec / sum(size_vec)
+  names(weights) <- cohort_ids
+
+  att_vec <- vapply(valid_ce, function(e) as.numeric(e$att), numeric(1))
+  se_vec <- vapply(valid_ce, function(e) as.numeric(e$se), numeric(1))
+  att <- sum(weights * att_vec)
+  se <- sqrt(sum(weights^2 * se_vec^2))
+
+  t_stat <- if (is.finite(se) && se > 0) att / se else NA_real_
+  pvalue <- if (is.finite(t_stat)) {
+    2 * stats::pnorm(abs(t_stat), lower.tail = FALSE)
+  } else {
+    NA_real_
+  }
+  z_crit <- stats::qnorm(1 - alpha / 2)
+
+  n_treated <- as.integer(sum(size_vec))
+  n_control_vals <- vapply(valid_ce, function(e) {
+    as.numeric(e$n_control %||% NA_real_)
+  }, numeric(1))
+  n_control <- if (any(is.finite(n_control_vals))) {
+    as.integer(max(n_control_vals[is.finite(n_control_vals)]))
+  } else {
+    NA_integer_
+  }
+
+  list(
+    att = att,
+    se = se,
+    ci_lower = att - z_crit * se,
+    ci_upper = att + z_crit * se,
+    t_stat = t_stat,
+    pvalue = pvalue,
+    cohort_weights = as.list(weights),
+    effective_weights = as.list(weights),
+    n_treated = n_treated,
+    n_control = n_control,
+    n_total = if (is.na(n_control)) NA_integer_ else n_treated + n_control,
+    df_resid = NA_integer_,
+    df_inference = NA_integer_,
+    K = NA_integer_,
+    controls_tier = NA_character_,
+    controls_used = NA,
+    se_aggregation = "diagonal_weighted_cohort_se",
+    covariance_assumption = "zero_cross_cohort_covariance",
+    aggregation_method = "cohort_size_weighted_non_ra_cohort_effects"
+  )
+}
+
 .estimate_staggered <- function(validated, registry = NULL) {
   # --- Extract convenience aliases from validated ---
   dt <- validated$data
@@ -1513,7 +1678,7 @@ lwdid <- function(
   event_time_range <- vp$event_time_range
   df_strategy <- vp$df_strategy %||% "conservative"
   verbose <- vp$verbose %||% "default"
-  verbose_flag <- !identical(verbose, "silent")
+  verbose_flag <- identical(verbose, "verbose")
   parallel <- vp$parallel %||% FALSE
   n_cores <- vp$n_cores
 
@@ -1537,10 +1702,10 @@ lwdid <- function(
 
   if (!is.null(event_time_range)) {
     if (!is.numeric(event_time_range) || length(event_time_range) != 2L ||
-        any(is.na(event_time_range)) ||
+        any(!is.finite(event_time_range)) ||
         event_time_range[1] > event_time_range[2]) {
       stop_lwdid(
-        sprintf("event_time_range must be length-2 numeric with lower <= upper, got: %s",
+        sprintf("event_time_range must be length-2 finite numeric with lower <= upper, got: %s",
                 deparse(event_time_range)),
         class = "lwdid_invalid_input"
       )
@@ -1717,16 +1882,24 @@ lwdid <- function(
 
   if (aggregate == "overall") {
     # Step 5b: Overall aggregation
-    overall_effect <- aggregate_to_overall(
-      dt = dt, y = y, ivar = ivar, tvar = tvar, gvar = gvar,
-      cohorts = valid_cohorts, T_max = T_max,
-      pre_stats = pre_stats, rolling = rolling,
-      vce = vce, cluster_var = cluster_var,
-      alpha = alpha, controls = controls
-      # TODO (Epic 9): Map transform_type for demeanq/detrendq
-      # Python maps demeanq -> 'detrend' in aggregate_to_overall
-      # Note: Python mapping inconsistency between cohort and overall
-    )
+    if (estimator == "ra") {
+      overall_effect <- aggregate_to_overall(
+        dt = dt, y = y, ivar = ivar, tvar = tvar, gvar = gvar,
+        cohorts = valid_cohorts, T_max = T_max,
+        pre_stats = pre_stats, rolling = rolling,
+        vce = vce, cluster_var = cluster_var,
+        alpha = alpha, controls = controls
+        # TODO (Epic 9): Map transform_type for demeanq/detrendq
+        # Python maps demeanq -> 'detrend' in aggregate_to_overall
+        # Note: Python mapping inconsistency between cohort and overall
+      )
+    } else {
+      overall_effect <- .aggregate_non_ra_cohorts_to_overall(
+        cohort_effects = cohort_effects,
+        cohort_sizes = cohort_sizes,
+        alpha = alpha
+      )
+    }
   }
 
   if (aggregate == "event_time") {
@@ -1737,7 +1910,10 @@ lwdid <- function(
       event_time_range = event_time_range,
       df_strategy = df_strategy,
       alpha = alpha,
-      verbose = verbose_flag
+      verbose = verbose_flag,
+      inference_dist = .resolve_top_level_inference_dist(
+        estimator %||% "ra"
+      )
     )
   }
 
@@ -1907,7 +2083,11 @@ lwdid <- function(
     rolling = rolling,
     estimator = validated$validated_params$estimator %||% "ra",
     method = "staggered",
-    vce_type = if (is.null(vce)) "homoskedastic" else vce,
+    vce_type = .resolve_estimator_vce_type(
+      validated$validated_params$estimator %||% "ra",
+      vce,
+      validated$validated_params$se_method
+    ),
     cluster_var = cluster_var,
     n_clusters = NULL,
     alpha = alpha,
@@ -1926,6 +2106,9 @@ lwdid <- function(
     cohorts = valid_cohorts,
     cohort_sizes = cohort_sizes,
     n_never_treated = as.integer(n_nt),
+    n_units = validated$n_units,
+    n_periods = validated$n_periods,
+    n_cohorts = length(valid_cohorts),
     att_by_cohort = if (!is.null(cohort_effects) && length(cohort_effects) > 0L) {
       do.call(rbind, lapply(cohort_effects, function(ce) {
         data.frame(cohort = ce$cohort, att = ce$att, se = ce$se,
@@ -1944,11 +2127,12 @@ lwdid <- function(
     t_stat_overall = if (!is.null(overall_effect)) overall_effect$t_stat else NULL,
     pvalue_overall = if (!is.null(overall_effect)) overall_effect$pvalue else NULL,
     event_time_effects = event_time_effects,
-    cohort_weights = NULL,
+    cohort_weights = if (!is.null(overall_effect)) overall_effect$cohort_weights else NULL,
     ri_pvalue = NULL, ri_distribution = NULL,
     ri_seed = NULL, rireps = NULL, ri_method = NULL,
     ri_valid = NULL, ri_failed = NULL,
     ri_error = NULL, ri_target = NULL,
+    ri_observed_stat = NULL, ri_estimator = NULL,
     diagnostics = NULL, warning_diagnostics = list(),
     propensity_scores = NULL,
     matched_data = NULL, n_matched = NULL,
@@ -1962,7 +2146,45 @@ lwdid <- function(
   # Store extra fields
   result$exclude_pre_periods <- exclude_pre_periods
   result$cohort_time_effects <- result$att_by_cohort_time
+  result$skipped_pairs <- attr(
+    cohort_time_effects, "skipped_pairs", exact = TRUE
+  ) %||% list()
+  result$skipped_summary <- attr(
+    cohort_time_effects, "skipped_summary", exact = TRUE
+  ) %||% data.frame(
+    reason = character(0),
+    n = integer(0),
+    stringsAsFactors = FALSE
+  )
+  result$event_time_omissions <- attr(
+    event_time_effects, "event_time_omissions", exact = TRUE
+  ) %||% list()
+  result$event_time_omission_summary <- attr(
+    event_time_effects, "event_time_omission_summary", exact = TRUE
+  ) %||% data.frame(
+    reason = character(0),
+    n = integer(0),
+    stringsAsFactors = FALSE
+  )
   result$overall_effect <- overall_effect
+  result$effective_weights <- if (!is.null(overall_effect)) {
+    overall_effect$effective_weights
+  } else {
+    NULL
+  }
+  if (isTRUE(vp$return_diagnostics) && !identical(estimator, "ra")) {
+    diag_cols <- intersect(
+      c(
+        "cohort", "period", "event_time", "n", "n_treated", "n_control",
+        "ps_min", "ps_max", "ps_mean", "n_trimmed", "weights_cv",
+        "n_matched", "match_rate", "n_dropped",
+        "bootstrap_reps_requested", "bootstrap_reps_valid",
+        "bootstrap_reps_failed", "bootstrap_success_rate"
+      ),
+      names(cohort_time_effects)
+    )
+    result$diagnostics$propensity <- cohort_time_effects[, diag_cols, drop = FALSE]
+  }
   result$att_cohort_agg <- att_cohort_agg
   result$se_cohort_agg <- se_cohort_agg
   result$t_stat_cohort_agg <- t_stat_cohort_agg

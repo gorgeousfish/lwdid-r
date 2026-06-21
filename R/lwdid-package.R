@@ -6,7 +6,7 @@
 #' Through unit-specific time-series transformations (demeaning or
 #' detrending), the package converts panel DiD estimation into standard
 #' cross-sectional treatment effect problems, enabling application of
-#' multiple estimators and exact small-sample inference.
+#' multiple estimators and randomization-based small-sample inference.
 #'
 #' @details
 #' \strong{Core Transformations}:

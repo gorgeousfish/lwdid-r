@@ -391,13 +391,17 @@ cross-sectional data:</p>
 </tr>
 </tbody>
 </table>
+<p>Use <code>controls</code> for RA and IPWRA outcome-regression
+controls. Use <code>ps_controls</code> for the IPW, IPWRA, and PSM
+propensity-score model. When <code>ps_controls</code> is omitted, the
+propensity-score estimators fall back to <code>controls</code>.</p>
 <div id="ipw" class="section level3">
 <h3>IPW</h3>
 <div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>result_ipw <span class="ot">&lt;-</span> <span class="fu">lwdid</span>(</span>
 <span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>  <span class="at">data =</span> castle, <span class="at">y =</span> <span class="st">&quot;lhomicide&quot;</span>, <span class="at">ivar =</span> <span class="st">&quot;sid&quot;</span>, <span class="at">tvar =</span> <span class="st">&quot;year&quot;</span>,</span>
 <span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>  <span class="at">gvar =</span> <span class="st">&quot;gvar&quot;</span>, <span class="at">rolling =</span> <span class="st">&quot;demean&quot;</span>, <span class="at">estimator =</span> <span class="st">&quot;ipw&quot;</span>,</span>
-<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>  <span class="at">controls =</span> <span class="fu">c</span>(<span class="st">&quot;police&quot;</span>, <span class="st">&quot;income&quot;</span>, <span class="st">&quot;poverty&quot;</span>),</span>
-<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a>  <span class="at">aggregate =</span> <span class="st">&quot;cohort&quot;</span></span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>  <span class="at">ps_controls =</span> <span class="fu">c</span>(<span class="st">&quot;police&quot;</span>, <span class="st">&quot;income&quot;</span>, <span class="st">&quot;poverty&quot;</span>),</span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a>  <span class="at">aggregate =</span> <span class="st">&quot;cohort&quot;</span>, <span class="at">control_group =</span> <span class="st">&quot;never_treated&quot;</span></span>
 <span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a>)</span></code></pre></div>
 </div>
 <div id="ipwra-doubly-robust" class="section level3">
@@ -406,16 +410,17 @@ cross-sectional data:</p>
 <span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>  <span class="at">data =</span> castle, <span class="at">y =</span> <span class="st">&quot;lhomicide&quot;</span>, <span class="at">ivar =</span> <span class="st">&quot;sid&quot;</span>, <span class="at">tvar =</span> <span class="st">&quot;year&quot;</span>,</span>
 <span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>  <span class="at">gvar =</span> <span class="st">&quot;gvar&quot;</span>, <span class="at">rolling =</span> <span class="st">&quot;demean&quot;</span>, <span class="at">estimator =</span> <span class="st">&quot;ipwra&quot;</span>,</span>
 <span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a>  <span class="at">controls =</span> <span class="fu">c</span>(<span class="st">&quot;police&quot;</span>, <span class="st">&quot;income&quot;</span>, <span class="st">&quot;poverty&quot;</span>),</span>
-<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a>  <span class="at">aggregate =</span> <span class="st">&quot;cohort&quot;</span></span>
-<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a>)</span></code></pre></div>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a>  <span class="at">ps_controls =</span> <span class="fu">c</span>(<span class="st">&quot;police&quot;</span>, <span class="st">&quot;income&quot;</span>, <span class="st">&quot;poverty&quot;</span>),</span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a>  <span class="at">aggregate =</span> <span class="st">&quot;cohort&quot;</span>, <span class="at">control_group =</span> <span class="st">&quot;never_treated&quot;</span></span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a>)</span></code></pre></div>
 </div>
 <div id="psm" class="section level3">
 <h3>PSM</h3>
 <div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>result_psm <span class="ot">&lt;-</span> <span class="fu">lwdid</span>(</span>
 <span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>  <span class="at">data =</span> castle, <span class="at">y =</span> <span class="st">&quot;lhomicide&quot;</span>, <span class="at">ivar =</span> <span class="st">&quot;sid&quot;</span>, <span class="at">tvar =</span> <span class="st">&quot;year&quot;</span>,</span>
 <span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a>  <span class="at">gvar =</span> <span class="st">&quot;gvar&quot;</span>, <span class="at">rolling =</span> <span class="st">&quot;demean&quot;</span>, <span class="at">estimator =</span> <span class="st">&quot;psm&quot;</span>,</span>
-<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a>  <span class="at">controls =</span> <span class="fu">c</span>(<span class="st">&quot;police&quot;</span>, <span class="st">&quot;income&quot;</span>, <span class="st">&quot;poverty&quot;</span>),</span>
-<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a>  <span class="at">aggregate =</span> <span class="st">&quot;cohort&quot;</span></span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a>  <span class="at">ps_controls =</span> <span class="fu">c</span>(<span class="st">&quot;police&quot;</span>, <span class="st">&quot;income&quot;</span>, <span class="st">&quot;poverty&quot;</span>),</span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a>  <span class="at">aggregate =</span> <span class="st">&quot;cohort&quot;</span>, <span class="at">control_group =</span> <span class="st">&quot;never_treated&quot;</span></span>
 <span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a>)</span></code></pre></div>
 </div>
 </div>
@@ -487,190 +492,367 @@ cross-sectional data:</p>
 <span id="cb6-19"><a href="#cb6-19" tabindex="-1"></a><span class="co">#&gt;   ---</span></span>
 <span id="cb6-20"><a href="#cb6-20" tabindex="-1"></a><span class="co">#&gt;   Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</span></span>
 <span id="cb6-21"><a href="#cb6-21" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb6-22"><a href="#cb6-22" tabindex="-1"></a><span class="co">#&gt; Period-Specific Effects:</span></span>
-<span id="cb6-23"><a href="#cb6-23" tabindex="-1"></a><span class="co">#&gt;   ---------------------------------------------------------------------------- </span></span>
-<span id="cb6-24"><a href="#cb6-24" tabindex="-1"></a><span class="co">#&gt;     Period        ATT  Std. Err.     t-stat  p-value       CI lower   CI upper </span></span>
-<span id="cb6-25"><a href="#cb6-25" tabindex="-1"></a><span class="co">#&gt;   ---------------------------------------------------------------------------- </span></span>
-<span id="cb6-26"><a href="#cb6-26" tabindex="-1"></a><span class="co">#&gt;       1989    -0.1682     0.0155   -10.8241   &lt;0.001 ***    -0.1997    -0.1367</span></span>
-<span id="cb6-27"><a href="#cb6-27" tabindex="-1"></a><span class="co">#&gt;       1990    -0.1875     0.0181   -10.3490   &lt;0.001 ***    -0.2242    -0.1508</span></span>
-<span id="cb6-28"><a href="#cb6-28" tabindex="-1"></a><span class="co">#&gt;       1991    -0.3025     0.0189   -15.9776   &lt;0.001 ***    -0.3408    -0.2641</span></span>
-<span id="cb6-29"><a href="#cb6-29" tabindex="-1"></a><span class="co">#&gt;       1992    -0.3101     0.0208   -14.9328   &lt;0.001 ***    -0.3522    -0.2681</span></span>
-<span id="cb6-30"><a href="#cb6-30" tabindex="-1"></a><span class="co">#&gt;       1993    -0.3668     0.0197   -18.6570   &lt;0.001 ***    -0.4066    -0.3269</span></span>
-<span id="cb6-31"><a href="#cb6-31" tabindex="-1"></a><span class="co">#&gt;       1994    -0.4397     0.0203   -21.6967   &lt;0.001 ***    -0.4808    -0.3987</span></span>
-<span id="cb6-32"><a href="#cb6-32" tabindex="-1"></a><span class="co">#&gt;       1995    -0.4835     0.0223   -21.6846   &lt;0.001 ***    -0.5287    -0.4383</span></span>
-<span id="cb6-33"><a href="#cb6-33" tabindex="-1"></a><span class="co">#&gt;       1996    -0.4975     0.0226   -22.0443   &lt;0.001 ***    -0.5432    -0.4518</span></span>
-<span id="cb6-34"><a href="#cb6-34" tabindex="-1"></a><span class="co">#&gt;       1997    -0.5134     0.0241   -21.2671   &lt;0.001 ***    -0.5623    -0.4645</span></span>
-<span id="cb6-35"><a href="#cb6-35" tabindex="-1"></a><span class="co">#&gt;       1998    -0.5308     0.0245   -21.6495   &lt;0.001 ***    -0.5805    -0.4812</span></span>
-<span id="cb6-36"><a href="#cb6-36" tabindex="-1"></a><span class="co">#&gt;       1999    -0.5988     0.0251   -23.8295   &lt;0.001 ***    -0.6497    -0.5479</span></span>
-<span id="cb6-37"><a href="#cb6-37" tabindex="-1"></a><span class="co">#&gt;       2000    -0.6673     0.0267   -25.0291   &lt;0.001 ***    -0.7213    -0.6133</span></span>
-<span id="cb6-38"><a href="#cb6-38" tabindex="-1"></a><span class="co">#&gt;   ---------------------------------------------------------------------------- </span></span>
-<span id="cb6-39"><a href="#cb6-39" tabindex="-1"></a><span class="co">#&gt; ============================================================================== </span></span>
-<span id="cb6-40"><a href="#cb6-40" tabindex="-1"></a><span class="co">#&gt;   N = 39    N_treated = 1    N_control = 38    K = 19    tpost1 = 20</span></span></code></pre></div>
+<span id="cb6-22"><a href="#cb6-22" tabindex="-1"></a><span class="co">#&gt; Regression Coefficients:</span></span>
+<span id="cb6-23"><a href="#cb6-23" tabindex="-1"></a><span class="co">#&gt;   ---------------------------------------------------------- </span></span>
+<span id="cb6-24"><a href="#cb6-24" tabindex="-1"></a><span class="co">#&gt;   Term               Estimate  Std. Err.    t value Pr(&gt;|t|) </span></span>
+<span id="cb6-25"><a href="#cb6-25" tabindex="-1"></a><span class="co">#&gt;   ---------------------------------------------------------- </span></span>
+<span id="cb6-26"><a href="#cb6-26" tabindex="-1"></a><span class="co">#&gt;   (Intercept)         -0.2462                                   </span></span>
+<span id="cb6-27"><a href="#cb6-27" tabindex="-1"></a><span class="co">#&gt;   D                   -0.4222                                   </span></span>
+<span id="cb6-28"><a href="#cb6-28" tabindex="-1"></a><span class="co">#&gt;   ---------------------------------------------------------- </span></span>
+<span id="cb6-29"><a href="#cb6-29" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb6-30"><a href="#cb6-30" tabindex="-1"></a><span class="co">#&gt; Period-Specific Effects:</span></span>
+<span id="cb6-31"><a href="#cb6-31" tabindex="-1"></a><span class="co">#&gt;   ---------------------------------------------------------------------------- </span></span>
+<span id="cb6-32"><a href="#cb6-32" tabindex="-1"></a><span class="co">#&gt;     Period        ATT  Std. Err.     t-stat  p-value       CI lower   CI upper </span></span>
+<span id="cb6-33"><a href="#cb6-33" tabindex="-1"></a><span class="co">#&gt;   ---------------------------------------------------------------------------- </span></span>
+<span id="cb6-34"><a href="#cb6-34" tabindex="-1"></a><span class="co">#&gt;       1989    -0.1682     0.0155   -10.8241   &lt;0.001 ***    -0.1997    -0.1367</span></span>
+<span id="cb6-35"><a href="#cb6-35" tabindex="-1"></a><span class="co">#&gt;       1990    -0.1875     0.0181   -10.3490   &lt;0.001 ***    -0.2242    -0.1508</span></span>
+<span id="cb6-36"><a href="#cb6-36" tabindex="-1"></a><span class="co">#&gt;       1991    -0.3025     0.0189   -15.9776   &lt;0.001 ***    -0.3408    -0.2641</span></span>
+<span id="cb6-37"><a href="#cb6-37" tabindex="-1"></a><span class="co">#&gt;       1992    -0.3101     0.0208   -14.9328   &lt;0.001 ***    -0.3522    -0.2681</span></span>
+<span id="cb6-38"><a href="#cb6-38" tabindex="-1"></a><span class="co">#&gt;       1993    -0.3668     0.0197   -18.6570   &lt;0.001 ***    -0.4066    -0.3269</span></span>
+<span id="cb6-39"><a href="#cb6-39" tabindex="-1"></a><span class="co">#&gt;       1994    -0.4397     0.0203   -21.6967   &lt;0.001 ***    -0.4808    -0.3987</span></span>
+<span id="cb6-40"><a href="#cb6-40" tabindex="-1"></a><span class="co">#&gt;       1995    -0.4835     0.0223   -21.6846   &lt;0.001 ***    -0.5287    -0.4383</span></span>
+<span id="cb6-41"><a href="#cb6-41" tabindex="-1"></a><span class="co">#&gt;       1996    -0.4975     0.0226   -22.0443   &lt;0.001 ***    -0.5432    -0.4518</span></span>
+<span id="cb6-42"><a href="#cb6-42" tabindex="-1"></a><span class="co">#&gt;       1997    -0.5134     0.0241   -21.2671   &lt;0.001 ***    -0.5623    -0.4645</span></span>
+<span id="cb6-43"><a href="#cb6-43" tabindex="-1"></a><span class="co">#&gt;       1998    -0.5308     0.0245   -21.6495   &lt;0.001 ***    -0.5805    -0.4812</span></span>
+<span id="cb6-44"><a href="#cb6-44" tabindex="-1"></a><span class="co">#&gt;       1999    -0.5988     0.0251   -23.8295   &lt;0.001 ***    -0.6497    -0.5479</span></span>
+<span id="cb6-45"><a href="#cb6-45" tabindex="-1"></a><span class="co">#&gt;       2000    -0.6673     0.0267   -25.0291   &lt;0.001 ***    -0.7213    -0.6133</span></span>
+<span id="cb6-46"><a href="#cb6-46" tabindex="-1"></a><span class="co">#&gt;   ---------------------------------------------------------------------------- </span></span>
+<span id="cb6-47"><a href="#cb6-47" tabindex="-1"></a><span class="co">#&gt;   Period-by-period effects are available in results$att_by_period.</span></span>
+<span id="cb6-48"><a href="#cb6-48" tabindex="-1"></a><span class="co">#&gt; ============================================================================== </span></span>
+<span id="cb6-49"><a href="#cb6-49" tabindex="-1"></a><span class="co">#&gt;   N = 39    N_treated = 1    N_control = 38    K = 19    tpost1 = 20</span></span></code></pre></div>
+</div>
+<div id="comparing-multiple-specifications" class="section level2">
+<h2>Comparing Multiple Specifications</h2>
+<p>The <code>compare()</code> function provides a structured way to
+compare results from multiple specifications (different estimators,
+transformations, or control variables). This is essential for robustness
+analysis in the Lee &amp; Wooldridge (2025) framework, where four
+estimators exhibit different consistency and efficiency properties under
+varying assumptions:</p>
+<ul>
+<li><strong>RA</strong> (Regression Adjustment): BLUE under correct
+outcome model</li>
+<li><strong>IPW</strong> (Inverse Probability Weighting): consistent
+when propensity score model is correct</li>
+<li><strong>IPWRA</strong> (Doubly Robust): consistent if either model
+is correct</li>
+<li><strong>PSM</strong> (Propensity Score Matching): nonparametric
+kernel matching</li>
+</ul>
+<p>If all specifications yield similar point estimates, results are
+robust to model specification.</p>
+<div id="basic-usage-comparing-estimators" class="section level3">
+<h3>Basic Usage: Comparing Estimators</h3>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="co"># Estimate with different estimators</span></span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a>res_ra <span class="ot">&lt;-</span> <span class="fu">lwdid</span>(<span class="at">data =</span> castle, <span class="at">y =</span> <span class="st">&quot;lhomicide&quot;</span>, <span class="at">ivar =</span> <span class="st">&quot;sid&quot;</span>, <span class="at">tvar =</span> <span class="st">&quot;year&quot;</span>,</span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a>                <span class="at">gvar =</span> <span class="st">&quot;gvar&quot;</span>, <span class="at">rolling =</span> <span class="st">&quot;demean&quot;</span>, <span class="at">estimator =</span> <span class="st">&quot;ra&quot;</span>,</span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a>                <span class="at">aggregate =</span> <span class="st">&quot;overall&quot;</span>)</span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a>res_ipw <span class="ot">&lt;-</span> <span class="fu">lwdid</span>(<span class="at">data =</span> castle, <span class="at">y =</span> <span class="st">&quot;lhomicide&quot;</span>, <span class="at">ivar =</span> <span class="st">&quot;sid&quot;</span>, <span class="at">tvar =</span> <span class="st">&quot;year&quot;</span>,</span>
+<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a>                 <span class="at">gvar =</span> <span class="st">&quot;gvar&quot;</span>, <span class="at">rolling =</span> <span class="st">&quot;demean&quot;</span>, <span class="at">estimator =</span> <span class="st">&quot;ipw&quot;</span>,</span>
+<span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a>                 <span class="at">ps_controls =</span> <span class="fu">c</span>(<span class="st">&quot;police&quot;</span>, <span class="st">&quot;income&quot;</span>, <span class="st">&quot;poverty&quot;</span>),</span>
+<span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a>                 <span class="at">aggregate =</span> <span class="st">&quot;overall&quot;</span>)</span>
+<span id="cb7-9"><a href="#cb7-9" tabindex="-1"></a>res_ipwra <span class="ot">&lt;-</span> <span class="fu">lwdid</span>(<span class="at">data =</span> castle, <span class="at">y =</span> <span class="st">&quot;lhomicide&quot;</span>, <span class="at">ivar =</span> <span class="st">&quot;sid&quot;</span>, <span class="at">tvar =</span> <span class="st">&quot;year&quot;</span>,</span>
+<span id="cb7-10"><a href="#cb7-10" tabindex="-1"></a>                   <span class="at">gvar =</span> <span class="st">&quot;gvar&quot;</span>, <span class="at">rolling =</span> <span class="st">&quot;demean&quot;</span>, <span class="at">estimator =</span> <span class="st">&quot;ipwra&quot;</span>,</span>
+<span id="cb7-11"><a href="#cb7-11" tabindex="-1"></a>                   <span class="at">controls =</span> <span class="fu">c</span>(<span class="st">&quot;police&quot;</span>, <span class="st">&quot;income&quot;</span>, <span class="st">&quot;poverty&quot;</span>),</span>
+<span id="cb7-12"><a href="#cb7-12" tabindex="-1"></a>                   <span class="at">ps_controls =</span> <span class="fu">c</span>(<span class="st">&quot;police&quot;</span>, <span class="st">&quot;income&quot;</span>, <span class="st">&quot;poverty&quot;</span>),</span>
+<span id="cb7-13"><a href="#cb7-13" tabindex="-1"></a>                   <span class="at">aggregate =</span> <span class="st">&quot;overall&quot;</span>)</span>
+<span id="cb7-14"><a href="#cb7-14" tabindex="-1"></a></span>
+<span id="cb7-15"><a href="#cb7-15" tabindex="-1"></a><span class="co"># Compare specifications side by side</span></span>
+<span id="cb7-16"><a href="#cb7-16" tabindex="-1"></a><span class="co"># Output: table with ATT, SE, CI, significance stars, model metadata</span></span>
+<span id="cb7-17"><a href="#cb7-17" tabindex="-1"></a><span class="fu">compare</span>(<span class="at">RA =</span> res_ra, <span class="at">IPW =</span> res_ipw, <span class="at">IPWRA =</span> res_ipwra)</span></code></pre></div>
+</div>
+<div id="advanced-usage-comparing-transformations" class="section level3">
+<h3>Advanced Usage: Comparing Transformations</h3>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a><span class="co"># Demean vs Detrend comparison</span></span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a>res_demean <span class="ot">&lt;-</span> <span class="fu">lwdid</span>(<span class="at">data =</span> castle, <span class="at">y =</span> <span class="st">&quot;lhomicide&quot;</span>, <span class="at">ivar =</span> <span class="st">&quot;sid&quot;</span>, <span class="at">tvar =</span> <span class="st">&quot;year&quot;</span>,</span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a>                    <span class="at">gvar =</span> <span class="st">&quot;gvar&quot;</span>, <span class="at">rolling =</span> <span class="st">&quot;demean&quot;</span>, <span class="at">estimator =</span> <span class="st">&quot;ra&quot;</span>,</span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a>                    <span class="at">aggregate =</span> <span class="st">&quot;overall&quot;</span>)</span>
+<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a>res_detrend <span class="ot">&lt;-</span> <span class="fu">lwdid</span>(<span class="at">data =</span> castle, <span class="at">y =</span> <span class="st">&quot;lhomicide&quot;</span>, <span class="at">ivar =</span> <span class="st">&quot;sid&quot;</span>, <span class="at">tvar =</span> <span class="st">&quot;year&quot;</span>,</span>
+<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a>                     <span class="at">gvar =</span> <span class="st">&quot;gvar&quot;</span>, <span class="at">rolling =</span> <span class="st">&quot;detrend&quot;</span>, <span class="at">estimator =</span> <span class="st">&quot;ra&quot;</span>,</span>
+<span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a>                     <span class="at">aggregate =</span> <span class="st">&quot;overall&quot;</span>)</span>
+<span id="cb8-8"><a href="#cb8-8" tabindex="-1"></a></span>
+<span id="cb8-9"><a href="#cb8-9" tabindex="-1"></a><span class="co"># Similar estimates suggest robustness to trend specification</span></span>
+<span id="cb8-10"><a href="#cb8-10" tabindex="-1"></a><span class="fu">compare</span>(<span class="at">Demean =</span> res_demean, <span class="at">Detrend =</span> res_detrend)</span></code></pre></div>
+</div>
+<div id="type-parameter-overall-vs-effects" class="section level3">
+<h3>Type Parameter: Overall vs Effects</h3>
+<p>The <code>type</code> argument controls how comparison results are
+reported:</p>
+<ul>
+<li><code>type = &quot;overall&quot;</code> (default): compares the scalar ATT
+from each specification</li>
+<li><code>type = &quot;effects&quot;</code>: compares cohort-level or period-level
+effects</li>
+</ul>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a><span class="co"># Effects-level comparison shows cohort-by-cohort differences</span></span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a><span class="fu">compare</span>(<span class="at">RA =</span> res_ra, <span class="at">IPWRA =</span> res_ipwra, <span class="at">type =</span> <span class="st">&quot;effects&quot;</span>)</span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a></span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a><span class="co"># Output columns include:</span></span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a><span class="co"># - Model name, ATT estimate, standard error</span></span>
+<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a><span class="co"># - 95% confidence interval [ci_lower, ci_upper]</span></span>
+<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a><span class="co"># - Significance stars (*** p&lt;0.01, ** p&lt;0.05, * p&lt;0.1)</span></span>
+<span id="cb9-8"><a href="#cb9-8" tabindex="-1"></a><span class="co"># - Model metadata: estimator, transformation, N observations</span></span></code></pre></div>
+</div>
 </div>
 <div id="sensitivity-analysis" class="section level2">
 <h2>Sensitivity Analysis</h2>
-<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a>sens <span class="ot">&lt;-</span> <span class="fu">suppressWarnings</span>(<span class="fu">lwdid_sensitivity</span>(</span>
-<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a>  <span class="at">data =</span> smoking, <span class="at">y =</span> <span class="st">&quot;lcigsale&quot;</span>, <span class="at">ivar =</span> <span class="st">&quot;state&quot;</span>, <span class="at">tvar =</span> <span class="st">&quot;year&quot;</span>,</span>
-<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a>  <span class="at">d =</span> <span class="st">&quot;d&quot;</span>, <span class="at">post =</span> <span class="st">&quot;post&quot;</span>, <span class="at">type =</span> <span class="st">&quot;all&quot;</span>, <span class="at">verbose =</span> <span class="cn">FALSE</span></span>
-<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a>))</span>
-<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a><span class="fu">print</span>(sens)</span>
-<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a><span class="co">#&gt; === Comprehensive Sensitivity Analysis ===</span></span>
-<span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb7-9"><a href="#cb7-9" tabindex="-1"></a><span class="co">#&gt; Overall: Multiple issues: pre-period sensitivity, transformation sensitivity, interpret with caution</span></span>
-<span id="cb7-10"><a href="#cb7-10" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb7-11"><a href="#cb7-11" tabindex="-1"></a><span class="co">#&gt;   Pre-period: SR=27.3% (sensitive)</span></span>
-<span id="cb7-12"><a href="#cb7-12" tabindex="-1"></a><span class="co">#&gt;   Anticipation: not detected</span></span>
-<span id="cb7-13"><a href="#cb7-13" tabindex="-1"></a><span class="co">#&gt;   Transformation: diff=0.1952 (rel=46.2%)</span></span>
-<span id="cb7-14"><a href="#cb7-14" tabindex="-1"></a><span class="co">#&gt;   Estimator: not available</span></span>
-<span id="cb7-15"><a href="#cb7-15" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb7-16"><a href="#cb7-16" tabindex="-1"></a><span class="co">#&gt; Recommendations:</span></span>
-<span id="cb7-17"><a href="#cb7-17" tabindex="-1"></a><span class="co">#&gt;   - Pre-period sensitivity detected (SR=27.3%), consider using detrend or checking data quality</span></span>
-<span id="cb7-18"><a href="#cb7-18" tabindex="-1"></a><span class="co">#&gt;   - Significant difference between demean and detrend (46.2%), possible heterogeneous trends</span></span></code></pre></div>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a>sens <span class="ot">&lt;-</span> <span class="fu">suppressWarnings</span>(<span class="fu">lwdid_sensitivity</span>(</span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a>  <span class="at">data =</span> smoking, <span class="at">y =</span> <span class="st">&quot;lcigsale&quot;</span>, <span class="at">ivar =</span> <span class="st">&quot;state&quot;</span>, <span class="at">tvar =</span> <span class="st">&quot;year&quot;</span>,</span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a>  <span class="at">d =</span> <span class="st">&quot;d&quot;</span>, <span class="at">post =</span> <span class="st">&quot;post&quot;</span>, <span class="at">type =</span> <span class="st">&quot;all&quot;</span>, <span class="at">verbose =</span> <span class="cn">FALSE</span></span>
+<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a>))</span>
+<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a><span class="fu">print</span>(sens)</span>
+<span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb10-7"><a href="#cb10-7" tabindex="-1"></a><span class="co">#&gt; === Comprehensive Sensitivity Analysis ===</span></span>
+<span id="cb10-8"><a href="#cb10-8" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb10-9"><a href="#cb10-9" tabindex="-1"></a><span class="co">#&gt; Overall: Multiple issues: pre-period sensitivity, transformation sensitivity, interpret with caution</span></span>
+<span id="cb10-10"><a href="#cb10-10" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb10-11"><a href="#cb10-11" tabindex="-1"></a><span class="co">#&gt;   Pre-period: SR=27.3% (sensitive)</span></span>
+<span id="cb10-12"><a href="#cb10-12" tabindex="-1"></a><span class="co">#&gt;   Anticipation: not detected</span></span>
+<span id="cb10-13"><a href="#cb10-13" tabindex="-1"></a><span class="co">#&gt;   Transformation: diff=0.1952 (rel=46.2%)</span></span>
+<span id="cb10-14"><a href="#cb10-14" tabindex="-1"></a><span class="co">#&gt;   Estimator: not available</span></span>
+<span id="cb10-15"><a href="#cb10-15" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb10-16"><a href="#cb10-16" tabindex="-1"></a><span class="co">#&gt; Recommendations:</span></span>
+<span id="cb10-17"><a href="#cb10-17" tabindex="-1"></a><span class="co">#&gt;   - Pre-period sensitivity detected (SR=27.3%), consider using detrend or checking data quality</span></span>
+<span id="cb10-18"><a href="#cb10-18" tabindex="-1"></a><span class="co">#&gt;   - Significant difference between demean and detrend (46.2%), possible heterogeneous trends</span></span></code></pre></div>
 <div id="pre-period-sensitivity" class="section level3">
 <h3>Pre-Period Sensitivity</h3>
-<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a>pre_sens <span class="ot">&lt;-</span> <span class="fu">lwdid_sensitivity_pre_period</span>(</span>
-<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a>  <span class="at">data =</span> smoking, <span class="at">y =</span> <span class="st">&quot;lcigsale&quot;</span>, <span class="at">ivar =</span> <span class="st">&quot;state&quot;</span>, <span class="at">tvar =</span> <span class="st">&quot;year&quot;</span>,</span>
-<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a>  <span class="at">d =</span> <span class="st">&quot;d&quot;</span>, <span class="at">post =</span> <span class="st">&quot;post&quot;</span></span>
-<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a>)</span></code></pre></div>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a>pre_sens <span class="ot">&lt;-</span> <span class="fu">lwdid_sensitivity_pre_period</span>(</span>
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a>  <span class="at">data =</span> smoking, <span class="at">y =</span> <span class="st">&quot;lcigsale&quot;</span>, <span class="at">ivar =</span> <span class="st">&quot;state&quot;</span>, <span class="at">tvar =</span> <span class="st">&quot;year&quot;</span>,</span>
+<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a>  <span class="at">d =</span> <span class="st">&quot;d&quot;</span>, <span class="at">post =</span> <span class="st">&quot;post&quot;</span></span>
+<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a>)</span></code></pre></div>
 </div>
 </div>
 <div id="diagnostics" class="section level2">
 <h2>Diagnostics</h2>
 <div id="parallel-trends-testing" class="section level3">
 <h3>Parallel Trends Testing</h3>
-<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a>pt <span class="ot">&lt;-</span> <span class="fu">lwdid_test_parallel_trends</span>(</span>
-<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a>  <span class="at">data =</span> castle, <span class="at">y =</span> <span class="st">&quot;lhomicide&quot;</span>, <span class="at">ivar =</span> <span class="st">&quot;sid&quot;</span>,</span>
-<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a>  <span class="at">tvar =</span> <span class="st">&quot;year&quot;</span>, <span class="at">gvar =</span> <span class="st">&quot;gvar&quot;</span></span>
-<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a>)</span>
-<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a><span class="fu">print</span>(pt)</span>
-<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a><span class="co">#&gt; Parallel Trends Diagnostics</span></span>
-<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a><span class="co">#&gt;   Recommendation: demean</span></span>
-<span id="cb9-8"><a href="#cb9-8" tabindex="-1"></a><span class="co">#&gt;   Joint test: F(30, 31) = 1.2691, p = 0.2565</span></span>
-<span id="cb9-9"><a href="#cb9-9" tabindex="-1"></a><span class="co">#&gt;   Pre-treatment estimates: 30</span></span></code></pre></div>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a>pt <span class="ot">&lt;-</span> <span class="fu">lwdid_test_parallel_trends</span>(</span>
+<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a>  <span class="at">data =</span> castle, <span class="at">y =</span> <span class="st">&quot;lhomicide&quot;</span>, <span class="at">ivar =</span> <span class="st">&quot;sid&quot;</span>,</span>
+<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a>  <span class="at">tvar =</span> <span class="st">&quot;year&quot;</span>, <span class="at">gvar =</span> <span class="st">&quot;gvar&quot;</span></span>
+<span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a>)</span>
+<span id="cb12-5"><a href="#cb12-5" tabindex="-1"></a><span class="fu">print</span>(pt)</span>
+<span id="cb12-6"><a href="#cb12-6" tabindex="-1"></a><span class="co">#&gt; Parallel Trends Diagnostics</span></span>
+<span id="cb12-7"><a href="#cb12-7" tabindex="-1"></a><span class="co">#&gt;   Recommendation: demean</span></span>
+<span id="cb12-8"><a href="#cb12-8" tabindex="-1"></a><span class="co">#&gt;   Joint test: F(30, 31) = 1.2691, p = 0.2565</span></span>
+<span id="cb12-9"><a href="#cb12-9" tabindex="-1"></a><span class="co">#&gt;   Pre-treatment estimates: 30</span></span></code></pre></div>
 </div>
 <div id="transformation-recommendation" class="section level3">
 <h3>Transformation Recommendation</h3>
-<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a>rec <span class="ot">&lt;-</span> <span class="fu">lwdid_recommend_transformation</span>(</span>
-<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a>  <span class="at">data =</span> castle, <span class="at">y =</span> <span class="st">&quot;lhomicide&quot;</span>, <span class="at">ivar =</span> <span class="st">&quot;sid&quot;</span>,</span>
-<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a>  <span class="at">tvar =</span> <span class="st">&quot;year&quot;</span>, <span class="at">gvar =</span> <span class="st">&quot;gvar&quot;</span></span>
-<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a>)</span>
-<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a><span class="fu">print</span>(rec)</span>
-<span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a><span class="co">#&gt; Transformation Recommendation</span></span>
-<span id="cb10-7"><a href="#cb10-7" tabindex="-1"></a><span class="co">#&gt;   Recommended method: demeanq</span></span>
-<span id="cb10-8"><a href="#cb10-8" tabindex="-1"></a><span class="co">#&gt;   Confidence: 0.6562 (Medium)</span></span>
-<span id="cb10-9"><a href="#cb10-9" tabindex="-1"></a><span class="co">#&gt;   Pre-treatment periods: min=5, max=9</span></span>
-<span id="cb10-10"><a href="#cb10-10" tabindex="-1"></a><span class="co">#&gt;   Alternative: detrendq</span></span>
-<span id="cb10-11"><a href="#cb10-11" tabindex="-1"></a><span class="co">#&gt;   Warnings:</span></span>
-<span id="cb10-12"><a href="#cb10-12" tabindex="-1"></a><span class="co">#&gt;     - Heterogeneous trends diagnosis failed: invalid first argument</span></span></code></pre></div>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a>rec <span class="ot">&lt;-</span> <span class="fu">lwdid_recommend_transformation</span>(</span>
+<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a>  <span class="at">data =</span> castle, <span class="at">y =</span> <span class="st">&quot;lhomicide&quot;</span>, <span class="at">ivar =</span> <span class="st">&quot;sid&quot;</span>,</span>
+<span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a>  <span class="at">tvar =</span> <span class="st">&quot;year&quot;</span>, <span class="at">gvar =</span> <span class="st">&quot;gvar&quot;</span></span>
+<span id="cb13-4"><a href="#cb13-4" tabindex="-1"></a>)</span>
+<span id="cb13-5"><a href="#cb13-5" tabindex="-1"></a><span class="fu">print</span>(rec)</span>
+<span id="cb13-6"><a href="#cb13-6" tabindex="-1"></a><span class="co">#&gt; Transformation Recommendation</span></span>
+<span id="cb13-7"><a href="#cb13-7" tabindex="-1"></a><span class="co">#&gt;   Recommended method: demeanq</span></span>
+<span id="cb13-8"><a href="#cb13-8" tabindex="-1"></a><span class="co">#&gt;   Confidence: 0.6562 (Medium)</span></span>
+<span id="cb13-9"><a href="#cb13-9" tabindex="-1"></a><span class="co">#&gt;   Pre-treatment periods: min=5, max=9</span></span>
+<span id="cb13-10"><a href="#cb13-10" tabindex="-1"></a><span class="co">#&gt;   Alternative: detrendq</span></span>
+<span id="cb13-11"><a href="#cb13-11" tabindex="-1"></a><span class="co">#&gt;   Warnings:</span></span>
+<span id="cb13-12"><a href="#cb13-12" tabindex="-1"></a><span class="co">#&gt;     - Heterogeneous trends diagnosis failed: 第一个参数无效</span></span></code></pre></div>
 </div>
 <div id="full-diagnostic-suite" class="section level3">
 <h3>Full Diagnostic Suite</h3>
-<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a>diag <span class="ot">&lt;-</span> <span class="fu">suppressWarnings</span>(<span class="fu">lwdid_diagnose</span>(</span>
-<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a>  <span class="at">data =</span> castle, <span class="at">y =</span> <span class="st">&quot;lhomicide&quot;</span>, <span class="at">ivar =</span> <span class="st">&quot;sid&quot;</span>,</span>
-<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a>  <span class="at">tvar =</span> <span class="st">&quot;year&quot;</span>, <span class="at">gvar =</span> <span class="st">&quot;gvar&quot;</span></span>
-<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a>))</span>
-<span id="cb11-5"><a href="#cb11-5" tabindex="-1"></a><span class="fu">summary</span>(diag)</span>
-<span id="cb11-6"><a href="#cb11-6" tabindex="-1"></a><span class="co">#&gt; Diagnostics suite summary</span></span>
-<span id="cb11-7"><a href="#cb11-7" tabindex="-1"></a><span class="co">#&gt; ================================================== </span></span>
-<span id="cb11-8"><a href="#cb11-8" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb11-9"><a href="#cb11-9" tabindex="-1"></a><span class="co">#&gt; Selection diagnostics</span></span>
-<span id="cb11-10"><a href="#cb11-10" tabindex="-1"></a><span class="co">#&gt; --------------------</span></span>
-<span id="cb11-11"><a href="#cb11-11" tabindex="-1"></a><span class="co">#&gt; ============================================================ </span></span>
-<span id="cb11-12"><a href="#cb11-12" tabindex="-1"></a><span class="co">#&gt; Selection Mechanism Diagnostics</span></span>
-<span id="cb11-13"><a href="#cb11-13" tabindex="-1"></a><span class="co">#&gt; ============================================================ </span></span>
-<span id="cb11-14"><a href="#cb11-14" tabindex="-1"></a><span class="co">#&gt; Pattern: MCAR (confidence 100%)</span></span>
-<span id="cb11-15"><a href="#cb11-15" tabindex="-1"></a><span class="co">#&gt; Overall Missing Rate: 0.0%</span></span>
-<span id="cb11-16"><a href="#cb11-16" tabindex="-1"></a><span class="co">#&gt; Selection Risk: Low</span></span>
-<span id="cb11-17"><a href="#cb11-17" tabindex="-1"></a><span class="co">#&gt; Attrition Rate: 0.0%</span></span>
-<span id="cb11-18"><a href="#cb11-18" tabindex="-1"></a><span class="co">#&gt; Demean usable: 100.0% of treated units</span></span>
-<span id="cb11-19"><a href="#cb11-19" tabindex="-1"></a><span class="co">#&gt; Detrend usable: 100.0% of treated units</span></span>
-<span id="cb11-20"><a href="#cb11-20" tabindex="-1"></a><span class="co">#&gt; Selection Risk Score: 0</span></span>
-<span id="cb11-21"><a href="#cb11-21" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb11-22"><a href="#cb11-22" tabindex="-1"></a><span class="co">#&gt; Factor Contributions:</span></span>
-<span id="cb11-23"><a href="#cb11-23" tabindex="-1"></a><span class="co">#&gt;   Missing pattern: 0</span></span>
-<span id="cb11-24"><a href="#cb11-24" tabindex="-1"></a><span class="co">#&gt;   Attrition: 0</span></span>
-<span id="cb11-25"><a href="#cb11-25" tabindex="-1"></a><span class="co">#&gt;   Differential attrition: 0</span></span>
-<span id="cb11-26"><a href="#cb11-26" tabindex="-1"></a><span class="co">#&gt;   Balance: 0</span></span>
-<span id="cb11-27"><a href="#cb11-27" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb11-28"><a href="#cb11-28" tabindex="-1"></a><span class="co">#&gt; Recommendations:</span></span>
-<span id="cb11-29"><a href="#cb11-29" tabindex="-1"></a><span class="co">#&gt;   - Selection risk is low. Proceed with estimation. The selection mechanism assumption appears reasonable.</span></span>
-<span id="cb11-30"><a href="#cb11-30" tabindex="-1"></a><span class="co">#&gt; ============================================================ </span></span>
-<span id="cb11-31"><a href="#cb11-31" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb11-32"><a href="#cb11-32" tabindex="-1"></a><span class="co">#&gt; Trend diagnostics</span></span>
-<span id="cb11-33"><a href="#cb11-33" tabindex="-1"></a><span class="co">#&gt; --------------------</span></span>
-<span id="cb11-34"><a href="#cb11-34" tabindex="-1"></a><span class="co">#&gt; Transformation Recommendation</span></span>
-<span id="cb11-35"><a href="#cb11-35" tabindex="-1"></a><span class="co">#&gt;   Recommended method: demeanq</span></span>
-<span id="cb11-36"><a href="#cb11-36" tabindex="-1"></a><span class="co">#&gt;   Confidence: 0.6562 (Medium)</span></span>
-<span id="cb11-37"><a href="#cb11-37" tabindex="-1"></a><span class="co">#&gt;   Pre-treatment periods: min=5, max=9</span></span>
-<span id="cb11-38"><a href="#cb11-38" tabindex="-1"></a><span class="co">#&gt;   Scores: demeanq=0.6562, detrendq=0.3438</span></span>
-<span id="cb11-39"><a href="#cb11-39" tabindex="-1"></a><span class="co">#&gt;   Alternative: detrendq</span></span>
-<span id="cb11-40"><a href="#cb11-40" tabindex="-1"></a><span class="co">#&gt;   Warnings:</span></span>
-<span id="cb11-41"><a href="#cb11-41" tabindex="-1"></a><span class="co">#&gt;     - Heterogeneous trends diagnosis failed: invalid first argument</span></span>
-<span id="cb11-42"><a href="#cb11-42" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb11-43"><a href="#cb11-43" tabindex="-1"></a><span class="co">#&gt; Clustering diagnostics</span></span>
-<span id="cb11-44"><a href="#cb11-44" tabindex="-1"></a><span class="co">#&gt; --------------------</span></span>
-<span id="cb11-45"><a href="#cb11-45" tabindex="-1"></a><span class="co">#&gt; Not run</span></span></code></pre></div>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a>diag <span class="ot">&lt;-</span> <span class="fu">suppressWarnings</span>(<span class="fu">lwdid_diagnose</span>(</span>
+<span id="cb14-2"><a href="#cb14-2" tabindex="-1"></a>  <span class="at">data =</span> castle, <span class="at">y =</span> <span class="st">&quot;lhomicide&quot;</span>, <span class="at">ivar =</span> <span class="st">&quot;sid&quot;</span>,</span>
+<span id="cb14-3"><a href="#cb14-3" tabindex="-1"></a>  <span class="at">tvar =</span> <span class="st">&quot;year&quot;</span>, <span class="at">gvar =</span> <span class="st">&quot;gvar&quot;</span></span>
+<span id="cb14-4"><a href="#cb14-4" tabindex="-1"></a>))</span>
+<span id="cb14-5"><a href="#cb14-5" tabindex="-1"></a><span class="fu">summary</span>(diag)</span>
+<span id="cb14-6"><a href="#cb14-6" tabindex="-1"></a><span class="co">#&gt; Diagnostics suite summary</span></span>
+<span id="cb14-7"><a href="#cb14-7" tabindex="-1"></a><span class="co">#&gt; ================================================== </span></span>
+<span id="cb14-8"><a href="#cb14-8" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb14-9"><a href="#cb14-9" tabindex="-1"></a><span class="co">#&gt; Selection diagnostics</span></span>
+<span id="cb14-10"><a href="#cb14-10" tabindex="-1"></a><span class="co">#&gt; --------------------</span></span>
+<span id="cb14-11"><a href="#cb14-11" tabindex="-1"></a><span class="co">#&gt; ============================================================ </span></span>
+<span id="cb14-12"><a href="#cb14-12" tabindex="-1"></a><span class="co">#&gt; Selection Mechanism Diagnostics</span></span>
+<span id="cb14-13"><a href="#cb14-13" tabindex="-1"></a><span class="co">#&gt; ============================================================ </span></span>
+<span id="cb14-14"><a href="#cb14-14" tabindex="-1"></a><span class="co">#&gt; Pattern: MCAR (confidence 100%)</span></span>
+<span id="cb14-15"><a href="#cb14-15" tabindex="-1"></a><span class="co">#&gt; Overall Missing Rate: 0.0%</span></span>
+<span id="cb14-16"><a href="#cb14-16" tabindex="-1"></a><span class="co">#&gt; Selection Risk: Low</span></span>
+<span id="cb14-17"><a href="#cb14-17" tabindex="-1"></a><span class="co">#&gt; Attrition Rate: 0.0%</span></span>
+<span id="cb14-18"><a href="#cb14-18" tabindex="-1"></a><span class="co">#&gt; Demean usable: 100.0% of treated units</span></span>
+<span id="cb14-19"><a href="#cb14-19" tabindex="-1"></a><span class="co">#&gt; Detrend usable: 100.0% of treated units</span></span>
+<span id="cb14-20"><a href="#cb14-20" tabindex="-1"></a><span class="co">#&gt; Selection Risk Score: 0</span></span>
+<span id="cb14-21"><a href="#cb14-21" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb14-22"><a href="#cb14-22" tabindex="-1"></a><span class="co">#&gt; Factor Contributions:</span></span>
+<span id="cb14-23"><a href="#cb14-23" tabindex="-1"></a><span class="co">#&gt;   Missing pattern: 0</span></span>
+<span id="cb14-24"><a href="#cb14-24" tabindex="-1"></a><span class="co">#&gt;   Attrition: 0</span></span>
+<span id="cb14-25"><a href="#cb14-25" tabindex="-1"></a><span class="co">#&gt;   Differential attrition: 0</span></span>
+<span id="cb14-26"><a href="#cb14-26" tabindex="-1"></a><span class="co">#&gt;   Balance: 0</span></span>
+<span id="cb14-27"><a href="#cb14-27" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb14-28"><a href="#cb14-28" tabindex="-1"></a><span class="co">#&gt; Recommendations:</span></span>
+<span id="cb14-29"><a href="#cb14-29" tabindex="-1"></a><span class="co">#&gt;   - Selection risk is low. Proceed with estimation. The selection mechanism assumption appears reasonable.</span></span>
+<span id="cb14-30"><a href="#cb14-30" tabindex="-1"></a><span class="co">#&gt; ============================================================ </span></span>
+<span id="cb14-31"><a href="#cb14-31" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb14-32"><a href="#cb14-32" tabindex="-1"></a><span class="co">#&gt; Trend diagnostics</span></span>
+<span id="cb14-33"><a href="#cb14-33" tabindex="-1"></a><span class="co">#&gt; --------------------</span></span>
+<span id="cb14-34"><a href="#cb14-34" tabindex="-1"></a><span class="co">#&gt; Transformation Recommendation</span></span>
+<span id="cb14-35"><a href="#cb14-35" tabindex="-1"></a><span class="co">#&gt;   Recommended method: demeanq</span></span>
+<span id="cb14-36"><a href="#cb14-36" tabindex="-1"></a><span class="co">#&gt;   Confidence: 0.6562 (Medium)</span></span>
+<span id="cb14-37"><a href="#cb14-37" tabindex="-1"></a><span class="co">#&gt;   Pre-treatment periods: min=5, max=9</span></span>
+<span id="cb14-38"><a href="#cb14-38" tabindex="-1"></a><span class="co">#&gt;   Scores: demeanq=0.6562, detrendq=0.3438</span></span>
+<span id="cb14-39"><a href="#cb14-39" tabindex="-1"></a><span class="co">#&gt;   Alternative: detrendq</span></span>
+<span id="cb14-40"><a href="#cb14-40" tabindex="-1"></a><span class="co">#&gt;   Warnings:</span></span>
+<span id="cb14-41"><a href="#cb14-41" tabindex="-1"></a><span class="co">#&gt;     - Heterogeneous trends diagnosis failed: 第一个参数无效</span></span>
+<span id="cb14-42"><a href="#cb14-42" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb14-43"><a href="#cb14-43" tabindex="-1"></a><span class="co">#&gt; Clustering diagnostics</span></span>
+<span id="cb14-44"><a href="#cb14-44" tabindex="-1"></a><span class="co">#&gt; --------------------</span></span>
+<span id="cb14-45"><a href="#cb14-45" tabindex="-1"></a><span class="co">#&gt; Not run</span></span></code></pre></div>
 </div>
 </div>
 <div id="data-preprocessing" class="section level2">
 <h2>Data Preprocessing</h2>
 <p><code>aggregate_to_panel()</code> collapses micro-level data to panel
 format:</p>
-<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a>agg_result <span class="ot">&lt;-</span> <span class="fu">aggregate_to_panel</span>(</span>
-<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a>  <span class="at">data =</span> survey_data,</span>
-<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a>  <span class="at">unit_var =</span> <span class="st">&quot;state&quot;</span>,</span>
-<span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a>  <span class="at">time_var =</span> <span class="st">&quot;year&quot;</span>,</span>
-<span id="cb12-5"><a href="#cb12-5" tabindex="-1"></a>  <span class="at">outcome_var =</span> <span class="st">&quot;income&quot;</span>,</span>
-<span id="cb12-6"><a href="#cb12-6" tabindex="-1"></a>  <span class="at">weight_var =</span> <span class="st">&quot;survey_weight&quot;</span>,</span>
-<span id="cb12-7"><a href="#cb12-7" tabindex="-1"></a>  <span class="at">treatment_var =</span> <span class="st">&quot;treated&quot;</span>,</span>
-<span id="cb12-8"><a href="#cb12-8" tabindex="-1"></a>  <span class="at">min_cell_size =</span> <span class="dv">30</span></span>
-<span id="cb12-9"><a href="#cb12-9" tabindex="-1"></a>)</span>
-<span id="cb12-10"><a href="#cb12-10" tabindex="-1"></a>panel <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(agg_result)</span></code></pre></div>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a>agg_result <span class="ot">&lt;-</span> <span class="fu">aggregate_to_panel</span>(</span>
+<span id="cb15-2"><a href="#cb15-2" tabindex="-1"></a>  <span class="at">data =</span> survey_data,</span>
+<span id="cb15-3"><a href="#cb15-3" tabindex="-1"></a>  <span class="at">unit_var =</span> <span class="st">&quot;state&quot;</span>,</span>
+<span id="cb15-4"><a href="#cb15-4" tabindex="-1"></a>  <span class="at">time_var =</span> <span class="st">&quot;year&quot;</span>,</span>
+<span id="cb15-5"><a href="#cb15-5" tabindex="-1"></a>  <span class="at">outcome_var =</span> <span class="st">&quot;income&quot;</span>,</span>
+<span id="cb15-6"><a href="#cb15-6" tabindex="-1"></a>  <span class="at">weight_var =</span> <span class="st">&quot;survey_weight&quot;</span>,</span>
+<span id="cb15-7"><a href="#cb15-7" tabindex="-1"></a>  <span class="at">treatment_var =</span> <span class="st">&quot;treated&quot;</span>,</span>
+<span id="cb15-8"><a href="#cb15-8" tabindex="-1"></a>  <span class="at">min_cell_size =</span> <span class="dv">30</span></span>
+<span id="cb15-9"><a href="#cb15-9" tabindex="-1"></a>)</span>
+<span id="cb15-10"><a href="#cb15-10" tabindex="-1"></a>panel <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(agg_result)</span></code></pre></div>
 </div>
 <div id="wild-cluster-bootstrap" class="section level2">
 <h2>Wild Cluster Bootstrap</h2>
 <p>For inference with few clusters, use <code>vce = &quot;bootstrap&quot;</code>
 with a <code>cluster_var</code>:</p>
-<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a>result_wcb <span class="ot">&lt;-</span> <span class="fu">lwdid</span>(</span>
-<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a>  <span class="at">data =</span> smoking, <span class="at">y =</span> <span class="st">&quot;lcigsale&quot;</span>, <span class="at">ivar =</span> <span class="st">&quot;state&quot;</span>, <span class="at">tvar =</span> <span class="st">&quot;year&quot;</span>,</span>
-<span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a>  <span class="at">d =</span> <span class="st">&quot;d&quot;</span>, <span class="at">post =</span> <span class="st">&quot;post&quot;</span>, <span class="at">rolling =</span> <span class="st">&quot;demean&quot;</span>,</span>
-<span id="cb13-4"><a href="#cb13-4" tabindex="-1"></a>  <span class="at">vce =</span> <span class="st">&quot;bootstrap&quot;</span>, <span class="at">cluster_var =</span> <span class="st">&quot;state&quot;</span>,</span>
-<span id="cb13-5"><a href="#cb13-5" tabindex="-1"></a>  <span class="at">wcb_reps =</span> <span class="dv">999</span></span>
-<span id="cb13-6"><a href="#cb13-6" tabindex="-1"></a>)</span>
-<span id="cb13-7"><a href="#cb13-7" tabindex="-1"></a><span class="fu">summary</span>(result_wcb)</span></code></pre></div>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" tabindex="-1"></a>result_wcb <span class="ot">&lt;-</span> <span class="fu">lwdid</span>(</span>
+<span id="cb16-2"><a href="#cb16-2" tabindex="-1"></a>  <span class="at">data =</span> smoking, <span class="at">y =</span> <span class="st">&quot;lcigsale&quot;</span>, <span class="at">ivar =</span> <span class="st">&quot;state&quot;</span>, <span class="at">tvar =</span> <span class="st">&quot;year&quot;</span>,</span>
+<span id="cb16-3"><a href="#cb16-3" tabindex="-1"></a>  <span class="at">d =</span> <span class="st">&quot;d&quot;</span>, <span class="at">post =</span> <span class="st">&quot;post&quot;</span>, <span class="at">rolling =</span> <span class="st">&quot;demean&quot;</span>,</span>
+<span id="cb16-4"><a href="#cb16-4" tabindex="-1"></a>  <span class="at">vce =</span> <span class="st">&quot;bootstrap&quot;</span>, <span class="at">cluster_var =</span> <span class="st">&quot;state&quot;</span>,</span>
+<span id="cb16-5"><a href="#cb16-5" tabindex="-1"></a>  <span class="at">wcb_reps =</span> <span class="dv">999</span>, <span class="at">wcb_seed =</span> <span class="dv">42</span>,</span>
+<span id="cb16-6"><a href="#cb16-6" tabindex="-1"></a>  <span class="at">use_fwildclusterboot =</span> <span class="cn">FALSE</span></span>
+<span id="cb16-7"><a href="#cb16-7" tabindex="-1"></a>)</span>
+<span id="cb16-8"><a href="#cb16-8" tabindex="-1"></a><span class="fu">summary</span>(result_wcb)</span></code></pre></div>
+<p>WCB output reports both requested and actual bootstrap draws. With
+Rademacher weights and at most 12 clusters, <code>lwdid</code> uses full
+sign-pattern enumeration, so the actual draw count can differ from
+<code>wcb_reps</code>.</p>
 <p>When <code>vce = &quot;cluster&quot;</code> is specified and the number of
 clusters is below 20, lwdid automatically upgrades to the Wild Cluster
 Bootstrap (<code>auto_wcb = TRUE</code> by default).</p>
 </div>
 <div id="randomization-inference" class="section level2">
 <h2>Randomization Inference</h2>
-<p>Exact p-values without distributional assumptions:</p>
-<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a>result_ri <span class="ot">&lt;-</span> <span class="fu">lwdid</span>(</span>
-<span id="cb14-2"><a href="#cb14-2" tabindex="-1"></a>  <span class="at">data =</span> smoking, <span class="at">y =</span> <span class="st">&quot;lcigsale&quot;</span>, <span class="at">ivar =</span> <span class="st">&quot;state&quot;</span>, <span class="at">tvar =</span> <span class="st">&quot;year&quot;</span>,</span>
-<span id="cb14-3"><a href="#cb14-3" tabindex="-1"></a>  <span class="at">d =</span> <span class="st">&quot;d&quot;</span>, <span class="at">post =</span> <span class="st">&quot;post&quot;</span>, <span class="at">ri =</span> <span class="cn">TRUE</span>, <span class="at">rireps =</span> <span class="dv">500</span></span>
-<span id="cb14-4"><a href="#cb14-4" tabindex="-1"></a>)</span>
-<span id="cb14-5"><a href="#cb14-5" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;RI p-value:&quot;</span>, result_ri<span class="sc">$</span>ri_pvalue, <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>)</span></code></pre></div>
+<p>Randomization-based p-values without asymptotic normality:</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" tabindex="-1"></a>result_ri <span class="ot">&lt;-</span> <span class="fu">lwdid</span>(</span>
+<span id="cb17-2"><a href="#cb17-2" tabindex="-1"></a>  <span class="at">data =</span> smoking, <span class="at">y =</span> <span class="st">&quot;lcigsale&quot;</span>, <span class="at">ivar =</span> <span class="st">&quot;state&quot;</span>, <span class="at">tvar =</span> <span class="st">&quot;year&quot;</span>,</span>
+<span id="cb17-3"><a href="#cb17-3" tabindex="-1"></a>  <span class="at">d =</span> <span class="st">&quot;d&quot;</span>, <span class="at">post =</span> <span class="st">&quot;post&quot;</span>, <span class="at">ri =</span> <span class="cn">TRUE</span>, <span class="at">ri_method =</span> <span class="st">&quot;permutation&quot;</span>,</span>
+<span id="cb17-4"><a href="#cb17-4" tabindex="-1"></a>  <span class="at">rireps =</span> <span class="dv">500</span>, <span class="at">seed =</span> <span class="dv">42</span></span>
+<span id="cb17-5"><a href="#cb17-5" tabindex="-1"></a>)</span>
+<span id="cb17-6"><a href="#cb17-6" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;RI p-value:&quot;</span>, result_ri<span class="sc">$</span>ri_pvalue, <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>)</span></code></pre></div>
+<p>RI output includes <code>ri_observed_stat</code>, the observed
+statistic used for the randomization tail comparison. In common-timing
+designs it is the top-level ATT. In staggered designs,
+<code>ri_target</code> records the target:
+<code>aggregate = &quot;overall&quot;</code> uses the overall ATT,
+<code>aggregate = &quot;cohort&quot;</code> uses the selected cohort ATT, and
+<code>aggregate = &quot;none&quot;</code> uses the first finite cohort-time
+ATT.</p>
 </div>
 <div id="parallel-computation" class="section level2">
 <h2>Parallel Computation</h2>
 <p>Enable parallel processing for staggered designs:</p>
-<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a>result_par <span class="ot">&lt;-</span> <span class="fu">lwdid</span>(</span>
-<span id="cb15-2"><a href="#cb15-2" tabindex="-1"></a>  <span class="at">data =</span> castle, <span class="at">y =</span> <span class="st">&quot;lhomicide&quot;</span>, <span class="at">ivar =</span> <span class="st">&quot;sid&quot;</span>, <span class="at">tvar =</span> <span class="st">&quot;year&quot;</span>,</span>
-<span id="cb15-3"><a href="#cb15-3" tabindex="-1"></a>  <span class="at">gvar =</span> <span class="st">&quot;gvar&quot;</span>, <span class="at">rolling =</span> <span class="st">&quot;demean&quot;</span>, <span class="at">aggregate =</span> <span class="st">&quot;cohort&quot;</span>,</span>
-<span id="cb15-4"><a href="#cb15-4" tabindex="-1"></a>  <span class="at">parallel =</span> <span class="cn">TRUE</span>, <span class="at">n_cores =</span> <span class="dv">4</span></span>
-<span id="cb15-5"><a href="#cb15-5" tabindex="-1"></a>)</span></code></pre></div>
+<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" tabindex="-1"></a>result_par <span class="ot">&lt;-</span> <span class="fu">lwdid</span>(</span>
+<span id="cb18-2"><a href="#cb18-2" tabindex="-1"></a>  <span class="at">data =</span> castle, <span class="at">y =</span> <span class="st">&quot;lhomicide&quot;</span>, <span class="at">ivar =</span> <span class="st">&quot;sid&quot;</span>, <span class="at">tvar =</span> <span class="st">&quot;year&quot;</span>,</span>
+<span id="cb18-3"><a href="#cb18-3" tabindex="-1"></a>  <span class="at">gvar =</span> <span class="st">&quot;gvar&quot;</span>, <span class="at">rolling =</span> <span class="st">&quot;demean&quot;</span>, <span class="at">aggregate =</span> <span class="st">&quot;cohort&quot;</span>,</span>
+<span id="cb18-4"><a href="#cb18-4" tabindex="-1"></a>  <span class="at">control_group =</span> <span class="st">&quot;never_treated&quot;</span>, <span class="at">parallel =</span> <span class="cn">TRUE</span>, <span class="at">n_cores =</span> <span class="dv">4</span></span>
+<span id="cb18-5"><a href="#cb18-5" tabindex="-1"></a>)</span></code></pre></div>
 <p>Or configure the parallel backend explicitly:</p>
-<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" tabindex="-1"></a><span class="fu">setup_parallel</span>(<span class="at">n_workers =</span> <span class="dv">4</span>, <span class="at">strategy =</span> <span class="st">&quot;multisession&quot;</span>)</span>
-<span id="cb16-2"><a href="#cb16-2" tabindex="-1"></a><span class="co"># All subsequent lwdid() calls use parallel backend</span></span>
-<span id="cb16-3"><a href="#cb16-3" tabindex="-1"></a>result <span class="ot">&lt;-</span> <span class="fu">lwdid</span>(...)</span>
-<span id="cb16-4"><a href="#cb16-4" tabindex="-1"></a><span class="co"># Reset when done</span></span>
-<span id="cb16-5"><a href="#cb16-5" tabindex="-1"></a><span class="fu">setup_parallel</span>(<span class="at">strategy =</span> <span class="st">&quot;sequential&quot;</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" tabindex="-1"></a><span class="fu">setup_parallel</span>(<span class="at">n_workers =</span> <span class="dv">4</span>, <span class="at">strategy =</span> <span class="st">&quot;multisession&quot;</span>)</span>
+<span id="cb19-2"><a href="#cb19-2" tabindex="-1"></a><span class="co"># All subsequent lwdid() calls use parallel backend</span></span>
+<span id="cb19-3"><a href="#cb19-3" tabindex="-1"></a>result <span class="ot">&lt;-</span> <span class="fu">lwdid</span>(...)</span>
+<span id="cb19-4"><a href="#cb19-4" tabindex="-1"></a><span class="co"># Reset when done</span></span>
+<span id="cb19-5"><a href="#cb19-5" tabindex="-1"></a><span class="fu">setup_parallel</span>(<span class="at">strategy =</span> <span class="st">&quot;sequential&quot;</span>)</span></code></pre></div>
+</div>
+<div id="integration-with-broom-and-modelsummary" class="section level2">
+<h2>Integration with Broom and modelsummary</h2>
+<p>lwdid provides <code>tidy()</code> and <code>glance()</code> S3
+methods (compatible with the <strong>broom</strong> package interface),
+as well as fixest-style accessor functions. These enable seamless
+integration with <strong>modelsummary</strong> and other tidyverse
+workflows.</p>
+<div id="tidy-tidy-coefficient-tables" class="section level3">
+<h3>tidy(): Tidy Coefficient Tables</h3>
+<p>The <code>tidy()</code> method extracts results in a standardized
+data.frame format. The <code>type</code> argument selects which
+estimates to report:</p>
+<div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" tabindex="-1"></a><span class="fu">library</span>(lwdid)</span>
+<span id="cb20-2"><a href="#cb20-2" tabindex="-1"></a>result <span class="ot">&lt;-</span> <span class="fu">lwdid</span>(<span class="at">data =</span> castle, <span class="at">y =</span> <span class="st">&quot;lhomicide&quot;</span>, <span class="at">ivar =</span> <span class="st">&quot;sid&quot;</span>, <span class="at">tvar =</span> <span class="st">&quot;year&quot;</span>,</span>
+<span id="cb20-3"><a href="#cb20-3" tabindex="-1"></a>                <span class="at">gvar =</span> <span class="st">&quot;gvar&quot;</span>, <span class="at">rolling =</span> <span class="st">&quot;demean&quot;</span>, <span class="at">estimator =</span> <span class="st">&quot;ra&quot;</span>,</span>
+<span id="cb20-4"><a href="#cb20-4" tabindex="-1"></a>                <span class="at">aggregate =</span> <span class="st">&quot;overall&quot;</span>)</span>
+<span id="cb20-5"><a href="#cb20-5" tabindex="-1"></a></span>
+<span id="cb20-6"><a href="#cb20-6" tabindex="-1"></a><span class="co"># Overall ATT (default)</span></span>
+<span id="cb20-7"><a href="#cb20-7" tabindex="-1"></a><span class="co"># Returns: data.frame with columns term, estimate, std.error, statistic,</span></span>
+<span id="cb20-8"><a href="#cb20-8" tabindex="-1"></a><span class="co">#          p.value, conf.low, conf.high</span></span>
+<span id="cb20-9"><a href="#cb20-9" tabindex="-1"></a><span class="fu">tidy</span>(result)</span>
+<span id="cb20-10"><a href="#cb20-10" tabindex="-1"></a></span>
+<span id="cb20-11"><a href="#cb20-11" tabindex="-1"></a><span class="co"># Cohort-level effects</span></span>
+<span id="cb20-12"><a href="#cb20-12" tabindex="-1"></a><span class="co"># Returns one row per cohort with cohort-specific ATT</span></span>
+<span id="cb20-13"><a href="#cb20-13" tabindex="-1"></a><span class="fu">tidy</span>(result, <span class="at">type =</span> <span class="st">&quot;effects&quot;</span>)</span>
+<span id="cb20-14"><a href="#cb20-14" tabindex="-1"></a></span>
+<span id="cb20-15"><a href="#cb20-15" tabindex="-1"></a><span class="co"># Event-time aggregation</span></span>
+<span id="cb20-16"><a href="#cb20-16" tabindex="-1"></a><span class="co"># Returns one row per relative event-time period</span></span>
+<span id="cb20-17"><a href="#cb20-17" tabindex="-1"></a><span class="fu">tidy</span>(result, <span class="at">type =</span> <span class="st">&quot;event_time&quot;</span>)</span></code></pre></div>
+</div>
+<div id="glance-model-level-statistics" class="section level3">
+<h3>glance(): Model-Level Statistics</h3>
+<p><code>glance()</code> returns a one-row data.frame of model-level
+summary statistics:</p>
+<div class="sourceCode" id="cb21"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" tabindex="-1"></a><span class="co"># Returns: nobs, n_treated, n_control, n_cohorts, n_periods,</span></span>
+<span id="cb21-2"><a href="#cb21-2" tabindex="-1"></a><span class="co">#          estimator, transformation, vce_type, r.squared (if applicable)</span></span>
+<span id="cb21-3"><a href="#cb21-3" tabindex="-1"></a><span class="fu">glance</span>(result)</span></code></pre></div>
+</div>
+<div id="fixest-style-accessors" class="section level3">
+<h3>Fixest-Style Accessors</h3>
+<p>For users familiar with the <strong>fixest</strong> package
+interface:</p>
+<div class="sourceCode" id="cb22"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" tabindex="-1"></a><span class="co"># Standard errors</span></span>
+<span id="cb22-2"><a href="#cb22-2" tabindex="-1"></a><span class="fu">se</span>(result)</span>
+<span id="cb22-3"><a href="#cb22-3" tabindex="-1"></a></span>
+<span id="cb22-4"><a href="#cb22-4" tabindex="-1"></a><span class="co"># t-statistics</span></span>
+<span id="cb22-5"><a href="#cb22-5" tabindex="-1"></a><span class="fu">tstat</span>(result)</span>
+<span id="cb22-6"><a href="#cb22-6" tabindex="-1"></a></span>
+<span id="cb22-7"><a href="#cb22-7" tabindex="-1"></a><span class="co"># p-values</span></span>
+<span id="cb22-8"><a href="#cb22-8" tabindex="-1"></a><span class="fu">pvalue</span>(result)</span>
+<span id="cb22-9"><a href="#cb22-9" tabindex="-1"></a></span>
+<span id="cb22-10"><a href="#cb22-10" tabindex="-1"></a><span class="co"># Full coefficient table (estimate, se, t-stat, p-value)</span></span>
+<span id="cb22-11"><a href="#cb22-11" tabindex="-1"></a><span class="fu">coeftable</span>(result)</span></code></pre></div>
+</div>
+<div id="modelsummary-integration" class="section level3">
+<h3>modelsummary Integration</h3>
+<p>With <strong>modelsummary</strong> installed, lwdid results can be
+directly passed to <code>modelsummary()</code> for publication-quality
+tables:</p>
+<div class="sourceCode" id="cb23"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" tabindex="-1"></a><span class="fu">library</span>(modelsummary)</span>
+<span id="cb23-2"><a href="#cb23-2" tabindex="-1"></a></span>
+<span id="cb23-3"><a href="#cb23-3" tabindex="-1"></a><span class="co"># Compare multiple specifications in one table</span></span>
+<span id="cb23-4"><a href="#cb23-4" tabindex="-1"></a>res_ra <span class="ot">&lt;-</span> <span class="fu">lwdid</span>(<span class="at">data =</span> castle, <span class="at">y =</span> <span class="st">&quot;lhomicide&quot;</span>, <span class="at">ivar =</span> <span class="st">&quot;sid&quot;</span>, <span class="at">tvar =</span> <span class="st">&quot;year&quot;</span>,</span>
+<span id="cb23-5"><a href="#cb23-5" tabindex="-1"></a>                <span class="at">gvar =</span> <span class="st">&quot;gvar&quot;</span>, <span class="at">rolling =</span> <span class="st">&quot;demean&quot;</span>, <span class="at">estimator =</span> <span class="st">&quot;ra&quot;</span>,</span>
+<span id="cb23-6"><a href="#cb23-6" tabindex="-1"></a>                <span class="at">aggregate =</span> <span class="st">&quot;overall&quot;</span>)</span>
+<span id="cb23-7"><a href="#cb23-7" tabindex="-1"></a>res_ipwra <span class="ot">&lt;-</span> <span class="fu">lwdid</span>(<span class="at">data =</span> castle, <span class="at">y =</span> <span class="st">&quot;lhomicide&quot;</span>, <span class="at">ivar =</span> <span class="st">&quot;sid&quot;</span>, <span class="at">tvar =</span> <span class="st">&quot;year&quot;</span>,</span>
+<span id="cb23-8"><a href="#cb23-8" tabindex="-1"></a>                   <span class="at">gvar =</span> <span class="st">&quot;gvar&quot;</span>, <span class="at">rolling =</span> <span class="st">&quot;demean&quot;</span>, <span class="at">estimator =</span> <span class="st">&quot;ipwra&quot;</span>,</span>
+<span id="cb23-9"><a href="#cb23-9" tabindex="-1"></a>                   <span class="at">controls =</span> <span class="fu">c</span>(<span class="st">&quot;police&quot;</span>, <span class="st">&quot;income&quot;</span>, <span class="st">&quot;poverty&quot;</span>),</span>
+<span id="cb23-10"><a href="#cb23-10" tabindex="-1"></a>                   <span class="at">ps_controls =</span> <span class="fu">c</span>(<span class="st">&quot;police&quot;</span>, <span class="st">&quot;income&quot;</span>, <span class="st">&quot;poverty&quot;</span>),</span>
+<span id="cb23-11"><a href="#cb23-11" tabindex="-1"></a>                   <span class="at">aggregate =</span> <span class="st">&quot;overall&quot;</span>)</span>
+<span id="cb23-12"><a href="#cb23-12" tabindex="-1"></a></span>
+<span id="cb23-13"><a href="#cb23-13" tabindex="-1"></a><span class="co"># Produces a formatted comparison table with estimates, SEs, and fit stats</span></span>
+<span id="cb23-14"><a href="#cb23-14" tabindex="-1"></a><span class="fu">modelsummary</span>(<span class="fu">list</span>(<span class="at">RA =</span> res_ra, <span class="at">IPWRA =</span> res_ipwra))</span>
+<span id="cb23-15"><a href="#cb23-15" tabindex="-1"></a></span>
+<span id="cb23-16"><a href="#cb23-16" tabindex="-1"></a><span class="co"># Export to LaTeX or Word</span></span>
+<span id="cb23-17"><a href="#cb23-17" tabindex="-1"></a><span class="fu">modelsummary</span>(<span class="fu">list</span>(<span class="at">RA =</span> res_ra, <span class="at">IPWRA =</span> res_ipwra),</span>
+<span id="cb23-18"><a href="#cb23-18" tabindex="-1"></a>             <span class="at">output =</span> <span class="st">&quot;results.tex&quot;</span>)</span>
+<span id="cb23-19"><a href="#cb23-19" tabindex="-1"></a><span class="fu">modelsummary</span>(<span class="fu">list</span>(<span class="at">RA =</span> res_ra, <span class="at">IPWRA =</span> res_ipwra),</span>
+<span id="cb23-20"><a href="#cb23-20" tabindex="-1"></a>             <span class="at">output =</span> <span class="st">&quot;results.docx&quot;</span>)</span></code></pre></div>
+</div>
 </div>
 <div id="exporting-results" class="section level2">
 <h2>Exporting Results</h2>
-<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" tabindex="-1"></a><span class="fu">to_latex</span>(res_dm, <span class="at">file =</span> <span class="st">&quot;results_table.tex&quot;</span>)</span>
-<span id="cb17-2"><a href="#cb17-2" tabindex="-1"></a><span class="fu">to_csv</span>(res_dm, <span class="at">file =</span> <span class="st">&quot;results.csv&quot;</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb24"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" tabindex="-1"></a><span class="fu">to_latex</span>(res_dm, <span class="at">file =</span> <span class="st">&quot;results_table.tex&quot;</span>)</span>
+<span id="cb24-2"><a href="#cb24-2" tabindex="-1"></a><span class="fu">to_csv</span>(res_dm, <span class="at">file =</span> <span class="st">&quot;results.csv&quot;</span>)</span></code></pre></div>
 </div>
 <div id="references" class="section level2">
 <h2>References</h2>

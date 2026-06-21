@@ -19,6 +19,22 @@ make_hc_test_data <- function(n = 30, seed = 42) {
   data.frame(y = y, D = d, x = x)
 }
 
+capture_warnings <- function(expr) {
+  warnings_caught <- list()
+  result <- withCallingHandlers(
+    expr,
+    warning = function(w) {
+      warnings_caught[[length(warnings_caught) + 1L]] <<- w
+      invokeRestart("muffleWarning")
+    }
+  )
+  list(result = result, warnings = warnings_caught)
+}
+
+has_warning_class <- function(warnings, class) {
+  any(vapply(warnings, inherits, logical(1), what = class))
+}
+
 # ============================================================================
 # Group 1: Sandwich consistency
 # ============================================================================
@@ -420,14 +436,10 @@ test_that("HC1/HC3 emit lwdid_small_sample when N_treated=1", {
   y <- 1 + 2 * d + 0.5 * x + rnorm(n)
   fit <- lm(y ~ D + x, data = data.frame(y = y, D = d, x = x))
 
-  expect_warning(
-    compute_hc_vce(fit, type = "hc1"),
-    class = "lwdid_small_sample"
-  )
-  expect_warning(
-    compute_hc_vce(fit, type = "hc3"),
-    class = "lwdid_small_sample"
-  )
+  hc1 <- capture_warnings(compute_hc_vce(fit, type = "hc1"))
+  hc3 <- capture_warnings(compute_hc_vce(fit, type = "hc3"))
+  expect_true(has_warning_class(hc1$warnings, "lwdid_small_sample"))
+  expect_true(has_warning_class(hc3$warnings, "lwdid_small_sample"))
 })
 
 test_that("HC0/HC2 do NOT emit lwdid_small_sample when N_treated=1", {
@@ -438,22 +450,14 @@ test_that("HC0/HC2 do NOT emit lwdid_small_sample when N_treated=1", {
   y <- 1 + 2 * d + 0.5 * x + rnorm(n)
   fit <- lm(y ~ D + x, data = data.frame(y = y, D = d, x = x))
 
-  # HC0 should not trigger small sample warning
-  withCallingHandlers(
-    compute_hc_vce(fit, type = "hc0"),
-    lwdid_small_sample = function(w) {
-      fail("HC0 should not emit lwdid_small_sample warning")
-    }
-  )
+  # HC0 should not trigger small sample warning.
+  hc0 <- capture_warnings(compute_hc_vce(fit, type = "hc0"))
+  expect_false(has_warning_class(hc0$warnings, "lwdid_small_sample"))
 
   # HC2 should not trigger small sample warning
   # (it may trigger lwdid_numerical for high leverage, which is fine)
-  withCallingHandlers(
-    compute_hc_vce(fit, type = "hc2"),
-    lwdid_small_sample = function(w) {
-      fail("HC2 should not emit lwdid_small_sample warning")
-    }
-  )
+  hc2 <- capture_warnings(compute_hc_vce(fit, type = "hc2"))
+  expect_false(has_warning_class(hc2$warnings, "lwdid_small_sample"))
 })
 
 test_that("HC2/HC3/HC4 emit lwdid_numerical for high leverage", {
@@ -474,9 +478,9 @@ test_that("HC2/HC3/HC4 emit lwdid_numerical for high leverage", {
   )
 
   for (hc_type in c("hc2", "hc3", "hc4")) {
-    expect_warning(
-      compute_hc_vce(fit, type = hc_type),
-      class = "lwdid_numerical",
+    captured <- capture_warnings(compute_hc_vce(fit, type = hc_type))
+    expect_true(
+      has_warning_class(captured$warnings, "lwdid_numerical"),
       label = paste(hc_type, "high leverage warning")
     )
   }

@@ -173,25 +173,26 @@
 #'   \item{state_fips}{State FIPS code (integer).}
 #'   \item{county_fips}{County FIPS code within state (integer).}
 #'   \item{year}{Calendar year (integer, 1977--1999).}
-#'   \item{retail_emp}{County-level retail employment (numeric).}
-#'   \item{nonretail_emp}{Non-retail employment (numeric).}
-#'   \item{emp1964}{Total employment in 1964 (numeric).}
-#'   \item{emp1977}{Total employment in 1977 (numeric).}
-#'   \item{any_open}{Whether any Walmart store is open (logical).}
-#'   \item{n_open}{Number of Walmart stores open (integer).}
 #'   \item{g}{Treatment cohort variable (numeric). Year of first
 #'     Walmart opening. \code{Inf} for never-treated counties.}
+#'   \item{any_open}{Whether any Walmart store is open (logical).}
+#'   \item{n_open}{Number of Walmart stores open (integer).}
 #'   \item{rel_year}{Relative year to first Walmart opening (numeric).
 #'     \code{-Inf} for never-treated counties.}
-#'   \item{log_retail_emp}{Log retail employment (numeric). Primary outcome.}
-#'   \item{log_nonretail_emp}{Log non-retail employment (numeric).}
+#'   \item{log_retail_emp}{Log one plus retail employment (numeric).
+#'     Primary outcome.}
+#'   \item{retail_emp}{County-level retail employment (numeric).}
+#'   \item{log_nonretail_emp}{Log one plus non-retail employment (numeric).}
+#'   \item{nonretail_emp}{Non-retail employment (numeric).}
+#'   \item{total_pop}{Total population, 1980 Census (integer).}
+#'   \item{retail_emp_share}{Retail employment share (numeric).}
+#'   \item{nonretail_emp_share}{Non-retail employment share (numeric).}
 #'   \item{log_wholesale_emp}{Log wholesale employment (numeric).}
 #'   \item{log_manufacturing_emp}{Log manufacturing employment (numeric).}
 #'   \item{log_construction_emp}{Log construction employment (numeric).}
-#'   \item{total_pop}{Total population, 1980 Census (numeric).}
-#'   \item{retail_emp_share}{Retail employment share (numeric).}
-#'   \item{nonretail_emp_share}{Non-retail employment share (numeric).}
 #'   \item{balanced}{Whether the county is in the balanced panel (logical).}
+#'   \item{emp1964}{Total employment in 1964 (integer).}
+#'   \item{emp1977}{Total employment in 1977 (numeric).}
 #' }
 #'
 #' @usage data(walmart)

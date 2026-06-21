@@ -10,17 +10,36 @@ extract_effects(result, type = NULL)
 \item{result}{An \code{lwdid_result} object.}
 
 \item{type}{Character or NULL. One of "gr", "cohort", "overall",
-"event_time". If NULL, auto-inferred from \code{result$aggregate}.}
+"event_time", or "event_time_contributions". If NULL, auto-inferred from
+\code{result$aggregate}.}
 }
 \value{
-A data.frame of extracted effects.
+A data.frame of extracted effects. Event-time extractions include
+\code{se_aggregation} and \code{covariance_assumption} when the fitted object
+carries those metadata. For non-RA staggered fits estimated with
+propensity diagnostics, event-time rows also carry overlap summaries such
+as \code{max_weight_cv} and \code{weighted_weight_cv}, plus event-level support
+counts such as \code{min_n_treated} and \code{min_n_control} when available.
+If \code{vcov_att_event_time} is supplied, event-time rows use its diagonal
+for uncertainty and report its covariance metadata instead of the default
+diagonal cohort-SE boundary.
+Event-time contribution extractions carry the same event-level metadata
+and any available cell-level propensity diagnostics on each cohort
+contribution row, including bootstrap replicate counts and success rates
+when the contributing non-RA cells were estimated with bootstrap standard
+errors.
 }
 \description{
 Extract effects from lwdid result as a tidy data.frame
 }
 \seealso{
 Other lwdid-results: 
+\code{\link{compare}()},
+\code{\link{glance.lwdid_result}()},
 \code{\link{lwdid_result}},
-\code{\link{new_lwdid_result}()}
+\code{\link{new_lwdid_result}()},
+\code{\link{print.lwdid_comparison}()},
+\code{\link{tidy.lwdid_result}()},
+\code{\link{tidy_glance}}
 }
 \concept{lwdid-results}

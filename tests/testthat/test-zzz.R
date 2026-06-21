@@ -97,13 +97,29 @@ test_that("lwdid.verbose user preset is not overwritten", {
 # ---- Group E: .onAttach() startup message ----------------------------------
 
 test_that(".onAttach produces startup message with version", {
+  old_val <- getOption("lwdid.verbose")
+  on.exit(options(lwdid.verbose = old_val), add = TRUE)
+  options(lwdid.verbose = "default")
+
   expect_message(
     lwdid:::.onAttach(NULL, "lwdid"),
     "lwdid .+: Lee-Wooldridge DiD Estimation"
   )
 })
 
+test_that(".onAttach is silent when lwdid.verbose is quiet", {
+  old_val <- getOption("lwdid.verbose")
+  on.exit(options(lwdid.verbose = old_val), add = TRUE)
+  options(lwdid.verbose = "quiet")
+
+  expect_no_message(lwdid:::.onAttach(NULL, "lwdid"))
+})
+
 test_that(".onAttach message can be suppressed", {
+  old_val <- getOption("lwdid.verbose")
+  on.exit(options(lwdid.verbose = old_val), add = TRUE)
+  options(lwdid.verbose = "default")
+
   expect_no_message(
     suppressPackageStartupMessages(lwdid:::.onAttach(NULL, "lwdid"))
   )

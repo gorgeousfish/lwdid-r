@@ -15,12 +15,23 @@ ri_staggered(
   target_cohort = NULL,
   target_period = NULL,
   rolling = "demean",
+  estimator = "ra",
   controls = NULL,
+  ps_controls = NULL,
   vce = NULL,
   cluster_var = NULL,
   reps = 1000L,
   seed = NULL,
   method = c("permutation", "bootstrap"),
+  trim_threshold = 0.01,
+  trim_method = "clip",
+  n_neighbors = 1L,
+  caliper = NULL,
+  caliper_scale = "sd",
+  with_replacement = TRUE,
+  match_order = "data",
+  se_method = NULL,
+  boot_reps = 200L,
   parallel = FALSE
 )
 }
@@ -50,8 +61,15 @@ ri_staggered(
 \item{rolling}{Character, panel transformation method
 (\code{"demean"} or \code{"detrend"}).}
 
-\item{controls}{Character vector or NULL, control variable
+\item{estimator}{Character, estimator used when recomputing each
+permuted sample. One of \code{"ra"}, \code{"ipw"}, \code{"ipwra"},
+or \code{"psm"}.}
+
+\item{controls}{Character vector or NULL, outcome-regression control
 names forwarded to estimation functions.}
+
+\item{ps_controls}{Character vector or NULL, propensity-score control
+names for IPW/IPWRA/PSM permutation refits.}
 
 \item{vce}{Character or NULL, variance estimation method.}
 
@@ -64,6 +82,9 @@ names forwarded to estimation functions.}
 
 \item{method}{Character, \code{"permutation"} (default) or
 \code{"bootstrap"}.}
+
+\item{trim_threshold, trim_method, n_neighbors, caliper, caliper_scale, with_replacement, match_order, se_method, boot_reps}{Estimator-specific tuning parameters forwarded when
+\code{estimator} is IPW, IPWRA, or PSM.}
 }
 \value{
 A list with 11 fields:

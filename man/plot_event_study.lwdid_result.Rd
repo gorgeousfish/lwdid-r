@@ -12,7 +12,7 @@
   facet_by_cohort = FALSE,
   color_significant = TRUE,
   ref_period = NULL,
-  aggregation = c("mean", "weighted"),
+  aggregation = c("weighted", "mean"),
   df_strategy = c("conservative", "weighted", "fallback"),
   return_data = FALSE,
   point_size = 3,
@@ -29,19 +29,26 @@
 
 \item{reference_line}{Numeric: y-value for horizontal reference line (default 0).}
 
-\item{show_pre_treatment}{Logical: include pre-treatment periods (default TRUE).}
+\item{show_pre_treatment}{Logical: include pre-treatment periods (default
+TRUE). When \code{FALSE}, the default \code{-1} visual anchor is not added.
+When \code{TRUE}, that anchor is added only if event time \code{-1} is
+absent from the plotted data. Explicit \code{is_anchor} rows supplied by
+pre-treatment output are preserved.}
 
 \item{facet_by_cohort}{Logical: facet by cohort in staggered mode (default FALSE).}
 
 \item{color_significant}{Logical: color significant points differently (default TRUE).}
 
-\item{ref_period}{Integer or NULL: reference period to normalize ATT to zero.}
+\item{ref_period}{Integer or NULL: observed event-time period to normalize
+ATT to zero. The requested period must be present in the plotted data and
+is not relabeled as a visual anchor.}
 
-\item{aggregation}{Character: "mean" or "weighted" aggregation method.}
+\item{aggregation}{Character: "weighted" or "mean" aggregation method.}
 
 \item{df_strategy}{Character: "conservative", "weighted", or "fallback".}
 
-\item{return_data}{Logical: if TRUE, return plot data instead of ggplot object.}
+\item{return_data}{Logical: if TRUE, return a list containing the ggplot
+object and the plot data.}
 
 \item{point_size}{Numeric: size of point markers (default 3).}
 
@@ -54,7 +61,13 @@
 \item{...}{Additional arguments (currently unused).}
 }
 \value{
-A ggplot object, or a data.frame if \code{return_data = TRUE}.
+A ggplot object, or a list with \code{plot} and \code{data} if
+\code{return_data = TRUE}. For stored event-time results, returned plot
+data preserves event-level metadata from \code{\link{extract_effects}},
+including standard-error aggregation metadata and any available non-RA
+overlap or support-count summaries. When \code{ref_period} is used,
+returned p-values are \code{NA} and significance flags are \code{FALSE}
+because shifted contrasts require event-time contrast covariance.
 }
 \description{
 Event Study Plot for lwdid Results

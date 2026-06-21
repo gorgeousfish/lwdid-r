@@ -874,11 +874,11 @@ plot.lwdid_sensitivity <- function(x, type = NULL, ci_level = 0.95,
   if (identical(type, "no_anticipation")) {
     converged <- Filter(function(e) isTRUE(e$converged), x$estimates)
     if (length(converged) == 0L) {
-      warning("All estimates failed to converge, cannot plot valid results", call. = FALSE)
+      warning("All anticipation estimates failed to converge; no valid plot can be drawn.", call. = FALSE)
       return(
         ggplot2::ggplot() +
           ggplot2::labs(
-            title = "No-Anticipation Sensitivity",
+            title = "No-Anticipation Sensitivity Analysis",
             subtitle = "No converged estimates"
           ) +
           ggplot2::theme_minimal() +
@@ -932,12 +932,14 @@ plot.lwdid_sensitivity <- function(x, type = NULL, ci_level = 0.95,
     return(
       p +
         ggplot2::labs(
-          title = sprintf(
-            "No-Anticipation Sensitivity (%s)",
-            ifelse(x$anticipation_detected, "Detected", "Not Detected")
-          ),
-          x = "Excluded Pre-treatment Periods",
-          y = "ATT Estimate"
+          title = "No-Anticipation Sensitivity Analysis",
+          subtitle = if (isTRUE(x$anticipation_detected)) {
+            "Anticipation effects detected"
+          } else {
+            "No anticipation effects detected"
+          },
+          x = "Number of excluded pre-treatment periods",
+          y = "ATT estimate"
         ) +
         ggplot2::theme_minimal()
     )
@@ -951,11 +953,11 @@ plot.lwdid_sensitivity <- function(x, type = NULL, ci_level = 0.95,
   conv <- Filter(function(s) isTRUE(s$converged), x$specifications)
 
   if (length(conv) == 0L) {
-    warning("All specifications failed to converge, cannot plot valid results", call. = FALSE)
+    warning("All specifications failed to converge; no valid plot can be drawn.", call. = FALSE)
     return(
       ggplot2::ggplot() +
         ggplot2::labs(
-          title = "Pre-period Robustness",
+          title = "Pre-Period Robustness Specification Curve",
           subtitle = "No converged specifications"
         ) +
         ggplot2::theme_minimal() +
@@ -1014,17 +1016,18 @@ plot.lwdid_sensitivity <- function(x, type = NULL, ci_level = 0.95,
     ggplot2::scale_color_manual(
       values = c("TRUE" = "#2166AC", "FALSE" = "#B2182B"),
       labels = c("TRUE" = "Significant", "FALSE" = "Not significant"),
-      name = "Significance"
+      name = "Statistical significance"
     ) +
     ggplot2::scale_x_continuous(breaks = plot_df$n_pre) +
     ggplot2::labs(
-      title = sprintf(
-        "Pre-period Robustness (SR=%.1f%%, %s)",
+      title = "Pre-Period Robustness Specification Curve",
+      subtitle = sprintf(
+        "Sensitivity ratio = %.1f%% (%s)",
         x$sensitivity_ratio * 100,
         gsub("_", " ", x$robustness_level)
       ),
-      x = "Number of Pre-treatment Periods",
-      y = "ATT Estimate"
+      x = "Number of pre-treatment periods",
+      y = "ATT estimate"
     ) +
     ggplot2::theme_minimal()
 }
