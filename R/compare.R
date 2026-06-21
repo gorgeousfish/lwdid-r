@@ -41,11 +41,12 @@
 #'     estimator = "ipw", vce_type = "HC3", method = "proc21"
 #'   ), class = "lwdid_result")
 #'
-#'   # Compare two specifications
+#'   # Compare two specifications (overall ATT)
 #'   compare(RA = res1, IPW = res2)
 #'
-#'   # Compare with effects breakdown
-#'   compare(RA = res1, IPW = res2, type = "effects")
+#'   # type = "effects" requires results from staggered estimation
+#'   # with cohort-level effects (att_by_cohort_time field):
+#'   # compare(RA = stag_res1, IPW = stag_res2, type = "effects")
 #' }
 compare <- function(..., type = c("overall", "effects"),
                     stats = c("estimate", "std.error", "ci", "p.value"),

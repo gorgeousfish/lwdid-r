@@ -338,13 +338,19 @@ enumeration, so the actual draw count can differ from `wcb_reps`.
 Compare results across different estimators, transformations, or control group strategies:
 
 ```r
+data(castle)
+
 # Estimate with different specifications
-res_ra    <- lwdid(data, y, ivar, tvar, gvar, estimator = "ra")
-res_ipwra <- lwdid(data, y, ivar, tvar, gvar, estimator = "ipwra")
-res_ipw   <- lwdid(data, y, ivar, tvar, gvar, estimator = "ipw")
+res_ra <- lwdid(data = castle, y = "lhomicide", ivar = "sid", tvar = "year",
+                gvar = "gvar", rolling = "demean", estimator = "ra",
+                aggregate = "overall")
+res_ipw <- lwdid(data = castle, y = "lhomicide", ivar = "sid", tvar = "year",
+                 gvar = "gvar", rolling = "demean", estimator = "ipw",
+                 ps_controls = c("police", "income", "poverty"),
+                 aggregate = "overall")
 
 # Side-by-side comparison
-compare(RA = res_ra, IPWRA = res_ipwra, IPW = res_ipw)
+compare(RA = res_ra, IPW = res_ipw)
 ```
 
 ### Integration with modelsummary and broom
@@ -354,13 +360,13 @@ lwdid results work seamlessly with the tidyverse ecosystem:
 ```r
 library(modelsummary)
 
-# Publication-ready tables
-modelsummary(list(RA = res_ra, IPWRA = res_ipwra))
+# Publication-ready tables (using res_ra from above)
+modelsummary(list(RA = res_ra, IPW = res_ipw))
 
 # Tidy output for custom processing
-tidy(result)                    # Coefficient estimates
-tidy(result, type = "effects")  # Period-by-period effects
-glance(result)                  # Model-level statistics
+tidy(res_ra)                    # Coefficient estimates
+tidy(res_ra, type = "effects")  # Period-by-period effects
+glance(res_ra)                  # Model-level statistics
 ```
 
 ### fixest-Style Accessors
@@ -368,10 +374,10 @@ glance(result)                  # Model-level statistics
 For users familiar with fixest workflows:
 
 ```r
-se(result)        # Standard errors
-tstat(result)     # t-statistics
-pvalue(result)    # p-values
-coeftable(result) # Full coefficient table
+se(res_ra)        # Standard errors
+tstat(res_ra)     # t-statistics
+pvalue(res_ra)    # p-values
+coeftable(res_ra) # Full coefficient table
 ```
 
 ## Built-in Datasets

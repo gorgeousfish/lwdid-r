@@ -187,16 +187,20 @@
 #' can differ from the scalar \code{att} summary.
 #'
 #' @examples
-#' \dontrun{
-#' # Common Timing design
-#' result <- lwdid(data = panel_df, y = "outcome", ivar = "unit_id",
-#'                 tvar = "year", d = "treated", post = "post_period")
+#' \donttest{
+#' # Common Timing design (California Proposition 99)
+#' data(smoking)
+#' result <- lwdid(data = smoking, y = "lcigsale", ivar = "state",
+#'                 tvar = "year", d = "d", post = "post",
+#'                 rolling = "demean")
 #' print(result)
 #' summary(result)
 #'
-#' # Staggered Adoption design
-#' result <- lwdid(data = panel_df, y = "outcome", ivar = "unit_id",
-#'                 tvar = "year", gvar = "first_treat_year")
+#' # Staggered Adoption design (Castle Doctrine)
+#' data(castle)
+#' result <- lwdid(data = castle, y = "lhomicide", ivar = "sid",
+#'                 tvar = "year", gvar = "gvar",
+#'                 rolling = "demean", aggregate = "cohort")
 #' print(result)
 #' }
 #'
