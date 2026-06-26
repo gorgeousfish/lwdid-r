@@ -36,7 +36,7 @@
 ^tests/testthat/_fixtures($|/)
 ^tests/testthat/_problems($|/)
 ^tests/testthat/_.*$
-^tests/testthat/Rplots\\.pdf$
+Rplots\.pdf$
 ^tests/p($|/)
 ^lwdid\.Rcheck($|/)
 ^lwdid_.*\.tar\.gz$
@@ -45,3 +45,4 @@
 ^image$
 ^doc$
 ^Meta$
+^tests/p$

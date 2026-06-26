@@ -15,7 +15,7 @@ resolve_demeanq_parity_path <- function(filename) {
       "_automation", "test-artifacts", "parity", filename
     ),
     file.path(
-      "/Users/cxy/Desktop/lwdid_r/_automation/test-artifacts/parity",
+      Sys.getenv("LWDID_REPO_ROOT", ""), "_automation", "test-artifacts", "parity",
       filename
     ),
     testthat::test_path("_fixtures", "parity", filename)
@@ -97,18 +97,10 @@ test_that("TC-9.2.2: .demeanq_unit matches the frozen Python helper oracle", {
   oracle_path <- resolve_demeanq_parity_path("e9_02_layer2_python_helper_oracle.json")
   fixture_path <- resolve_demeanq_parity_path("e9_02_demeanq_helper_fixture.csv")
 
-  expect_true(
-    file.exists(oracle_path),
-    info = paste("missing demeanq python helper oracle:", oracle_path)
+  skip_if_not(
+    file.exists(oracle_path) && file.exists(fixture_path),
+    "Parity oracle/fixture not available"
   )
-  expect_true(
-    file.exists(fixture_path),
-    info = paste("missing demeanq helper fixture:", fixture_path)
-  )
-
-  if (!file.exists(oracle_path) || !file.exists(fixture_path)) {
-    return(invisible(NULL))
-  }
 
   oracle <- read_demeanq_parity_oracle("e9_02_layer2_python_helper_oracle.json")
   fixture <- data.table::as.data.table(
@@ -151,14 +143,10 @@ test_that("TC-9.2.22: .demeanq_unit exposes coefficients that match the vibe-mat
   skip_if_not_installed("jsonlite")
 
   oracle_path <- resolve_demeanq_parity_path("20260328-theory-parity-e9-02-task22-vibemath.json")
-  expect_true(
+  skip_if_not(
     file.exists(oracle_path),
-    info = paste("missing demeanq vibe-math oracle:", oracle_path)
+    "Parity oracle not available"
   )
-
-  if (!file.exists(oracle_path)) {
-    return(invisible(NULL))
-  }
 
   oracle <- read_demeanq_parity_oracle("20260328-theory-parity-e9-02-task22-vibemath.json")
   oracle_values <- stats::setNames(

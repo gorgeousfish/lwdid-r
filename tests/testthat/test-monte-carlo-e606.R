@@ -6,7 +6,7 @@ if (!exists("lwdid", mode = "function")) {
   }
 
   devtools::load_all(
-    "/Users/cxy/Desktop/lwdid_r/lwdid-r",
+    Sys.getenv("LWDID_REPO_ROOT", "."),
     export_all = FALSE,
     quiet = TRUE
   )

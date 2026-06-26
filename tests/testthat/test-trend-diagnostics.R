@@ -108,7 +108,7 @@ read_parallel_trends_staggered_estimable_fixture <- function() {
         "e8_06_trend_public_staggered_estimable_fixture.csv"
       ),
       file.path(
-        "/Users/cxy/Desktop/lwdid_r",
+        Sys.getenv("LWDID_REPO_ROOT", ""),
         "_automation", "test-artifacts", "parity",
         "e8_06_trend_public_staggered_estimable_fixture.csv"
       )
@@ -116,6 +116,10 @@ read_parallel_trends_staggered_estimable_fixture <- function() {
     candidates <- unique(normalizePath(candidates, mustWork = FALSE))
     existing <- candidates[file.exists(candidates)]
     if (length(existing) > 0L) existing[[1L]] else candidates[[1L]]
+  }
+
+  if (!file.exists(fixture_path)) {
+    testthat::skip("Staggered estimable fixture not available")
   }
 
   utils::read.csv(

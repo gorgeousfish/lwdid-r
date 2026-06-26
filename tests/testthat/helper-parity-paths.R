@@ -31,7 +31,7 @@ resolve_parity_fixture_path <- function(filename) {
   candidates <- c(
     candidates,
     file.path(
-      "/Users/cxy/Desktop/lwdid_r",
+      Sys.getenv("LWDID_REPO_ROOT", ""),
       "_automation", "test-artifacts", "parity", filename
     )
   )
@@ -84,7 +84,8 @@ parity_fixtures_available <- function() {
     error = function(...) NULL
   )
   if (!is.null(repo_p) && dir.exists(repo_p)) return(TRUE)
-  dir.exists("/Users/cxy/Desktop/lwdid_r/_automation/test-artifacts/parity")
+  repo_root <- Sys.getenv("LWDID_REPO_ROOT", "")
+  nzchar(repo_root) && dir.exists(file.path(repo_root, "_automation", "test-artifacts", "parity"))
 }
 
 skip_if_no_parity_fixtures <- function() {

@@ -9,7 +9,7 @@ resolve_package_source_root <- function() {
     candidates <- c(candidates, source_copy_candidate)
   }
 
-  candidates <- c(candidates, "/Users/cxy/Desktop/lwdid_r/lwdid-r")
+  candidates <- c(candidates, Sys.getenv("LWDID_REPO_ROOT", "/Users/cxy/Desktop/lwdid_r/lwdid-r"))
 
   test_path_candidate <- tryCatch(
     testthat::test_path("..", ".."),

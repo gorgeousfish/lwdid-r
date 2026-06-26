@@ -5,7 +5,7 @@ if (!exists("lwdid", mode = "function")) {
     stop("devtools is required to run test-estimator-integration-e606.R directly.")
   }
   devtools::load_all(
-    "/Users/cxy/Desktop/lwdid_r/lwdid-r",
+    Sys.getenv("LWDID_REPO_ROOT", "."),
     export_all = FALSE,
     quiet = TRUE
   )

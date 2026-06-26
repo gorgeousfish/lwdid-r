@@ -238,10 +238,7 @@ read_e901_required_parity_json <- function(filename) {
   skip_if_not_installed("jsonlite")
 
   path <- resolve_parity_fixture_path(filename)
-  expect_true(file.exists(path))
-  if (!file.exists(path)) {
-    return(NULL)
-  }
+  skip_if_not(file.exists(path), paste("Parity oracle not available:", filename))
 
   jsonlite::fromJSON(path, simplifyVector = FALSE)
 }
