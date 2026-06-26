@@ -6,6 +6,16 @@
 #' @family lwdid-results
 NULL
 
+#' Re-export tidy generic from generics
+#' @importFrom generics tidy
+#' @export
+generics::tidy
+
+#' Re-export glance generic from generics
+#' @importFrom generics glance
+#' @export
+generics::glance
+
 # ===========================================================================
 # tidy.lwdid_result
 # ===========================================================================
