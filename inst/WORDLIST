@@ -85,6 +85,7 @@ behaviour
 cdot
 ci
 coef
+coeftable
 coercible
 config
 ddot
@@ -101,12 +102,14 @@ dta
 eq
 estimand
 fallbacks
+fixest
 fmt
 frac
 ge
 geq
 ggplot
 gid
+glance
 glm
 groupby
 gvar
@@ -127,6 +130,8 @@ lifecycle
 lm
 loess
 lw
+lwdid_comparison
+lwdid_result
 mathbf
 mathcal
 modelsummary
@@ -156,9 +161,11 @@ resid
 rg
 sd
 se
+tidy
 tindex
 tpost
 tq
+tstat
 tvar
 uncentered
 unconfoundedness
