@@ -1,6 +1,6 @@
 # control_groups.R
 # Control group selection utilities for staggered DiD.
-# Implements Never-Treated unit statistics for lw2025 Section 4.1
+# Implements Never-Treated unit statistics for lw2026 Section 4.1
 # and Procedure 4.1.
 #
 # Note: is_never_treated() and get_cohorts() are defined in utils.R.
@@ -57,10 +57,10 @@ check_never_treated <- function(data, ivar, gvar) {
 #'   auto resolution logic and automatic switching for aggregation
 #'   compatibility.
 #'
-#'   Auto resolution rules (lw2025 Section 4.1, Procedure 4.1):
+#'   Auto resolution rules (lw2026 Section 4.1, Procedure 4.1):
 #'   \itemize{
 #'     \item has_nt + cohort/overall: "never_treated" (required for
-#'       aggregated effects, lw2025 equations 7.9-7.10, 7.18-7.19)
+#'       aggregated effects, lw2026 equations 7.9-7.10, 7.18-7.19)
 #'     \item has_nt + none/event_time: "not_yet_treated" (event_time
 #'       re-weights existing (g,r) effects, no new regressions needed,
 #'       so NT-only control is not required)
@@ -198,10 +198,10 @@ resolve_control_group <- function(control_group, aggregate, has_nt) {
 #'   \strong{FATAL-001}: \code{not_yet_treated} uses STRICT inequality
 #'   \eqn{G_i > r}. This is critical for correct identification of
 #'   control units per Procedure 4.1 Step 2 and equation 4.12 in
-#'   lw2025. Using \eqn{\ge}{>=} would incorrectly include units
+#'   lw2026. Using \eqn{\ge}{>=} would incorrectly include units
 #'   treated at period r.
 #'
-#'   Theoretical basis — Theorem 4.1 derivation chain (lw2025):
+#'   Theoretical basis — Theorem 4.1 derivation chain (lw2026):
 #'   \itemize{
 #'     \item Equation 4.7: defines the 2x2 DiD estimand for cohort g
 #'       at reference period r, requiring untreated controls at both
@@ -245,7 +245,7 @@ get_valid_controls <- function(data, gvar, g, r, control_group) {
 
   if (control_group == "not_yet_treated") {
     # FATAL-001: STRICT inequality G_i > r
-    # Procedure 4.1 Step 2, equation 4.12 (lw2025)
+    # Procedure 4.1 Step 2, equation 4.12 (lw2026)
     # Units with G_i = r are treated at period r and MUST be excluded.
     # Theorem 4.1 derivation chain (eqs 4.7-4.9):
     #   eq 4.7: 2x2 DiD estimand requires untreated controls at r and r+1

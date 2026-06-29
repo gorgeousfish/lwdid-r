@@ -1,6 +1,6 @@
 # pretreatment.R
 # Pre-treatment effect estimation for Common Timing DiD.
-# Paper: lw2025 Section 5 (equations 5.1-5.7, Procedure 5.1)
+# Paper: lw2026 Section 5 (equations 5.1-5.7, Procedure 5.1)
 # Symmetric transforms use future pre-treatment periods {t+1,...,S-1}
 # as reference, not all pre-treatment periods {1,...,S-1}.
 
@@ -105,7 +105,7 @@ estimate_pre_treatment_common <- function(
   ]
 
   # ===== Step 3: Build anchor result =====
-  # lw2025 Section 5: anchor (t=S-1) has ATT=0 by symmetric
+  # lw2026 Section 5: anchor (t=S-1) has ATT=0 by symmetric
   # transform definition (no reference periods).
   # Matches Python estimation_pre.py L296-L320.
   anchor_mask <- data[[tvar]] == anchor_period
@@ -149,7 +149,7 @@ estimate_pre_treatment_common <- function(
     t_data <- data.table::copy(data[data[[tvar]] == t_k])
 
     # --- 4c: Symmetric transform (by ivar) ---
-    # lw2025 eq 2.12 symmetric version (demean) /
+    # lw2026 eq 2.12 symmetric version (demean) /
     # Procedure 5.1 eq 5.6 (detrend)
     # Capture column names for data.table NSE scoping
     y_col <- y
@@ -357,14 +357,14 @@ estimate_pre_treatment_common <- function(
 
 # ============================================================================
 # Staggered Pre-treatment Effect Estimation
-# Paper: lw2025 Section 5, Procedure 5.1 (rolling window adaptation)
+# Paper: lw2026 Section 5, Procedure 5.1 (rolling window adaptation)
 # ============================================================================
 
 #' @title Pre-treatment effect estimation (Staggered)
 #' @description Estimates ATT for each pre-treatment period per cohort
 #'   using symmetric transforms. Under parallel trends, pre-treatment
 #'   ATTs should be approximately zero (placebo test).
-#'   Implements lw2025 Procedure 5.1 (staggered entry) adapted for
+#'   Implements lw2026 Procedure 5.1 (staggered entry) adapted for
 #'   pre-treatment periods with rolling window reference sets.
 #' @param data data.table, raw panel data
 #' @param y character, outcome variable name
@@ -528,7 +528,7 @@ estimate_pre_treatment_staggered <- function(
       t_data <- data.table::copy(data[data[[tvar]] == t_pre])
 
       # --- Symmetric transform (by ivar) ---
-      # lw2025 Procedure 5.1 rolling window adaptation
+      # lw2026 Procedure 5.1 rolling window adaptation
       if (rolling == "demean") {
         # demean: y_trans = Y_it - mean(Y_i, ref_periods)
         ref_means <- ref_data[,
@@ -751,14 +751,14 @@ estimate_pre_treatment_staggered <- function(
 
 # ============================================================================
 # Parallel Trends Joint Test
-# Paper: LW2025 Equation (2.3) / (2.15) Parallel Trends Hypothesis
+# Paper: LW2026 Equation (2.3) / (2.15) Parallel Trends Hypothesis
 # PRD §3b Joint Test; PRD §8d Pre-treatment Parameters
 # Python: lwdid-py_v0.2.3/src/lwdid/staggered/parallel_trends.py
 # ============================================================================
 
 #' @title Parallel trends joint test
 #' @description Tests whether all pre-treatment ATTs are jointly zero
-#'   (LW2025 equation 2.3 parallel trends hypothesis). Supports F-test
+#'   (LW2026 equation 2.3 parallel trends hypothesis). Supports F-test
 #'   and Wald chi-squared test. Receives pre-treatment effect estimates
 #'   from Story E7-03/E7-04 and performs joint null hypothesis test.
 #' @param pre_treatment_effects data.frame, pre-treatment effect

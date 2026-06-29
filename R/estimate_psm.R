@@ -4,7 +4,7 @@
 # Implements Propensity Score Matching ATT with Abadie-Imbens SE.
 #
 # Paper references:
-#   - lw2025 Procedure 3.1 Step 2 / Procedure 4.1 Step 3
+#   - lw2026 Procedure 3.1 Step 2 / Procedure 4.1 Step 3
 #   - Abadie & Imbens (2006): matching estimator, SE, asymptotic normality
 #   - Rosenbaum & Rubin (1983): propensity score theorem
 # ============================================================================
@@ -311,7 +311,7 @@
 # ============================================================================
 # estimate_psm() — PSM ATT Main Function
 # ============================================================================
-# lw2025 Procedure 3.1 Step 2 / Procedure 4.1 Step 3 (matching option)
+# lw2026 Procedure 3.1 Step 2 / Procedure 4.1 Step 3 (matching option)
 # Abadie & Imbens (2006) Equations 1-2: counterfactual construction & ATT
 #' Estimate PSM-ATT (Propensity Score Matching)
 #'

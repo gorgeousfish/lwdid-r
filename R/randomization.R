@@ -10,7 +10,7 @@
 #' @param d Integer vector of treatment indicators (0 or 1, length N).
 #' @param x Optional numeric matrix of covariates (N rows). When
 #'   provided, the ATT is estimated via OLS with interactions
-#'   centered at the treatment group mean (lw2025 eq 3.3).
+#'   centered at the treatment group mean (lw2026 eq 3.3).
 #' @param reps Integer number of RI replications (default 1000).
 #' @param seed Optional integer seed for reproducibility.
 #' @param method Character; either \code{"bootstrap"} (default) or
@@ -106,10 +106,10 @@ randomization_inference <- function(y_trans, d, x = NULL,
 
   # -- Observed ATT calculation -----------------------------------------------
   if (is.null(x)) {
-    # Without controls (lw2025 eq 3.4)
+    # Without controls (lw2026 eq 3.4)
     obs_att <- mean(y_trans[d == 1L]) - mean(y_trans[d == 0L])
   } else {
-    # With controls (lw2025 eq 3.3, FATAL-003 protection)
+    # With controls (lw2026 eq 3.3, FATAL-003 protection)
     # Center covariates at treatment group mean (FIXED, outside loop)
     x_mean_treat <- colMeans(x[d == 1L, , drop = FALSE])
     x_c <- sweep(x, 2, x_mean_treat)

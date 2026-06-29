@@ -1041,7 +1041,7 @@ plot.lwdid_sensitivity <- function(x, type = NULL, ci_level = 0.95,
 #' Common Timing: returns count of unique pre-treatment periods.
 #'
 #' @details
-#'   Paper reference: lw2025 Section 4.4
+#'   Paper reference: lw2026 Section 4.4
 #'   Python reference: lwdid-py sensitivity.py _get_max_pre_periods()
 #'   R enhancement: uses sum(periods < g) instead of Python's int(c - min_time),
 #'   more robust for non-consecutive time indices.
@@ -1090,7 +1090,7 @@ plot.lwdid_sensitivity <- function(x, type = NULL, ci_level = 0.95,
 #' Common Timing: excludes last k pre-treatment periods and recodes time.
 #'
 #' @details
-#'   Paper reference: lw2025 Section 4.4, lw2026 equation 2.22
+#'   Paper reference: lw2026 Section 4.4, lw2026 equation 2.22
 #'   Python reference: lwdid-py sensitivity.py _filter_excluding_periods()
 #'   CRITICAL: Staggered mode must use
 #'   \code{!is.na(data[[gvar]])} explicitly
@@ -1259,10 +1259,10 @@ plot.lwdid_sensitivity <- function(x, type = NULL, ci_level = 0.95,
 #'
 #' @details
 #'   Paper reference:
-#'   - lw2025 Section 4.4: NA assumption violation handling
+#'   - lw2026 Section 4.4: NA assumption violation handling
 #'   - lw2026 equation 2.14: NA assumption definition
 #'   - lw2026 equation 2.22: truncated pre-period mean
-#'   - lw2025 equation 4.4: Conditional NA assumption (CNAS)
+#'   - lw2026 equation 4.4: Conditional NA assumption (CNAS)
 #'
 #'   Python reference: lwdid-py sensitivity.py sensitivity_no_anticipation()
 #'

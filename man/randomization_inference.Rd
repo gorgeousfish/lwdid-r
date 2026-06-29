@@ -22,7 +22,7 @@ randomization_inference(
 
 \item{x}{Optional numeric matrix of covariates (N rows). When
 provided, the ATT is estimated via OLS with interactions
-centered at the treatment group mean (lw2025 eq 3.3).}
+centered at the treatment group mean (lw2026 eq 3.3).}
 
 \item{reps}{Integer number of RI replications (default 1000).}
 

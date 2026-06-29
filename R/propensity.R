@@ -5,9 +5,9 @@
 # for IPW (Story 6.2), IPWRA (Story 6.3), and PSM (Story 6.4).
 #
 # Paper references:
-#   - lw2025 Procedure 3.1 Step 2: apply standard TE methods
-#   - lw2025 Procedure 4.1 Step 3: apply to (g,r) subsamples
-#   - Wooldridge (2025b §19.4): WLS for IPWRA ATT
+#   - lw2026 Procedure 3.1 Step 2: apply standard TE methods
+#   - lw2026 Procedure 4.1 Step 3: apply to (g,r) subsamples
+#   - Wooldridge (2026b §19.4): WLS for IPWRA ATT
 #   - Wooldridge (2007): IPWRA doubly-robust estimator
 # ============================================================================
 
@@ -36,7 +36,7 @@
 #'   }
 #'
 #' @references
-#'   lw2025 Procedure 3.1 Step 2;
+#'   lw2026 Procedure 3.1 Step 2;
 #'   MLE for \eqn{P(D=1 \mid X)} under a Bernoulli log-likelihood.
 #'
 #' @keywords internal
@@ -236,7 +236,7 @@ estimate_propensity_score <- function(data, d, controls,
 #'   }
 #'
 #' @references
-#'   Wooldridge (2025b Section 19.4): WLS for IPWRA ATT;
+#'   Wooldridge (2026b Section 19.4): WLS for IPWRA ATT;
 #'   OLS: \eqn{\hat{\beta} = (X_0^\top X_0)^{-1} X_0^\top Y_0};
 #'   WLS: \eqn{\hat{\beta} = (X_0^\top W X_0)^{-1} X_0^\top W Y_0}
 #'

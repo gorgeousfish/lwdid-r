@@ -75,7 +75,7 @@ data.frame with 17 columns, one row per (g,r) effect
 }
 \description{
 Estimates ATT for each valid (cohort, period) pair in
-staggered DiD designs. Implements lw2025 Procedure 4.1 and
+staggered DiD designs. Implements lw2026 Procedure 4.1 and
 lw2026 equation 7.8.
 
 The estimation proceeds in 8 steps for each (g,r) pair:

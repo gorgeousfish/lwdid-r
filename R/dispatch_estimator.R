@@ -1,7 +1,7 @@
 # ============================================================================
 # dispatch_estimator.R — Unified Estimator Routing
 # ============================================================================
-# Paper: lw2025 Procedure 3.1 Step 2 / Procedure 4.1 Step 3
+# Paper: lw2026 Procedure 3.1 Step 2 / Procedure 4.1 Step 3
 # ============================================================================
 
 .resolve_estimator_vce_type <- function(estimator, vce = NULL,

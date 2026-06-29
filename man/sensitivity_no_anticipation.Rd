@@ -70,10 +70,10 @@ anticipation patterns using dual-method sequential detection.
 \details{
 Paper reference:
 \itemize{
-\item lw2025 Section 4.4: NA assumption violation handling
+\item lw2026 Section 4.4: NA assumption violation handling
 \item lw2026 equation 2.14: NA assumption definition
 \item lw2026 equation 2.22: truncated pre-period mean
-\item lw2025 equation 4.4: Conditional NA assumption (CNAS)
+\item lw2026 equation 4.4: Conditional NA assumption (CNAS)
 }
 
 Python reference: lwdid-py sensitivity.py sensitivity_no_anticipation()

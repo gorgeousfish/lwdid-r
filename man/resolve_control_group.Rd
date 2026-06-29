@@ -32,10 +32,10 @@ and presence of Never-Treated units. Implements the 8-case
 auto resolution logic and automatic switching for aggregation
 compatibility.
 
-Auto resolution rules (lw2025 Section 4.1, Procedure 4.1):
+Auto resolution rules (lw2026 Section 4.1, Procedure 4.1):
 \itemize{
 \item has_nt + cohort/overall: "never_treated" (required for
-aggregated effects, lw2025 equations 7.9-7.10, 7.18-7.19)
+aggregated effects, lw2026 equations 7.9-7.10, 7.18-7.19)
 \item has_nt + none/event_time: "not_yet_treated" (event_time
 re-weights existing (g,r) effects, no new regressions needed,
 so NT-only control is not required)

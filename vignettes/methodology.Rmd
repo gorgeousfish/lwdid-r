@@ -171,7 +171,7 @@ $$p_{\text{RI}} = \frac{1 + \sum_{b=1}^B \mathbf{1}(|T_b| \geq |T_{\text{obs}}|)
 | Estimators | RA, IPW, IPWRA | RA, IPW, IPWRA, PSM |
 
 Under the error-components structure, the lwdid estimator is BLUE and
-asymptotically efficient (Wooldridge, 2025a, Theorem 6.2).
+asymptotically efficient (Wooldridge, 2026a, Theorem 6.2).
 
 ## 7. Robustness and Specification Comparison
 
@@ -248,7 +248,7 @@ Difference-in-Differences Estimation for Panel Data."
 Lee, S., Wooldridge, J.M. and Hur, E.K. (2026). "Rolling Difference-in-Differences
 Estimation for Small and Large Panels."
 
-Wooldridge, J.M. (2025a). "Two-Way Fixed Effects, the Two-Way Mundlak
+Wooldridge, J.M. (2026a). "Two-Way Fixed Effects, the Two-Way Mundlak
 Regression, and Difference-in-Differences Estimators."
 
 Callaway, B. and Sant'Anna, P.H.C. (2021). "Difference-in-Differences with

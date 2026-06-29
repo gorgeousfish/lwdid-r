@@ -28,7 +28,7 @@ Staggered: excludes cohort-specific periods from \eqn{g-k} through
 Common Timing: excludes last k pre-treatment periods and recodes time.
 }
 \details{
-Paper reference: lw2025 Section 4.4, lw2026 equation 2.22
+Paper reference: lw2026 Section 4.4, lw2026 equation 2.22
 Python reference: lwdid-py sensitivity.py _filter_excluding_periods()
 CRITICAL: Staggered mode must use
 \code{!is.na(data[[gvar]])} explicitly

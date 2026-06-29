@@ -34,7 +34,7 @@ test_type, interpretation
 }
 \description{
 Tests whether all pre-treatment ATTs are jointly zero
-(LW2025 equation 2.3 parallel trends hypothesis). Supports F-test
+(LW2026 equation 2.3 parallel trends hypothesis). Supports F-test
 and Wald chi-squared test. Receives pre-treatment effect estimates
 from Story E7-03/E7-04 and performs joint null hypothesis test.
 }

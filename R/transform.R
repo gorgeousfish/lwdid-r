@@ -968,7 +968,7 @@ transform_common <- function(dt, y, ivar, tvar, g,
 #'   pre-treatment windows. NEVER share pre-treatment periods across
 #'   cohorts.
 #'
-#'   For demean (lw2025 eq 4.11, lw2026 eq 7.3-7.4):
+#'   For demean (lw2026 eq 4.11, lw2026 eq 7.3-7.4):
 #'     Computes pre_mean = mean(Y) over T_pre(g) for each unit.
 #'
 #'   For detrend (lw2026 eq 7.5-7.6):

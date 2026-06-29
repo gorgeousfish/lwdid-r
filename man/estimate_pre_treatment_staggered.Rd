@@ -60,7 +60,7 @@ data.frame with 14 columns, or NULL if no estimable periods
 Estimates ATT for each pre-treatment period per cohort
 using symmetric transforms. Under parallel trends, pre-treatment
 ATTs should be approximately zero (placebo test).
-Implements lw2025 Procedure 5.1 (staggered entry) adapted for
+Implements lw2026 Procedure 5.1 (staggered entry) adapted for
 pre-treatment periods with rolling window reference sets.
 }
 \keyword{internal}

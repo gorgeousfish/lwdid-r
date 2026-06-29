@@ -4,9 +4,9 @@
 # Implements Hajek IPWRA-ATT with 3-component IF standard errors.
 #
 # Paper references:
-#   - lw2025 Procedure 3.1 Step 2 / Procedure 4.1 Step 3
+#   - lw2026 Procedure 3.1 Step 2 / Procedure 4.1 Step 3
 #   - Wooldridge (2007): IPWRA doubly-robust estimator
-#   - Wooldridge (2025b §19.4): WLS for IPWRA ATT
+#   - Wooldridge (2026b §19.4): WLS for IPWRA ATT
 #   - Cattaneo (2010): semiparametric influence function
 #   - Newey & McFadden (1994): M-estimation framework
 #   - Hajek (1971): normalized weights

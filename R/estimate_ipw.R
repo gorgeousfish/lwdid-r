@@ -4,7 +4,7 @@
 # Implements Hajek IPW-ATT with M-estimation IF standard errors.
 #
 # Paper references:
-#   - lw2025 Procedure 3.1 Step 2 / Procedure 4.1 Step 3
+#   - lw2026 Procedure 3.1 Step 2 / Procedure 4.1 Step 3
 #   - Lunceford & Davidian (2004): Hajek IPW-ATT + M-estimation IF SE
 #   - Wooldridge (2010) Ch.21: IPW asymptotic theory
 #   - Newey & McFadden (1994): M-estimation framework

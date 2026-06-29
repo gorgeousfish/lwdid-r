@@ -42,7 +42,7 @@
 NULL (invisible).
 }
 \description{
-Requirements (from lw2025/lw2026):
+Requirements (from lw2026/lw2026):
 demean:   >= 1 (Procedure 2.1/4.1)
 detrend:  >= 2 (Procedure 3.1/5.1)
 demeanq:  >= Q+1 (Q params, need df >= 1)

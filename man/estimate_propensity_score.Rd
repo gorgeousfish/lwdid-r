@@ -42,7 +42,7 @@ P(D=1|X). Returns propensity scores, coefficients, and the glm object
 for downstream IF-based SE computation.
 }
 \references{
-lw2025 Procedure 3.1 Step 2;
+lw2026 Procedure 3.1 Step 2;
 MLE for \eqn{P(D=1 \mid X)} under a Bernoulli log-likelihood.
 }
 \keyword{internal}

@@ -25,7 +25,7 @@ Staggered: returns minimum across all cohorts of sum(periods < g).
 Common Timing: returns count of unique pre-treatment periods.
 }
 \details{
-Paper reference: lw2025 Section 4.4
+Paper reference: lw2026 Section 4.4
 Python reference: lwdid-py sensitivity.py _get_max_pre_periods()
 R enhancement: uses sum(periods < g) instead of Python's int(c - min_time),
 more robust for non-consecutive time indices.

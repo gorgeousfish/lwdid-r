@@ -32,10 +32,10 @@ level on \code{data[[gvar]]} (does NOT use \code{unique()}).
 \strong{FATAL-001}: \code{not_yet_treated} uses STRICT inequality
 \eqn{G_i > r}. This is critical for correct identification of
 control units per Procedure 4.1 Step 2 and equation 4.12 in
-lw2025. Using \eqn{\ge}{>=} would incorrectly include units
+lw2026. Using \eqn{\ge}{>=} would incorrectly include units
 treated at period r.
 
-Theoretical basis — Theorem 4.1 derivation chain (lw2025):
+Theoretical basis — Theorem 4.1 derivation chain (lw2026):
 \itemize{
 \item Equation 4.7: defines the 2x2 DiD estimand for cohort g
 at reference period r, requiring untreated controls at both
