@@ -336,20 +336,37 @@ compare <- function(..., type = c("overall", "effects"),
     return(.compare_overall(models, model_names, stats, stars, digits))
   }
 
-  # Use the first model with effects to determine rows (g,r pairs or event_time)
+  # Align effects across models by (cohort, period) or (event_time) keys
+  # to avoid silently comparing different rows positionally
   ref_idx <- which(has_effects)[1L]
   ref_eff <- effects_list[[ref_idx]]
 
-  # Try to determine row identifier columns
-  id_cols <- intersect(names(ref_eff), c("g", "r", "cohort", "time", "event_time"))
-  if (length(id_cols) == 0L) {
-    # Use row numbers as identifiers
-    id_cols <- NULL
-    period_labels <- paste0("Period_", seq_len(nrow(ref_eff)))
-  } else {
-    period_labels <- apply(ref_eff[, id_cols, drop = FALSE], 1, function(row) {
-      paste(row, collapse = ",")
+  # Determine identifier columns for row alignment
+  id_cols <- intersect(names(ref_eff), c("cohort", "period", "event_time", "g", "r", "time"))
+
+  if (length(id_cols) >= 1L) {
+    # Build a unified key set from ALL models (union of all cohort-period combos)
+    all_keys <- do.call(rbind, lapply(which(has_effects), function(i) {
+      effects_list[[i]][, id_cols, drop = FALSE]
+    }))
+    all_keys <- unique(all_keys)
+    all_keys <- all_keys[do.call(order, as.list(all_keys)), , drop = FALSE]
+    rownames(all_keys) <- NULL
+
+    # Reindex each model's effects to match the unified key order
+    effects_list <- lapply(effects_list, function(eff) {
+      if (is.null(eff) || !is.data.frame(eff) || nrow(eff) == 0L) return(NULL)
+      merged <- merge(all_keys, eff, by = id_cols, all.x = TRUE, sort = FALSE)
+      # Restore unified order
+      merged <- merged[do.call(order, as.list(merged[, id_cols, drop = FALSE])), , drop = FALSE]
+      rownames(merged) <- NULL
+      merged
     })
+
+    period_labels <- apply(all_keys, 1, function(row) paste(row, collapse = ","))
+  } else {
+    # No id columns: fall back to positional (row number) comparison
+    period_labels <- paste0("Period_", seq_len(nrow(ref_eff)))
   }
 
   n_periods <- length(period_labels)
