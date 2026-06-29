@@ -315,11 +315,13 @@ compare <- function(..., type = c("overall", "effects"),
   effects_list <- lapply(models, function(m) {
     eff <- m$effects
     if (is.null(eff) || !is.data.frame(eff) || nrow(eff) == 0L) {
-      # 尝试 cohort_effects 或 event_time_effects
+      eff <- m$att_by_cohort_time
+    }
+    if (is.null(eff) || !is.data.frame(eff) || nrow(eff) == 0L) {
       eff <- m$cohort_effects
-      if (is.null(eff) || !is.data.frame(eff) || nrow(eff) == 0L) {
-        eff <- m$event_time_effects
-      }
+    }
+    if (is.null(eff) || !is.data.frame(eff) || nrow(eff) == 0L) {
+      eff <- m$event_time_effects
     }
     eff
   })
