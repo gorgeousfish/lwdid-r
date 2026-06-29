@@ -2,7 +2,7 @@
 % Please edit documentation in R/compare.R
 \name{compare}
 \alias{compare}
-\title{比较多个 lwdid 估计结果}
+\title{Compare Multiple lwdid Estimation Results}
 \usage{
 compare(
   ...,
@@ -13,32 +13,34 @@ compare(
 )
 }
 \arguments{
-\item{...}{命名的 lwdid_result 对象，或一个包含它们的列表}
+\item{...}{Named lwdid_result objects, or a list containing them}
 
-\item{type}{字符型。比较类型："overall"（默认，整体 ATT）或
-"effects"（分期效应）}
+\item{type}{Character. Comparison type: "overall" (default, overall ATT) or
+"effects" (period-specific effects)}
 
-\item{stats}{字符向量。包含的统计量。默认：
+\item{stats}{Character vector. Statistics to include. Default:
 c("estimate", "std.error", "ci", "p.value")}
 
-\item{stars}{逻辑值。是否添加显著性星号？默认 TRUE}
+\item{stars}{Logical. Add significance stars? Default TRUE}
 
-\item{digits}{整数。小数位数。默认 3}
+\item{digits}{Integer. Number of decimal places. Default 3}
 }
 \value{
-一个 \code{lwdid_comparison} S3 对象（继承 data.frame），包含：
+An \code{lwdid_comparison} S3 object (inherits data.frame), containing:
 \itemize{
-\item 每个模型 specification 为一列
-\item 统计量（估计值、标准误、CI、p 值等）为行
-\item 格式化的 print 方法
+\item Each model specification as a column
+\item Statistics (estimate, std. error, CI, p-value, etc.) as rows
+\item Formatted print method
 }
 }
 \description{
-比较不同 specification（估计器、转换方法、控制组策略）下的 lwdid 估计结果，
-以标准化表格形式输出。基于 Lee & Wooldridge (2025, 2026) 的 ATT 定义。
+Compare lwdid estimation results across different specifications
+(estimators, transformations, control group strategies) in a standardized
+table format. Based on ATT definitions from Lee & Wooldridge (2025, 2026).
 
-不同 rolling 方法给出的是同一目标参数 tau 在不同识别假设下的估计，
-compare() 的数学意义在于展示 ATT 在不同假设和方法下的稳健性。
+Different rolling methods estimate the same target parameter tau under
+different identification assumptions. The mathematical purpose of compare()
+is to demonstrate ATT robustness across assumptions and methods.
 }
 \examples{
 \donttest{

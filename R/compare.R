@@ -1,24 +1,26 @@
-#' @title 比较多个 lwdid 估计结果
+#' @title Compare Multiple lwdid Estimation Results
 #' @description
-#' 比较不同 specification（估计器、转换方法、控制组策略）下的 lwdid 估计结果，
-#' 以标准化表格形式输出。基于 Lee & Wooldridge (2025, 2026) 的 ATT 定义。
+#' Compare lwdid estimation results across different specifications
+#' (estimators, transformations, control group strategies) in a standardized
+#' table format. Based on ATT definitions from Lee & Wooldridge (2025, 2026).
 #'
-#' 不同 rolling 方法给出的是同一目标参数 tau 在不同识别假设下的估计，
-#' compare() 的数学意义在于展示 ATT 在不同假设和方法下的稳健性。
+#' Different rolling methods estimate the same target parameter tau under
+#' different identification assumptions. The mathematical purpose of compare()
+#' is to demonstrate ATT robustness across assumptions and methods.
 #'
-#' @param ... 命名的 lwdid_result 对象，或一个包含它们的列表
-#' @param type 字符型。比较类型："overall"（默认，整体 ATT）或
-#'   "effects"（分期效应）
-#' @param stats 字符向量。包含的统计量。默认：
+#' @param ... Named lwdid_result objects, or a list containing them
+#' @param type Character. Comparison type: "overall" (default, overall ATT) or
+#'   "effects" (period-specific effects)
+#' @param stats Character vector. Statistics to include. Default:
 #'   c("estimate", "std.error", "ci", "p.value")
-#' @param stars 逻辑值。是否添加显著性星号？默认 TRUE
-#' @param digits 整数。小数位数。默认 3
+#' @param stars Logical. Add significance stars? Default TRUE
+#' @param digits Integer. Number of decimal places. Default 3
 #'
-#' @return 一个 \code{lwdid_comparison} S3 对象（继承 data.frame），包含：
+#' @return An \code{lwdid_comparison} S3 object (inherits data.frame), containing:
 #'   \itemize{
-#'     \item 每个模型 specification 为一列
-#'     \item 统计量（估计值、标准误、CI、p 值等）为行
-#'     \item 格式化的 print 方法
+#'     \item Each model specification as a column
+#'     \item Statistics (estimate, std. error, CI, p-value, etc.) as rows
+#'     \item Formatted print method
 #'   }
 #'
 #' @seealso \code{\link{tidy.lwdid_result}}, \code{\link{print.lwdid_comparison}}
@@ -52,16 +54,16 @@ compare <- function(..., type = c("overall", "effects"),
                     stats = c("estimate", "std.error", "ci", "p.value"),
                     stars = TRUE, digits = 3L) {
 
-  # --- 0. 参数匹配 ---
+  # --- 0. Argument matching ---
   type <- match.arg(type)
   digits <- as.integer(digits)
   stopifnot(is.logical(stars), length(stars) == 1L)
   stopifnot(is.numeric(digits), length(digits) == 1L, digits >= 0L)
 
-  # --- 1. 收集模型对象 ---
+  # --- 1. Collect model objects ---
   dots <- list(...)
 
-  # 支持传入单个列表的情况
+  # Support passing a single list
 
   if (length(dots) == 1L && is.list(dots[[1L]]) &&
       !inherits(dots[[1L]], "lwdid_result")) {
@@ -70,21 +72,21 @@ compare <- function(..., type = c("overall", "effects"),
 
   n_models <- length(dots)
   if (n_models == 0L) {
-    stop("\u81f3\u5c11\u9700\u8981\u4e00\u4e2a lwdid_result \u5bf9\u8c61\u8fdb\u884c\u6bd4\u8f83", call. = FALSE)
+    stop("At least one lwdid_result object is required for comparison", call. = FALSE)
   }
 
-  # --- 2. 输入验证：确保所有对象都是 lwdid_result ---
+  # --- 2. Input validation: ensure all objects are lwdid_result ---
   for (i in seq_len(n_models)) {
     if (!inherits(dots[[i]], "lwdid_result")) {
-      stop(sprintf("\u7b2c %d \u4e2a\u53c2\u6570\u4e0d\u662f lwdid_result \u5bf9\u8c61", i),
+      stop(sprintf("Argument %d is not a lwdid_result object", i),
            call. = FALSE)
     }
   }
 
-  # --- 3. 自动命名 ---
+  # --- 3. Auto-naming ---
   model_names <- names(dots)
   if (is.null(model_names) || any(!nzchar(model_names))) {
-    # 为未命名模型自动生成描述性名称
+    # Auto-generate descriptive names for unnamed models
     auto_names <- vapply(dots, function(m) {
       rolling_part <- if (!is.null(m$rolling) && !is.na(m$rolling)) {
         as.character(m$rolling)
@@ -102,18 +104,18 @@ compare <- function(..., type = c("overall", "effects"),
     if (is.null(model_names)) {
       model_names <- auto_names
     } else {
-      # 仅填充空名称
+      # Fill in empty names only
       empty_idx <- !nzchar(model_names)
       model_names[empty_idx] <- auto_names[empty_idx]
     }
 
-    # 处理重复名称
+    # Handle duplicate names
     if (anyDuplicated(model_names)) {
       model_names <- make.unique(model_names, sep = "_")
     }
   }
 
-  # --- 4. 根据 type 提取统计量 ---
+  # --- 4. Extract statistics by type ---
   if (type == "overall") {
     result <- .compare_overall(dots, model_names, stats, stars, digits)
   } else {
@@ -125,12 +127,12 @@ compare <- function(..., type = c("overall", "effects"),
 
 
 # =============================================================================
-# 内部函数：比较 overall ATT
+# Internal function: compare overall ATT
 # =============================================================================
 .compare_overall <- function(models, model_names, stats, stars, digits) {
   n_models <- length(models)
 
-  # 提取各模型的核心统计量
+  # Extract core statistics from each model
   att_vals <- vapply(models, function(m) {
     if (!is.null(m$att) && is.finite(m$att)) m$att else NA_real_
   }, numeric(1))
@@ -151,7 +153,7 @@ compare <- function(..., type = c("overall", "effects"),
     if (!is.null(m$ci_upper) && is.finite(m$ci_upper)) m$ci_upper else NA_real_
   }, numeric(1))
 
-  # 生成显著性星号
+  # Generate significance stars
   star_strs <- if (stars) {
     vapply(pval_vals, function(p) {
       if (is.na(p)) return("")
@@ -164,12 +166,12 @@ compare <- function(..., type = c("overall", "effects"),
     rep("", n_models)
   }
 
-  # 构建输出表格行
+  # Build output table rows
   rows <- list()
   row_labels <- character(0)
 
   if ("estimate" %in% stats) {
-    # ATT 估计值行（含星号）
+    # ATT estimate row (with stars)
     est_row <- vapply(seq_len(n_models), function(i) {
       if (is.na(att_vals[i])) return("NA")
       paste0(formatC(att_vals[i], format = "f", digits = digits), star_strs[i])
@@ -179,7 +181,7 @@ compare <- function(..., type = c("overall", "effects"),
   }
 
   if ("std.error" %in% stats) {
-    # 标准误行（括号格式）
+    # Standard error row (parenthesized)
     se_row <- vapply(se_vals, function(s) {
       if (is.na(s)) return("")
       sprintf("(%s)", formatC(s, format = "f", digits = digits))
@@ -189,7 +191,7 @@ compare <- function(..., type = c("overall", "effects"),
   }
 
   if ("ci" %in% stats) {
-    # 置信区间行
+    # Confidence interval row
     alpha_val <- models[[1]]$alpha %||% 0.05
     ci_level_pct <- round((1 - alpha_val) * 100)
     ci_row <- vapply(seq_len(n_models), function(i) {
@@ -203,7 +205,7 @@ compare <- function(..., type = c("overall", "effects"),
   }
 
   if ("p.value" %in% stats) {
-    # p 值行
+    # p-value row
     pval_row <- vapply(pval_vals, function(p) {
       if (is.na(p)) return("")
       if (p < 0.001) return("<0.001")
@@ -213,11 +215,11 @@ compare <- function(..., type = c("overall", "effects"),
     row_labels <- c(row_labels, "p-value")
   }
 
-  # 模型信息行
+  # Model info rows
   info_rows <- list()
   info_labels <- character(0)
 
-  # N（观测数）
+  # N (number of observations)
   n_row <- vapply(models, function(m) {
     n <- m$nobs
     if (!is.null(n) && is.finite(n)) as.character(as.integer(n)) else "NA"
@@ -241,14 +243,14 @@ compare <- function(..., type = c("overall", "effects"),
   info_rows <- c(info_rows, list(nc_row))
   info_labels <- c(info_labels, "N_control")
 
-  # Transformation（转换方法）
+  # Transformation (rolling method)
   trans_row <- vapply(models, function(m) {
     if (!is.null(m$rolling) && !is.na(m$rolling)) as.character(m$rolling) else "NA"
   }, character(1))
   info_rows <- c(info_rows, list(trans_row))
   info_labels <- c(info_labels, "Transformation")
 
-  # Estimator（估计器）
+  # Estimator
   est_info_row <- vapply(models, function(m) {
     if (!is.null(m$estimator) && !is.na(m$estimator)) as.character(m$estimator) else "NA"
   }, character(1))
@@ -262,7 +264,7 @@ compare <- function(..., type = c("overall", "effects"),
   info_rows <- c(info_rows, list(vce_row))
   info_labels <- c(info_labels, "VCE")
 
-  # Control group（控制组策略，仅在非全部相同时显示）
+  # Control group (strategy; only shown if not all identical)
   cg_vals <- vapply(models, function(m) {
     if (!is.null(m$control_group) && !is.na(m$control_group)) {
       as.character(m$control_group)
@@ -275,11 +277,11 @@ compare <- function(..., type = c("overall", "effects"),
     info_labels <- c(info_labels, "Control group")
   }
 
-  # 组装结果 data.frame
+  # Assemble result data.frame
   all_rows <- c(rows, info_rows)
   all_labels <- c(row_labels, info_labels)
 
-  # 构建 data.frame
+  # Build data.frame
   result_df <- as.data.frame(
     matrix(unlist(all_rows), nrow = length(all_rows), byrow = TRUE),
     stringsAsFactors = FALSE
@@ -289,7 +291,7 @@ compare <- function(..., type = c("overall", "effects"),
                      result_df)
   rownames(result_df) <- NULL
 
-  # 附加元数据
+  # Attach metadata
   attr(result_df, "n_models") <- n_models
   attr(result_df, "model_names") <- model_names
   attr(result_df, "type") <- "overall"
@@ -303,12 +305,12 @@ compare <- function(..., type = c("overall", "effects"),
 
 
 # =============================================================================
-# 内部函数：比较 effects（分期效应）
+# Internal function: compare effects (period-specific)
 # =============================================================================
 .compare_effects <- function(models, model_names, stats, stars, digits) {
   n_models <- length(models)
 
-  # 尝试从 effects 字段提取分期效应
+  # Try to extract period-specific effects from effects field
 
   effects_list <- lapply(models, function(m) {
     eff <- m$effects
@@ -322,24 +324,24 @@ compare <- function(..., type = c("overall", "effects"),
     eff
   })
 
-  # 检查是否至少有一个模型有分期效应
+  # Check if at least one model has period-specific effects
   has_effects <- vapply(effects_list, function(e) {
     !is.null(e) && is.data.frame(e) && nrow(e) > 0L
   }, logical(1))
 
   if (!any(has_effects)) {
-    stop("\u6ca1\u6709\u6a21\u578b\u5305\u542b\u5206\u671f\u6548\u5e94\uff08effects\uff09\u4fe1\u606f\uff0c\u65e0\u6cd5\u8fdb\u884c effects \u6bd4\u8f83",
+    stop("No models contain period-specific effects information; cannot perform effects comparison",
          call. = FALSE)
   }
 
-  # 取第一个有效应的模型来确定行（g,r 对或 event_time）
+  # Use the first model with effects to determine rows (g,r pairs or event_time)
   ref_idx <- which(has_effects)[1L]
   ref_eff <- effects_list[[ref_idx]]
 
-  # 尝试确定行标识列
+  # Try to determine row identifier columns
   id_cols <- intersect(names(ref_eff), c("g", "r", "cohort", "time", "event_time"))
   if (length(id_cols) == 0L) {
-    # 使用行号作为标识
+    # Use row numbers as identifiers
     id_cols <- NULL
     period_labels <- paste0("Period_", seq_len(nrow(ref_eff)))
   } else {
@@ -350,7 +352,7 @@ compare <- function(..., type = c("overall", "effects"),
 
   n_periods <- length(period_labels)
 
-  # 对每个模型/每个期间提取 att 和 se
+  # Extract ATT and SE for each model/period
   result_rows <- list()
   result_labels <- character(0)
 
@@ -387,7 +389,7 @@ compare <- function(..., type = c("overall", "effects"),
     }
   }
 
-  # 组装 data.frame
+  # Assemble data.frame
   result_df <- as.data.frame(
     matrix(unlist(result_rows), nrow = length(result_rows), byrow = TRUE),
     stringsAsFactors = FALSE
@@ -397,7 +399,7 @@ compare <- function(..., type = c("overall", "effects"),
                      result_df)
   rownames(result_df) <- NULL
 
-  # 附加元数据
+  # Attach metadata
   attr(result_df, "n_models") <- n_models
   attr(result_df, "model_names") <- model_names
   attr(result_df, "type") <- "effects"
@@ -411,7 +413,7 @@ compare <- function(..., type = c("overall", "effects"),
 
 
 # =============================================================================
-# S3 方法：格式化打印
+# S3 method: formatted printing
 # =============================================================================
 
 #' Print method for lwdid_comparison objects
@@ -433,26 +435,26 @@ print.lwdid_comparison <- function(x, ...) {
   stars_used <- attr(x, "stars") %||% TRUE
   n_stat_rows <- attr(x, "n_stat_rows") %||% 0L
 
-  # 计算各列宽度
+  # Calculate column widths
   n_models <- length(model_names)
   col_widths <- vapply(seq_len(n_models), function(i) {
-    col_data <- x[[i + 1L]]  # 跳过 stat 列
+    col_data <- x[[i + 1L]]  # skip stat column
     max(nchar(model_names[i]), max(nchar(as.character(col_data)), na.rm = TRUE))
   }, integer(1))
-  # 确保最小宽度
+  # Ensure minimum width
 
   col_widths <- pmax(col_widths, 10L)
 
   label_width <- max(nchar(x$stat), 16L)
 
-  # 总表格宽度
+  # Total table width
   total_width <- label_width + 2L + sum(col_widths + 2L)
 
-  # 标题
+  # Title
   cat("\nlwdid Comparison Table\n")
   cat(strrep("=", total_width), "\n")
 
-  # 表头行
+  # Header row
   header <- sprintf("%-*s", label_width, "")
   for (i in seq_len(n_models)) {
     header <- paste0(header, "  ", sprintf("%-*s", col_widths[i], model_names[i]))
@@ -460,12 +462,12 @@ print.lwdid_comparison <- function(x, ...) {
   cat(header, "\n")
   cat(strrep("-", total_width), "\n")
 
-  # 统计量行
+  # Statistics rows
   n_rows <- nrow(x)
   for (r in seq_len(n_rows)) {
     row_label <- x$stat[r]
 
-    # 在统计量行和信息行之间添加分隔线
+    # Add separator between statistic rows and info rows
     if (n_stat_rows > 0L && r == n_stat_rows + 1L) {
       cat(strrep("-", total_width), "\n")
     }
@@ -478,7 +480,7 @@ print.lwdid_comparison <- function(x, ...) {
     cat(line, "\n")
   }
 
-  # 底部
+  # Footer
   cat(strrep("=", total_width), "\n")
   if (stars_used) {
     cat("*** p<0.01, ** p<0.05, * p<0.1\n")

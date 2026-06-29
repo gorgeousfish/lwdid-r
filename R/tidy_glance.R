@@ -7,14 +7,18 @@
 NULL
 
 #' Re-export tidy generic from generics
+#' @param x An object to tidy
+#' @param ... Additional arguments passed to methods
 #' @importFrom generics tidy
 #' @export
-generics::tidy
+tidy <- generics::tidy
 
 #' Re-export glance generic from generics
+#' @param x An object to glance at
+#' @param ... Additional arguments passed to methods
 #' @importFrom generics glance
 #' @export
-generics::glance
+glance <- generics::glance
 
 # ===========================================================================
 # tidy.lwdid_result

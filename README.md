@@ -2,7 +2,7 @@
 
 **Lee-Wooldridge Difference-in-Differences Estimation for R**
 
-[![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](LICENSE.md)
+[![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](https://www.gnu.org/licenses/agpl-3.0.html)
 [![Version: 0.1.0](https://img.shields.io/badge/Version-0.1.0-green.svg)](NEWS.md)
 
 ## Overview
@@ -444,7 +444,7 @@ If you use `lwdid` in your research, please cite the following papers:
 
 ## License
 
-AGPL-3.0. See [LICENSE.md](LICENSE.md) for details.
+AGPL-3.0. See the [full license text](https://www.gnu.org/licenses/agpl-3.0.html) for details.
 
 ## See Also
 
