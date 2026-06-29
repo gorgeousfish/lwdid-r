@@ -7,7 +7,7 @@
 
 ## Overview
 
-`lwdid` implements the **Rolling Difference-in-Differences Estimator** proposed by Lee and Wooldridge ([2026](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4516518)) and Lee, Wooldridge and Hur ([2026](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=6502558)) for R. Through unit-specific time-series transformations (demeaning or detrending), the package converts panel DiD estimation into standard cross-sectional treatment effect problems, enabling several treatment-effect estimators and the package's supported inference options.
+`lwdid` implements the **Lee-Wooldridge Difference-in-Differences Estimator** proposed by Lee and Wooldridge ([2026](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4516518)), with small-sample inference extensions in Lee and Wooldridge ([2026](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=5325686)) for R. Through unit-specific time-series transformations (demeaning or detrending), the package converts panel DiD estimation into standard cross-sectional treatment effect problems, enabling several treatment-effect estimators and the package's supported inference options.
 
 The package supports common timing and staggered adoption treatment settings in panel data. It keeps estimation, diagnostics, plots, exports, and replication-oriented metadata attached to fitted R objects so users can inspect the analysis path rather than copy results across disconnected scripts.
 
@@ -398,7 +398,7 @@ If you use `lwdid` in your research, please cite the following papers:
 >
 > Lee, S. J., & Wooldridge, J. M. (2026). A simple transformation approach to difference-in-differences estimation for panel data. Available at SSRN 4516518.
 >
-> Lee, S. J., Wooldridge, J. M., & Hur, E. K. (2026). Rolling difference-in-differences estimation for small and large panels. Available at SSRN 6502558.
+> Lee, S. J., & Wooldridge, J. M. (2026). Simple approaches to inference with difference-in-differences estimators with small cross-sectional sample sizes. Available at SSRN 5325686.
 
 **BibTeX:**
 
@@ -419,11 +419,12 @@ If you use `lwdid` in your research, please cite the following papers:
   note={Available at SSRN 4516518}
 }
 
-@article{lee2026rolling,
-  title={Rolling Difference-in-Differences Estimation for Small and Large Panels},
-  author={Lee, Soo Jeong and Wooldridge, Jeffrey M. and Hur, Elizabeth Kayoon},
+@article{lee2026inference,
+  title={Simple Approaches to Inference with Difference-in-Differences
+         Estimators with Small Cross-Sectional Sample Sizes},
+  author={Lee, Soo Jeong and Wooldridge, Jeffrey M.},
   year={2026},
-  note={Available at SSRN 6502558}
+  note={Available at SSRN 5325686}
 }
 ```
 

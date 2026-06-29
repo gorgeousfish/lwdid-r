@@ -17,7 +17,7 @@ knitr::opts_chunk$set(
 ## Overview
 
 This vignette describes the mathematical framework underlying **lwdid**,
-based on Lee and Wooldridge (2026) and Lee, Wooldridge and Hur (2026). The core idea is a unit-level
+based on Lee and Wooldridge (2026) and Lee and Wooldridge (2026). The core idea is a unit-level
 time-series transformation that converts panel DiD estimation into a
 cross-sectional treatment effects problem, enabling:
 
@@ -245,8 +245,8 @@ significance levels across named specifications into a single table.
 Lee, S. and Wooldridge, J.M. (2026). "A Simple Transformation Approach to
 Difference-in-Differences Estimation for Panel Data."
 
-Lee, S., Wooldridge, J.M. and Hur, E.K. (2026). "Rolling Difference-in-Differences
-Estimation for Small and Large Panels."
+Lee, S. and Wooldridge, J.M. (2026). "Simple Approaches to Inference with
+Difference-in-Differences Estimators with Small Cross-Sectional Sample Sizes."
 
 Wooldridge, J.M. (2026a). "Two-Way Fixed Effects, the Two-Way Mundlak
 Regression, and Difference-in-Differences Estimators."

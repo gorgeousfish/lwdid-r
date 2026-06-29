@@ -26,13 +26,12 @@ bibentry(
 
 bibentry(
   bibtype  = "Article",
-  title    = "Rolling Difference-in-Differences Estimation for Small and Large Panels",
+  title    = "Simple Approaches to Inference with Difference-in-Differences Estimators with Small Cross-Sectional Sample Sizes",
   author   = c(
     person("Soo Jeong", "Lee"),
-    person("Jeffrey M.", "Wooldridge"),
-    person("Elizabeth Kayoon", "Hur")
+    person("Jeffrey M.", "Wooldridge")
   ),
   year     = "2026",
   journal  = "Working Paper",
-  note     = "SSRN 6502558"
+  note     = "SSRN 5325686"
 )

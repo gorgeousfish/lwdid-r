@@ -20,8 +20,8 @@ knitr::opts_chunk$set(
 
 ## Introduction
 
-The **lwdid** package implements the Lee and Wooldridge (2026) and Lee, Wooldridge
-and Hur (2026) simple
+The **lwdid** package implements the Lee and Wooldridge (2026) and Lee and Wooldridge
+(2026) simple
 transformation approach for Difference-in-Differences (DiD) estimation with
 panel data. The key innovation is a unit-level time-series transformation
 that converts panel DiD into a cross-sectional treatment effects problem.
@@ -279,5 +279,5 @@ result_par <- lwdid(
 Lee, S. and Wooldridge, J.M. (2026). "A Simple Transformation Approach to
 Difference-in-Differences Estimation for Panel Data."
 
-Lee, S., Wooldridge, J.M. and Hur, E.K. (2026). "Rolling Difference-in-Differences
-Estimation for Small and Large Panels."
+Lee, S. and Wooldridge, J.M. (2026). "Simple Approaches to Inference with
+Difference-in-Differences Estimators with Small Cross-Sectional Sample Sizes."

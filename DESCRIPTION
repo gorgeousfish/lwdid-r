@@ -11,8 +11,8 @@ Date: 2026-06-20
 Description: Implements the Lee and Wooldridge (2026)
     <doi:10.2139/ssrn.4516518> simple transformation approach for
     difference-in-differences estimation with panel data, extended to
-    rolling designs in Lee, Wooldridge and Hur (2026)
-    <doi:10.2139/ssrn.6502558>. Supports both common timing and staggered
+    small-sample inference in Lee and Wooldridge (2026)
+    <doi:10.2139/ssrn.5325686>. Supports both common timing and staggered
     adoption designs with multiple estimators (RA, IPW, IPWRA, PSM).
     Provides robust variance estimation (HC0-HC4, cluster-robust),
     randomization inference, wild cluster bootstrap, and comprehensive

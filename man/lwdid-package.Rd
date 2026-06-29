@@ -54,8 +54,9 @@ The main entry point is \code{\link{lwdid}}.
 Lee, S. and Wooldridge, J.M. (2026). "A Simple Transformation Approach
 to Difference-in-Differences Estimation for Panel Data."
 
-Lee, S., Wooldridge, J.M. and Hur, E.K. (2026). "Rolling
-Difference-in-Differences Estimation for Small and Large Panels."
+Lee, S. and Wooldridge, J.M. (2026). "Simple Approaches to Inference
+with Difference-in-Differences Estimators with Small Cross-Sectional
+Sample Sizes."
 }
 \seealso{
 \code{\link{lwdid}} for the main estimation function,
