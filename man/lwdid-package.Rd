@@ -5,7 +5,7 @@
 \alias{lwdid-package}
 \title{lwdid: Lee-Wooldridge Difference-in-Differences Estimation}
 \description{
-Implements the Lee and Wooldridge (2025, 2026) simple transformation
+Implements the Lee and Wooldridge (2026) simple transformation
 approach for difference-in-differences (DiD) estimation with panel data.
 Through unit-specific time-series transformations (demeaning or
 detrending), the package converts panel DiD estimation into standard
@@ -51,12 +51,11 @@ for quarterly/seasonal data.
 The main entry point is \code{\link{lwdid}}.
 }
 \references{
-Lee, S. and Wooldridge, J.M. (2025). "A Simple Transformation Approach
+Lee, S. and Wooldridge, J.M. (2026). "A Simple Transformation Approach
 to Difference-in-Differences Estimation for Panel Data."
 
-Lee, S. and Wooldridge, J.M. (2026). "Simple Approaches to Inference
-with Difference-in-Differences Estimators with Small Cross-Sectional
-Sample Sizes."
+Lee, S., Wooldridge, J.M. and Hur, E.K. (2026). "Rolling
+Difference-in-Differences Estimation for Small and Large Panels."
 }
 \seealso{
 \code{\link{lwdid}} for the main estimation function,

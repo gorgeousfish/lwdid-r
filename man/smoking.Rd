@@ -42,7 +42,7 @@ Estimating the Effect of California's Tobacco Control Program."
 \emph{Journal of the American Statistical Association}, 105(490),
 493-505.
 
-Lee, S. and Wooldridge, J. M. (2025).
+Lee, S. and Wooldridge, J. M. (2026).
 "A Simple Transformation Approach to Difference-in-Differences
 Estimation for Panel Data." SSRN No. 4516518.
 
@@ -61,7 +61,7 @@ the sole treated state and all other states serve as controls.
 }
 \details{
 Originally used in Abadie, Diamond, and Hainmueller (2010) for
-synthetic control analysis. Used in Lee and Wooldridge (2025, 2026)
+synthetic control analysis. Used in Lee and Wooldridge (2026)
 as the common timing DiD benchmark.
 
 ATT benchmark (demean, RA, homoskedastic SE):

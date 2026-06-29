@@ -36,7 +36,7 @@ An \code{lwdid_comparison} S3 object (inherits data.frame), containing:
 \description{
 Compare lwdid estimation results across different specifications
 (estimators, transformations, control group strategies) in a standardized
-table format. Based on ATT definitions from Lee & Wooldridge (2025, 2026).
+table format. Based on ATT definitions from Lee & Wooldridge (2026).
 
 Different rolling methods estimate the same target parameter tau under
 different identification assumptions. The mathematical purpose of compare()

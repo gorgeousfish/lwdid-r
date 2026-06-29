@@ -6,7 +6,7 @@
 #' the sole treated state and all other states serve as controls.
 #'
 #' Originally used in Abadie, Diamond, and Hainmueller (2010) for
-#' synthetic control analysis. Used in Lee and Wooldridge (2025, 2026)
+#' synthetic control analysis. Used in Lee and Wooldridge (2026)
 #' as the common timing DiD benchmark.
 #'
 #' ATT benchmark (demean, RA, homoskedastic SE):
@@ -51,7 +51,7 @@
 #' \emph{Journal of the American Statistical Association}, 105(490),
 #' 493-505.
 #'
-#' Lee, S. and Wooldridge, J. M. (2025).
+#' Lee, S. and Wooldridge, J. M. (2026).
 #' "A Simple Transformation Approach to Difference-in-Differences
 #' Estimation for Panel Data." SSRN No. 4516518.
 #'
@@ -79,7 +79,7 @@
 #' 2009, while 29 states serve as never-treated controls.
 #'
 #' Originally used in Cheng and Hoekstra (2013). Used in Lee and
-#' Wooldridge (2025, 2026) as the staggered DiD benchmark (Section 6).
+#' Wooldridge (2026) as the staggered DiD benchmark (Section 6).
 #'
 #' Cohort structure (number of states per adoption year):
 #' 2005: 1 (Florida), 2006: 13, 2007: 4, 2008: 2, 2009: 1, NA: 29.
@@ -129,7 +129,7 @@
 #' Violence? Evidence from Expansions to Castle Doctrine."
 #' \emph{Journal of Human Resources}, 48(3), 821-854.
 #'
-#' Lee, S. and Wooldridge, J. M. (2025).
+#' Lee, S. and Wooldridge, J. M. (2026).
 #' "A Simple Transformation Approach to Difference-in-Differences
 #' Estimation for Panel Data." SSRN No. 4516518.
 #'
@@ -158,7 +158,7 @@
 #'
 #' Originally constructed by Brown and Butts (2025), who follow Basker
 #' (2005) in using County Business Patterns (CBP) data from 1964 and
-#' 1977--1999. Used in Lee and Wooldridge (2025) Section 6 as the
+#' 1977--1999. Used in Lee and Wooldridge (2026) Section 6 as the
 #' large-scale staggered DiD application.
 #'
 #' The dataset is limited to counties with more than 1,500 total
@@ -208,7 +208,7 @@
 #' Expansion."
 #' \emph{Review of Economics and Statistics}, 87(1), 174--183.
 #'
-#' Lee, S. and Wooldridge, J. M. (2025).
+#' Lee, S. and Wooldridge, J. M. (2026).
 #' "A Simple Transformation Approach to Difference-in-Differences
 #' Estimation for Panel Data." SSRN No. 4516518.
 #'

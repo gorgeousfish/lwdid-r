@@ -44,7 +44,7 @@ Basker, E. (2005).
 Expansion."
 \emph{Review of Economics and Statistics}, 87(1), 174--183.
 
-Lee, S. and Wooldridge, J. M. (2025).
+Lee, S. and Wooldridge, J. M. (2026).
 "A Simple Transformation Approach to Difference-in-Differences
 Estimation for Panel Data." SSRN No. 4516518.
 }
@@ -60,7 +60,7 @@ and 1999, while 394 counties serve as never-treated controls.
 \details{
 Originally constructed by Brown and Butts (2025), who follow Basker
 (2005) in using County Business Patterns (CBP) data from 1964 and
-1977--1999. Used in Lee and Wooldridge (2025) Section 6 as the
+1977--1999. Used in Lee and Wooldridge (2026) Section 6 as the
 large-scale staggered DiD application.
 
 The dataset is limited to counties with more than 1,500 total

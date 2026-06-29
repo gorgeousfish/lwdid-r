@@ -31,7 +31,7 @@ A \code{data.table} with the following columns added:
 }
 \description{
 Implements the unit-specific demeaning transformation from
-Lee & Wooldridge (2025, 2026) Procedure 2.1 (equations 2.11-2.12).
+Lee & Wooldridge (2026) Procedure 2.1 (equations 2.11-2.12).
 When \code{exclude_pre_periods > 0}, the pre-treatment window is
 shortened from the end following equation 2.22 (anticipation handling).
 }

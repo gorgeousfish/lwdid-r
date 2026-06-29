@@ -260,7 +260,7 @@ An S3 object of class \code{\link{lwdid_result}} containing
 estimation results, diagnostics, and metadata.
 }
 \description{
-Estimate treatment effects using the Lee-Wooldridge (2025)
+Estimate treatment effects using the Lee-Wooldridge (2026)
 Difference-in-Differences framework. Supports both Common Timing
 (all units treated at the same time) and Staggered Adoption
 (units treated at different times) designs.

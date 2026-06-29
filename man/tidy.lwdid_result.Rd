@@ -33,7 +33,7 @@ A data.frame with columns:
 }
 \description{
 Extract estimation results in a tidy data.frame format compatible
-with modelsummary and broom ecosystem. Follows Lee & Wooldridge (2025)
+with modelsummary and broom ecosystem. Follows Lee & Wooldridge (2026)
 ATT definitions.
 }
 \examples{

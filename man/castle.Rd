@@ -48,7 +48,7 @@ Cheng, C. and Hoekstra, M. (2013).
 Violence? Evidence from Expansions to Castle Doctrine."
 \emph{Journal of Human Resources}, 48(3), 821-854.
 
-Lee, S. and Wooldridge, J. M. (2025).
+Lee, S. and Wooldridge, J. M. (2026).
 "A Simple Transformation Approach to Difference-in-Differences
 Estimation for Panel Data." SSRN No. 4516518.
 
@@ -66,7 +66,7 @@ adoption dataset where 21 states adopted the law between 2005 and
 }
 \details{
 Originally used in Cheng and Hoekstra (2013). Used in Lee and
-Wooldridge (2025, 2026) as the staggered DiD benchmark (Section 6).
+Wooldridge (2026) as the staggered DiD benchmark (Section 6).
 
 Cohort structure (number of states per adoption year):
 2005: 1 (Florida), 2006: 13, 2007: 4, 2008: 2, 2009: 1, NA: 29.

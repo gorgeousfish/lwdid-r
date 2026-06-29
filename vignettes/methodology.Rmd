@@ -17,7 +17,7 @@ knitr::opts_chunk$set(
 ## Overview
 
 This vignette describes the mathematical framework underlying **lwdid**,
-based on Lee and Wooldridge (2025, 2026). The core idea is a unit-level
+based on Lee and Wooldridge (2026) and Lee, Wooldridge and Hur (2026). The core idea is a unit-level
 time-series transformation that converts panel DiD estimation into a
 cross-sectional treatment effects problem, enabling:
 
@@ -178,7 +178,7 @@ asymptotically efficient (Wooldridge, 2025a, Theorem 6.2).
 ### Motivation
 
 In applied DiD research, reporting results from a single specification is
-insufficient for credible inference. The Lee & Wooldridge (2025) framework
+insufficient for credible inference. The Lee & Wooldridge (2026) framework
 naturally supports multi-specification comparison because the same
 transformed cross-section can be analyzed with different estimators and
 transformations. If results are stable across specifications, conclusions
@@ -242,12 +242,11 @@ significance levels across named specifications into a single table.
 
 ## References
 
-Lee, S. and Wooldridge, J.M. (2025). "A Simple Transformation Approach to
+Lee, S. and Wooldridge, J.M. (2026). "A Simple Transformation Approach to
 Difference-in-Differences Estimation for Panel Data."
 
-Lee, S. and Wooldridge, J.M. (2026). "Simple Approaches to Inference with
-Difference-in-Differences Estimators with Small Cross-Sectional Sample
-Sizes."
+Lee, S., Wooldridge, J.M. and Hur, E.K. (2026). "Rolling Difference-in-Differences
+Estimation for Small and Large Panels."
 
 Wooldridge, J.M. (2025a). "Two-Way Fixed Effects, the Two-Way Mundlak
 Regression, and Difference-in-Differences Estimators."

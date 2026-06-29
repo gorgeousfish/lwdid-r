@@ -3,7 +3,7 @@
 #' Lee-Wooldridge Difference-in-Differences Estimation
 #'
 #' @description
-#' Estimate treatment effects using the Lee-Wooldridge (2025)
+#' Estimate treatment effects using the Lee-Wooldridge (2026)
 #' Difference-in-Differences framework. Supports both Common Timing
 #' (all units treated at the same time) and Staggered Adoption
 #' (units treated at different times) designs.
@@ -995,7 +995,7 @@ lwdid <- function(
 #' @param registry WarningRegistry instance for deferred warning
 #'   emission.
 #'
-#' @references Lee, S. and Wooldridge, J.M. (2025, 2026).
+#' @references Lee, S. and Wooldridge, J.M. (2026).
 #'   Section 8.2 (clustering).
 #'
 #' @return An S3 object of class \code{\link{lwdid_result}}.

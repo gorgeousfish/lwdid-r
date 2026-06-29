@@ -5,7 +5,7 @@
 #   - prepare_staggered_controls(): Control variable extraction for (g,r) subsample
 #   - estimate_staggered_effects(): (g,r) effect estimation loop (to be added)
 #
-# Reference: Lee & Wooldridge (2025, 2026) [lw2025, lw2026]
+# Reference: Lee & Wooldridge (2026) [lw2026]
 # ============================================================================
 
 #' @title Prepare control variable matrix for staggered (g,r) subsample

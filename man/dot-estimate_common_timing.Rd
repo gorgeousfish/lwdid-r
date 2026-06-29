@@ -28,7 +28,7 @@ are verified on the original panel data (see lw2026 Section 8.2
 for clustering discussion).
 }
 \references{
-Lee, S. and Wooldridge, J.M. (2025, 2026).
+Lee, S. and Wooldridge, J.M. (2026).
 Section 8.2 (clustering).
 }
 \keyword{internal}

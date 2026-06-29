@@ -68,7 +68,7 @@ strategy for controls: (1) full interaction, (2) simple controls,
 of covariates.
 }
 \references{
-Lee, S. and Wooldridge, J.M. (2025, 2026).
+Lee, S. and Wooldridge, J.M. (2026).
 Equations 2.18--2.19.
 }
 \keyword{internal}

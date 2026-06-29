@@ -19,19 +19,20 @@ bibentry(
     person("Soo Jeong", "Lee"),
     person("Jeffrey M.", "Wooldridge")
   ),
-  year     = "2025",
+  year     = "2026",
   journal  = "Working Paper",
   note     = "SSRN 4516518"
 )
 
 bibentry(
   bibtype  = "Article",
-  title    = "Simple Approaches to Inference with Difference-in-Differences Estimators with Small Cross-Sectional Sample Sizes",
+  title    = "Rolling Difference-in-Differences Estimation for Small and Large Panels",
   author   = c(
     person("Soo Jeong", "Lee"),
-    person("Jeffrey M.", "Wooldridge")
+    person("Jeffrey M.", "Wooldridge"),
+    person("Elizabeth Kayoon", "Hur")
   ),
   year     = "2026",
   journal  = "Working Paper",
-  note     = "SSRN 5325686"
+  note     = "SSRN 6502558"
 )

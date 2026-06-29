@@ -21,17 +21,19 @@ This is a new package submission. There are currently no downstream dependencies
 
 ## Package purpose
 
-This package implements the Lee and Wooldridge (2025, 2026) simple 
+This package implements the Lee and Wooldridge (2026) and Lee, Wooldridge
+and Hur (2026) simple 
 transformation approach for difference-in-differences (DiD) estimation 
 with panel data. It provides a unified framework for both common timing 
 and staggered adoption designs with multiple estimators.
 
 References:
-- Lee, S. and Wooldridge, J.M. (2025). "A Simple Transformation Approach 
+- Lee, S. and Wooldridge, J.M. (2026). "A Simple Transformation Approach 
   to Difference-in-Differences Estimation for Panel Data." Available at 
   SSRN: https://ssrn.com/abstract=4516518
-- Lee, S. and Wooldridge, J.M. (2026). "Staggered DiD Designs with 
-  Heterogeneous Trends." Available at SSRN: https://ssrn.com/abstract=5325686
+- Lee, S., Wooldridge, J.M. and Hur, E.K. (2026). "Rolling Difference-in-
+  Differences Estimation for Small and Large Panels." Available at 
+  SSRN: https://ssrn.com/abstract=6502558
 
 ## External URLs
 

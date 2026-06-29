@@ -1,6 +1,6 @@
 # transform.R
 # Rolling transformation methods for lwdid package.
-# Implements four transformation methods from Lee & Wooldridge (2025, 2026):
+# Implements four transformation methods from Lee & Wooldridge (2026):
 #   - demean:   Unit-specific demeaning (Procedure 2.1)
 #   - detrend:  Unit-specific detrending (Procedure 3.1)
 #   - demeanq:  Seasonal demeaning (common-timing path)
@@ -544,7 +544,7 @@ transform_detrendq <- function(dt, y, ivar, tvar, g,
 #' Unit-specific demeaning transformation
 #'
 #' Implements the unit-specific demeaning transformation from
-#' Lee & Wooldridge (2025, 2026) Procedure 2.1 (equations 2.11-2.12).
+#' Lee & Wooldridge (2026) Procedure 2.1 (equations 2.11-2.12).
 #' When \code{exclude_pre_periods > 0}, the pre-treatment window is
 #' shortened from the end following equation 2.22 (anticipation handling).
 #'

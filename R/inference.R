@@ -7,7 +7,7 @@
 #   - compute_hc_vce():      HC0-HC4 heteroskedasticity-robust VCE
 #   - compute_cluster_vce(): Cluster-robust VCE (Liang-Zeger / sandwich::vcovCL)
 #
-# Reference: Lee & Wooldridge (2025, 2026) [lw2026]
+# Reference: Lee & Wooldridge (2026) [lw2026]
 #   - Section 2.4: Variance estimation under homoskedasticity
 #   - Section 3.3: Robust and cluster-robust inference
 #

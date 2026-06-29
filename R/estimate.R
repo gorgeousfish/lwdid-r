@@ -6,7 +6,7 @@
 #   - estimate_ra_common_fast(): RA estimator (QR-based, ATT only)
 #   - estimate_period_effects(): Period-specific ATT estimation
 #
-# Reference: Lee & Wooldridge (2025, 2026) [lw2026]
+# Reference: Lee & Wooldridge (2026) [lw2026]
 # ============================================================================
 
 #' @title Common Timing RA Estimator with VCE Support
@@ -58,7 +58,7 @@
 #'       df_resid for homoskedastic/HC; G_cluster - 1 for cluster).}
 #'   }
 #'
-#' @references Lee, S. and Wooldridge, J.M. (2025, 2026).
+#' @references Lee, S. and Wooldridge, J.M. (2026).
 #'   Equations 2.18--2.19.
 #'
 #' @keywords internal
@@ -373,7 +373,7 @@ estimate_ra_common_fast <- function(y_trans, d, x = NULL) {
 #'   \code{n_control}, \code{df}, \code{vce_type},
 #'   \code{n_clusters}, \code{controls_tier}.
 #'
-#' @references Lee, S. and Wooldridge, J.M. (2025, 2026).
+#' @references Lee, S. and Wooldridge, J.M. (2026).
 #'   Equation 2.20, Procedure 2.1.
 #'
 #' @keywords internal

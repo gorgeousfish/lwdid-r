@@ -26,7 +26,7 @@
 #' Adjustment (IPWRA), or Propensity Score Matching (PSM).
 #'
 #' Implements the estimator selection mechanism described in
-#' Lee & Wooldridge (2025) Procedure 3.1 Step 2: "apply standard TE
+#' Lee & Wooldridge (2026) Procedure 3.1 Step 2: "apply standard TE
 #' methods -- such as linear RA, IPW, IPWRA, matching -- to the
 #' cross section". Called by \code{\link{lwdid}} for both Common Timing
 #' and Staggered adoption designs (Procedure 4.1 Step 3).
@@ -85,7 +85,7 @@
 #'   }
 #'
 #' @references
-#' Lee, S. and Wooldridge, J.M. (2025). "Difference-in-Differences
+#' Lee, S. and Wooldridge, J.M. (2026). "Difference-in-Differences
 #'   with a Continuous Treatment."
 #'
 #' Lee, S. and Wooldridge, J.M. (2026). "Simple Difference-in-Differences

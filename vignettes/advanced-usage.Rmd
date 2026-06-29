@@ -421,9 +421,8 @@ to_csv(res_dm, file = "results.csv")
 
 ## References
 
-Lee, S. and Wooldridge, J.M. (2025). "A Simple Transformation Approach to
+Lee, S. and Wooldridge, J.M. (2026). "A Simple Transformation Approach to
 Difference-in-Differences Estimation for Panel Data."
 
-Lee, S. and Wooldridge, J.M. (2026). "Simple Approaches to Inference with
-Difference-in-Differences Estimators with Small Cross-Sectional Sample
-Sizes."
+Lee, S., Wooldridge, J.M. and Hur, E.K. (2026). "Rolling Difference-in-Differences
+Estimation for Small and Large Panels."

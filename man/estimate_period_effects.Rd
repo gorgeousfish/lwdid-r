@@ -63,7 +63,7 @@ For each post-treatment period r, independently calls
 ATT (lw2026 equation 2.20, Procedure 2.1).
 }
 \references{
-Lee, S. and Wooldridge, J.M. (2025, 2026).
+Lee, S. and Wooldridge, J.M. (2026).
 Equation 2.20, Procedure 2.1.
 }
 \keyword{internal}
