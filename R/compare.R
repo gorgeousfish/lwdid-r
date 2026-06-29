@@ -330,8 +330,8 @@ compare <- function(..., type = c("overall", "effects"),
   }, logical(1))
 
   if (!any(has_effects)) {
-    stop("No models contain period-specific effects information; cannot perform effects comparison",
-         call. = FALSE)
+    message("No models contain period-specific effects; falling back to type='overall'.")
+    return(.compare_overall(models, model_names, stats, stars, digits))
   }
 
   # Use the first model with effects to determine rows (g,r pairs or event_time)
