@@ -61,7 +61,7 @@ lwdid_invalid_rolling_error(
 lwdid_invalid_vce_error(
   vce_type,
   allowed = c("NULL", "robust", "hc0", "hc1", "hc2", "hc3", "hc4", "cluster",
-    "bootstrap"),
+    "bootstrap", "wcb", "wild_cluster_bootstrap", "homoskedastic"),
   call = NULL
 )
 

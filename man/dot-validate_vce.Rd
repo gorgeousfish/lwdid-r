@@ -2,11 +2,15 @@
 % Please edit documentation in R/validate.R
 \name{.validate_vce}
 \alias{.validate_vce}
-\title{Validate VCE parameter (NULL or valid string)}
+\title{Validate and normalize VCE parameter (NULL or valid string)}
 \usage{
 .validate_vce(vce)
 }
+\value{
+Normalized VCE string or NULL.
+}
 \description{
-Validate VCE parameter (NULL or valid string)
+Case-insensitive. Aliases: "homoskedastic" -> NULL,
+"wcb" / "wild_cluster_bootstrap" -> "bootstrap".
 }
 \keyword{internal}

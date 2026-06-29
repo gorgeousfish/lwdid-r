@@ -128,7 +128,10 @@ do not enter the estimator frame or complete-case filtering.}
 
 \item{vce}{character(1) or NULL. Variance-covariance estimator type.
 One of \code{NULL}, \code{"hc0"}-\code{"hc4"}, \code{"robust"},
-\code{"cluster"}, \code{"bootstrap"}. Supported for
+\code{"cluster"}, \code{"bootstrap"}. Case-insensitive (e.g.
+\code{"HC3"} is accepted). Aliases: \code{"wcb"} and
+\code{"wild_cluster_bootstrap"} map to \code{"bootstrap"};
+\code{"homoskedastic"} maps to \code{NULL}. Supported for
 \code{estimator = "ra"} only; IPW, IPWRA, and PSM use
 \code{se_method} for estimator-specific analytical or bootstrap
 uncertainty estimation and require \code{vce = NULL}.}

@@ -225,12 +225,15 @@ FREQ_LABELS <- list("4" = "quarter", "12" = "month", "52" = "week")
   }
 }
 
-#' Validate VCE parameter (NULL or valid string)
+#' Validate and normalize VCE parameter (NULL or valid string)
+#'
+#' Case-insensitive. Aliases: "homoskedastic" -> NULL,
+#' "wcb" / "wild_cluster_bootstrap" -> "bootstrap".
+#' @return Normalized VCE string or NULL.
 #' @keywords internal
 .validate_vce <- function(vce) {
-  if (is.null(vce)) return(invisible(NULL))
-  if (!is.character(vce) || length(vce) != 1L ||
-      !vce %in% VALID_VCE_TYPES) {
+  if (is.null(vce)) return(NULL)
+  if (!is.character(vce) || length(vce) != 1L) {
     stop_lwdid(
       message = sprintf(
         "Invalid VCE type '%s'. Must be one of: NULL, %s",
@@ -240,6 +243,23 @@ FREQ_LABELS <- list("4" = "quarter", "12" = "month", "52" = "week")
       vce_type = vce, allowed = c("NULL", VALID_VCE_TYPES)
     )
   }
+  # Case-insensitive normalization
+  vce <- tolower(vce)
+  # Alias mapping
+  if (vce == "homoskedastic") return(NULL)
+  if (vce %in% c("wcb", "wild_cluster_bootstrap")) vce <- "bootstrap"
+  # Validate against canonical types
+  if (!vce %in% VALID_VCE_TYPES) {
+    stop_lwdid(
+      message = sprintf(
+        "Invalid VCE type '%s'. Must be one of: NULL, %s",
+        vce,
+        paste(VALID_VCE_TYPES, collapse = ", ")),
+      class = c("lwdid_invalid_vce", "lwdid_invalid_parameter"),
+      vce_type = vce, allowed = c("NULL", VALID_VCE_TYPES)
+    )
+  }
+  vce
 }
 
 #' Validate numeric in open/closed interval
@@ -2116,7 +2136,7 @@ validate_inputs <- function(
   .validate_choice(caliper_scale, VALID_CALIPER_SCALES,
                    "caliper_scale")
   .validate_choice(ri_method, VALID_RI_METHODS, "ri_method")
-  .validate_vce(vce)
+  vce <- .validate_vce(vce)
 
   .validate_numeric_range(alpha, 0, 1, "alpha", exclusive = TRUE)
   .validate_numeric_range(pretreatment_alpha, 0, 1,

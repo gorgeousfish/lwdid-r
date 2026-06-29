@@ -259,7 +259,7 @@ lwdid_invalid_rolling_error <- function(method, allowed = c("demean", "detrend",
 
 #' @rdname lwdid-conditions
 #' @export
-lwdid_invalid_vce_error <- function(vce_type, allowed = c("NULL", "robust", "hc0", "hc1", "hc2", "hc3", "hc4", "cluster", "bootstrap"), call = NULL) {
+lwdid_invalid_vce_error <- function(vce_type, allowed = c("NULL", "robust", "hc0", "hc1", "hc2", "hc3", "hc4", "cluster", "bootstrap", "wcb", "wild_cluster_bootstrap", "homoskedastic"), call = NULL) {
   msg <- sprintf(
     "Invalid VCE type '%s'. Must be one of: %s",
     vce_type, paste(allowed, collapse = ", ")
